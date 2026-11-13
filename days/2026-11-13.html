@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KV Cache 日报 · 2026-11-13</title>
+<meta name="description" content="2026-11-13 的 KV Cache 论文摘要，10 篇。">
+<meta name="theme-color" content="#f6f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="day-page">
+
+<header class="topbar">
+  <a class="back" href="../index.html"><span aria-hidden="true">←</span> 全部日报</a>
+  <span class="top-date">2026年11月13日 · 周五</span>
+</header>
+<main class="report">
+<h1 id="kv-cache-2026-11-13">KV Cache 论文日报 · 2026-11-13</h1>
+<blockquote>
+<p><strong>今日 10 篇</strong>：跨广域/跨机房 4 篇 · 系统与传输 2 篇 · 复用 1 篇 · 压缩 3 篇</p>
+<p><strong>本期主线</strong>：跨机房不再只是“把 KV 传过去”，而是分成三条路线——<strong>用中继解码把 WAN 延迟藏起来</strong>（PDD）、<strong>传一部分 + 重算一部分</strong>（EdgeFlow）、<strong>只传最重要的那一部分</strong>（ImpactHO）；再加一篇回答“到底该传还是该重算”的广域带宽经济学分析。
+</p>
+</blockquote>
+<h2 id="_1">速览</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>论文</th>
+<th>方向</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>PDD: Unleashing Economical and Flexible Heterogeneous LLM Inference via Cross-Datacenter Prefill-Decode Disaggregation</td>
+<td>跨机房 PD 分离</td>
+<td>arXiv:2609.13161</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Efficient KV Cache Migration for Geo-Distributed LLM Inference in Collaborative Edge Computing</td>
+<td>边缘跨域迁移</td>
+<td>arXiv:2610.22172</td>
+</tr>
+<tr>
+<td>3</td>
+<td>ImpactHO: Importance-Aware KV Cache Transfer for Multi-User Edge LLM Handover</td>
+<td>边缘切换传输</td>
+<td>arXiv:2608.10545</td>
+</tr>
+<tr>
+<td>4</td>
+<td>When Does Distributed AI Inference Need More Wide-Area Bandwidth? A Co-Design Evaluation of Optical, Packet, and Software Levers</td>
+<td>广域带宽经济学</td>
+<td>arXiv:2608.14967</td>
+</tr>
+<tr>
+<td>5</td>
+<td>OasisKV: Scaling In-Decode KV Cache Beyond HBM with Lookahead Sparse Prefetching</td>
+<td>分层预取/传输</td>
+<td>arXiv:2608.08097</td>
+</tr>
+<tr>
+<td>6</td>
+<td>KVDrive: A Holistic Multi-Tier KV Cache Management System for Long-Context LLM Inference</td>
+<td>多级缓存管理</td>
+<td>arXiv:2605.18071</td>
+</tr>
+<tr>
+<td>7</td>
+<td>PCR: A Prefetch-Enhanced Cache Reuse System for Low-Latency RAG Serving</td>
+<td>复用+预取</td>
+<td>arXiv:2603.23049</td>
+</tr>
+<tr>
+<td>8</td>
+<td>LowRAM: Low-Rank Keys and Amortised Values for Composable KV Cache Compression at Test-Time</td>
+<td>低秩/值摊销</td>
+<td>arXiv:2611.07025</td>
+</tr>
+<tr>
+<td>9</td>
+<td>CALFA-KV: Joint Calibration and Fisher-Guided Anchors for 1-Bit KV Cache Compression</td>
+<td>1-bit 量化</td>
+<td>arXiv:2611.10511</td>
+</tr>
+<tr>
+<td>10</td>
+<td>RAQ-MLA: Role-Aware Quantization for Multi-Head Latent Attention Caches</td>
+<td>MLA 量化</td>
+<td>arXiv:2610.33625</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_2">一、跨广域 / 跨机房</h2>
+<h3 id="1-pdd-unleashing-economical-and-flexible-heterogeneous-llm-inference-via-cross-datacenter-prefill-decode-disaggregation">1. PDD: Unleashing Economical and Flexible Heterogeneous LLM Inference via Cross-Datacenter Prefill-Decode Disaggregation</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2609.13161">https://arxiv.org/abs/2609.13161</a></li>
+<li><strong>时间</strong>：2026-07-18</li>
+<li><strong>方向</strong>：跨机房 PD 分离 · 中继解码 · WAN 延迟隐藏</li>
+</ul>
+<p><strong>摘要</strong>：论文指出，用广域以太网把地理分散的集群连起来做 PD 分离，比在单个机房堆异构卡更省钱，但跨集群搬运 KV 会显著推高 TTFT，对“长上下文、高缓存命中、短输出”的 agent 负载尤其致命。PDD 在 Prefill 与 Decode 之间加了一层 <strong>RelayDecode（RLD）</strong>：Cluster A 的 Prefill 算完后，RLD 先用 RDMA 高速拿到 KV 并立即开始解码，同时把 KV 通过 TCP 以太网传往 Cluster B；Cluster B 的 MainDecode 收到 KV 和 RLD 已生成的 token 后无缝接手。配套三个机制：Decode 侧的 RadixCache 降低带宽压力、Extend-Decode Handoff 做控制权迁移、多级流水线编排处理跨层依赖；并用 H100（算力）＋H200（显存带宽）的异构部署把延迟进一步掩盖。相比同机房同构 PD 基线，SLA 合规有效吞吐的性价比（BCR）最高提升 37.5%。</p>
+<p><strong>对广域的启示</strong>：跨机房的关键不是“等 KV 传完再解码”，而是<strong>让解码先开始、让传输在后台跑</strong>；三层 PD（Prefill → Relay → Main）是把 WAN 延迟转成重叠成本的通用模式。</p>
+<h3 id="2-efficient-kv-cache-migration-for-geo-distributed-llm-inference-in-collaborative-edge-computing">2. Efficient KV Cache Migration for Geo-Distributed LLM Inference in Collaborative Edge Computing</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.22172">https://arxiv.org/abs/2610.22172</a></li>
+<li><strong>时间</strong>：2026-10-15</li>
+<li><strong>方向</strong>：协作边缘 · KV 迁移 · 传输/重算混合</li>
+</ul>
+<p><strong>摘要</strong>：协作边缘计算把多个地理分散的异构边缘服务器拼起来，联合托管小模型分片和对应的 KV Cache 做分布式推理；但边缘节点会断连或过载，必须有状态 KV 的迁移。云上常用的“跨 GPU 直传”和“从输入 token 重算”在带宽受限、资源紧张的边缘都不合适。EdgeFlow 提出<strong>混合迁移</strong>：把直接传 KV 与基于激活的重算结合起来，让计算和通信并行，以最小化迁移时间；在此基础上把多节点 KV 迁移建模成优化问题，用改进的线性规划松弛＋二分图技巧给出 2-近似算法。真实分布式推理平台实验显示迁移时间最多降低 45%。</p>
+<p><strong>对广域的启示</strong>：广域/边缘场景里，“全传”和“全重算”都是极端解；<strong>按带宽和算力把 KV 切成“传”与“算”两部分</strong>，才是最小化完成时间的正解。</p>
+<h3 id="3-impactho-importance-aware-kv-cache-transfer-for-multi-user-edge-llm-handover">3. ImpactHO: Importance-Aware KV Cache Transfer for Multi-User Edge LLM Handover</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2608.10545">https://arxiv.org/abs/2608.10545</a></li>
+<li><strong>时间</strong>：2026-08-11</li>
+<li><strong>方向</strong>：边缘切换 · 重要性排序 · 多用户带宽分配</li>
+</ul>
+<p><strong>摘要</strong>：用户在边缘节点间切换时，要在移动性给定的传输窗口内把 KV 迁到目标节点；多用户同时切换会把回程带宽打满，完整缓存根本传不完。ImpactHO 不把每条 KV 当成等价值，而是<strong>按重要性排序，只传最有信息量的那一部分</strong>，把 token 级稀疏性直接变成通信节省。它把传输建模为多用户回程带宽分配问题，以“部分缓存的准确率”为效用——在 RULER 基准上拟合出的 S 形曲线跨模型、跨上下文长度 R²&gt;0.99；由于重要性排序把高价值条目放在前面，准确率曲线的凹区几乎覆盖整个缓存，分配问题因此是凸的，可用闭式加权注水求解并在线调度。500ms 传输窗口内平均准确率超过 93.7%，距全缓存上限仅 0.5 个百分点，达到“上帝视角”上界的 98.2–99.5%。</p>
+<p><strong>对广域的启示</strong>：广域传输有硬 deadline 时，<strong>“传哪些”比“传多少”更重要</strong>；按重要性前缀化传输，可以让任意时刻中断都拿到近似最优的质量。</p>
+<h3 id="4-when-does-distributed-ai-inference-need-more-wide-area-bandwidth-a-co-design-evaluation-of-optical-packet-and-software-levers">4. When Does Distributed AI Inference Need More Wide-Area Bandwidth? A Co-Design Evaluation of Optical, Packet, and Software Levers</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2608.14967">https://arxiv.org/abs/2608.14967</a></li>
+<li><strong>时间</strong>：2026-08-15</li>
+<li><strong>方向</strong>：广域带宽 · 传 vs 重算 · 经济性分析</li>
+</ul>
+<p><strong>摘要</strong>：这篇论文正面回答一个被争论的问题：跨站点 AI 推理到底需不需要更多广域带宽，还是用 KV 重算、缓存压缩、局部性路由、调度、或过度配置的分组骨干网就够了？作者给出负载模型，预测“搬状态”何时胜过“重算”：70B MHA 模型每条流的交叉点在 <strong>74–111 Gbps</strong>，在 1/8 KV 头的 GQA 下降到 <strong>9–14 Gbps</strong>；并量化五个敏感轴——上下文长度、注意力架构、排队、agent 复合效应、丢包/抖动导致的带宽塌缩。经济性上，按 GPU 标价重算更便宜；当 GPU 稀缺与 KV 复用把有效 GPU 成本放大 5–20 倍时传输才赢，而现代注意力架构把盈亏平衡点向传输侧移动了一个数量级。论文还区分了分组网（毫秒级分配已点亮容量）与光网（分钟级改变点亮多少容量）两种杠杆，并给出三站点生产光纤试验床的十指标测量计划。</p>
+<p><strong>对广域的启示</strong>：这是做跨广域 KV 方案的“决策依据”——<strong>先算交叉带宽与经济性，再决定传/重算/压缩/路由</strong>；GQA/MLA 让 KV 变小，正把更多场景推向“可传”。</p>
+<hr />
+<h2 id="_3">二、系统与传输</h2>
+<h3 id="5-oasiskv-scaling-in-decode-kv-cache-beyond-hbm-with-lookahead-sparse-prefetching">5. OasisKV: Scaling In-Decode KV Cache Beyond HBM with Lookahead Sparse Prefetching</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2608.08097">https://arxiv.org/abs/2608.08097</a></li>
+<li><strong>时间</strong>：2026-08-08</li>
+<li><strong>方向</strong>：KV 分层卸载 · 稀疏预取 · 异步流水线</li>
+</ul>
+<p><strong>摘要</strong>：长上下文与长推理让 decode 阶段的 KV 同时吃掉 HBM 容量和访存带宽。OasisKV 把 KV 卸载到其他内存层级，利用 decode 期注意力的稀疏性，并用<strong>推测解码预测重要 token</strong>，只把最相关的 KV 条目预取并 staging 到 HBM；在 PD 分离部署下，它把 KV 管理扩展到 decode、prefill 和远端内存节点，用异步预取流水线隐藏 off-GPU 传输延迟，并把每步流量限制在可用带宽内。仅保留 2,048 个 KV token 时，LongBench v2 平均准确率只差全注意力 0.61 分；AIME24 吞吐提升 1.86×，多卡服务最高 2.2×；PD 分离下吞吐达 vLLM 的 2.29×，同主机内存预算下并发请求数 2.42×。</p>
+<p><strong>对广域的启示</strong>：跨域传输不必“全量搬运”，可以<strong>只预取预测出的重要 KV</strong>，并用“每步流量预算”约束传输；预测＋异步预取是把 WAN 带宽变成可控成本的关键。</p>
+<h3 id="6-kvdrive-a-holistic-multi-tier-kv-cache-management-system-for-long-context-llm-inference">6. KVDrive: A Holistic Multi-Tier KV Cache Management System for Long-Context LLM Inference</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2605.18071">https://arxiv.org/abs/2605.18071</a></li>
+<li><strong>时间</strong>：2026-05-18</li>
+<li><strong>方向</strong>：GPU/DRAM/SSD 多级 · 放置与调度</li>
+</ul>
+<p><strong>摘要</strong>：现有 offloading 系统把完整 KV 放在主机内存、decode 时按需取关键条目，但稀疏性很快触顶，继续压会掉精度；上下文和 batch 一大，KV 传输量就变成 decode 延迟的主要来源。KVDrive 从系统而非算法入手，跨 GPU 显存、主机 DRAM、SSD 三层联合编排<strong>缓存放置、流水线调度和跨层协调</strong>：按注意力行为调整缓存以最大化复用、减少冗余搬运；重构 decode 流水线让 I/O 与 CPU/GPU 计算重叠，消除异构资源间的停顿；并让数据在层级间协调流动。原型在长上下文基准上相比 SOTA 吞吐最高提升 1.74×，同时保持精度。</p>
+<p><strong>对广域的启示</strong>：广域传输问题可以看成“多级缓存 + 调度”问题的延伸——<strong>减少冗余搬运、把传输与计算重叠</strong>，往往比单纯提高压缩比更有效。</p>
+<hr />
+<h2 id="_4">三、复用</h2>
+<h3 id="7-pcr-a-prefetch-enhanced-cache-reuse-system-for-low-latency-rag-serving">7. PCR: A Prefetch-Enhanced Cache Reuse System for Low-Latency RAG Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2603.23049">https://arxiv.org/abs/2603.23049</a></li>
+<li><strong>时间</strong>：2026-03-24</li>
+<li><strong>方向</strong>：前缀复用 · 预取 · RAG</li>
+</ul>
+<p><strong>摘要</strong>：RAG 的长文档输入让 prefill 成本高企，KV 复用是正解，但受三个问题拖累：朴素淘汰策略导致命中率低、CPU–GPU 搬运开销大、缓存落 SSD 后 I/O 慢。PCR 用三项技术应对：<strong>前缀树缓存 + 前瞻 LRU</strong>，利用调度队列里待处理请求作为“未来会用到什么”的信号；<strong>按层重叠</strong>，用多条 CUDA stream 把 KV 加载与 GPU 计算流水起来；<strong>基于队列的预取</strong>，在需要之前把相关 KV 从 SSD 提到 DRAM。实验显示平均 TTFT 最高加速 2.47×。</p>
+<p><strong>对广域的启示</strong>：复用要真正省时，必须<strong>预取 + 流水线</strong>；“用请求队列做前瞻”这个信号在跨域场景同样适用——提前判断哪些前缀会被复用，才能把 WAN 传输藏进计算。</p>
+<hr />
+<h2 id="_5">四、压缩</h2>
+<h3 id="8-lowram-low-rank-keys-and-amortised-values-for-composable-kv-cache-compression-at-test-time">8. LowRAM: Low-Rank Keys and Amortised Values for Composable KV Cache Compression at Test-Time</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.07025">https://arxiv.org/abs/2611.07025</a></li>
+<li><strong>时间</strong>：2026-11-04</li>
+<li><strong>方向</strong>：低秩 · 值摊销 · 可组合压缩</li>
+</ul>
+<p><strong>摘要</strong>：论文指出 key 与 value 的结构不同：在每个注意力头内，value 很大程度上可由对应的 key 预测。LowRAM 据此做<strong>值缓存摊销</strong>——测试时拟合一个轻量 per-head 预测器，只对重构最差的 token 存残差，实现 4× 近无损的值压缩；预测器可用元学习初始化以降低 prefill 开销，也可在允许一次性成本的场景（如 multi-query 推理）从零拟合。再配合跨层低秩 key 压缩，形成非对称压缩管线，在三个模型族上接近无损；每步只重构被选中的 KV 子集，把解码开销压到很低，4× 压缩下峰值 decode 吞吐最高 5×。它还能与量化、驱逐叠加，在长上下文达到 26.9× 压缩、保留 94.5% 基线性能。</p>
+<p><strong>对广域的启示</strong>：<strong>key/value 非对称压缩</strong>提供了新的字节削减维度，且与量化/驱逐正交可叠加；对广域来说，压缩比每提高一档，带宽预算就松一档。</p>
+<h3 id="9-calfa-kv-joint-calibration-and-fisher-guided-anchors-for-1-bit-kv-cache-compression">9. CALFA-KV: Joint Calibration and Fisher-Guided Anchors for 1-Bit KV Cache Compression</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.10511">https://arxiv.org/abs/2611.10511</a></li>
+<li><strong>时间</strong>：2026-11-07</li>
+<li><strong>方向</strong>：1-bit 量化 · Fisher 敏感度 · 混合精度锚点</li>
+</ul>
+<p><strong>摘要</strong>：1-bit KV 压缩要同时解决“量化器怎么校准”和“哪些状态该留高精度”。CALFA-KV 离线联合拟合 key 中心、径向归一化参数和 K/V 向量码本，使重构结果匹配冻结模型投影后的注意力输出；同时用参考 next-token 交叉熵的平方梯度估计<strong>逐通道 Fisher 敏感度</strong>。在线阶段用敏感度给每个 KV 状态的重构误差加权，在每层、每个 KV 头的预算下保留得分最高的状态为高精度“锚点”，并给出锚点选择相对最优解的 excess risk 上界。每层每头只加 56 个 FP16 锚点时，d8b8 在三个模型、七个基准的平均分上超过所有 1-bit 基线；d8b10 用 1.25 bits/channel 的名义索引率，把与 BF16 的差距缩到 0.90–2.01 分。</p>
+<p><strong>对广域的启示</strong>：<strong>“1-bit 主体 + 少量高精度锚点”</strong> 是极高压缩比下保住质量的可落地组合；Fisher 权重告诉你比特该花在哪里，适合带宽极度受限的跨域链路。</p>
+<h3 id="10-raq-mla-role-aware-quantization-for-multi-head-latent-attention-caches">10. RAQ-MLA: Role-Aware Quantization for Multi-Head Latent Attention Caches</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.33625">https://arxiv.org/abs/2610.33625</a></li>
+<li><strong>时间</strong>：2026-10-24</li>
+<li><strong>方向</strong>：MLA 缓存 · 角色感知量化</li>
+</ul>
+<p><strong>摘要</strong>：MLA 不缓存逐头 K/V，而是缓存一份压缩的 KV latent（decode 时上投影成 K、V）加一份窄的位置 key，现有面向标准注意力的 KV 量化方法没有区分这两者的角色。RAQ-MLA 从激活分布和量化误差如何传播到注意力输出两个角度分析，指出 <strong>latent 主要提供 value、位置 key 主导 attention score</strong>；于是为每个缓存张量拟合可逆变换，分别针对“注意力加权后的 value 误差”和“score 扰动”优化。方法无需训练，把完整 MLA 缓存压到约 <strong>2.5 bits/element</strong>，理论 KV 容量提升 6.5×，在四个 MLA 模型上推理与代码任务接近无损。</p>
+<p><strong>对广域的启示</strong>：量化要<strong>跟着模型架构走</strong>——MLA 的缓存结构与标准 KV 不同，角色感知的比特分配能在同样字节预算下多留质量；对跨域传输，这意味着 6.5× 的字节缩减空间。</p>
+<hr />
+<h2 id="_6">今日观察</h2>
+<ol>
+<li><strong>跨机房方案正在分化成三种范式</strong>：中继解码藏延迟（PDD）、传算混合（EdgeFlow）、重要性截断（ImpactHO）。三者可以叠加，而不是互斥。</li>
+<li><strong>“传 vs 重算”第一次有了可计算的判据</strong>：2608.14967 给出的交叉带宽（70B MHA 74–111 Gbps、GQA 9–14 Gbps）可以直接拿来做跨域部署的决策表。</li>
+<li><strong>压缩与传输的边界在模糊</strong>：LowRAM/CALFA/RAQ-MLA 减少的是字节，OasisKV/KVDrive 减少的是“需要移动的字节”，PCR 减少的是“需要重复计算的字节”——最终都在为广域链路省预算。</li>
+<li><strong>预测 + 预取</strong>成为共同抓手：OasisKV 用推测解码预测重要 token，PCR 用请求队列预测未来复用，ImpactHO 用重要性排序预测该传什么。</li>
+</ol>
+<blockquote>
+<p>注：本期摘要均基于 arXiv 官方摘要页（标题、日期、摘要原文）整理；具体实验设置与数字以 PDF 原文为准。</p>
+</blockquote>
+</main>
+<nav class="pager"><a class="pager-link" href="2026-11-12.html"><span class="dir">← 上一期</span><span class="d">11月12日</span></a></nav>
+<footer class="footer"><span>KV Cache 日报</span><a href="../index.html">返回目录</a></footer>
+
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

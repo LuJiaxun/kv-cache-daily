@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KV Cache 日报 · 2026-11-12</title>
+<meta name="description" content="2026-11-12 的 KV Cache 论文摘要，10 篇。">
+<meta name="theme-color" content="#f6f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="day-page">
+
+<header class="topbar">
+  <a class="back" href="../index.html"><span aria-hidden="true">←</span> 全部日报</a>
+  <span class="top-date">2026年11月12日 · 周四</span>
+</header>
+<main class="report">
+<h1 id="kv-cache-2026-11-12">KV Cache 论文日报 · 2026-11-12</h1>
+<blockquote>
+<p><strong>今日 10 篇</strong>：跨广域/跨机房 5 篇 · 压缩 3 篇 · 复用 1 篇 · 池化系统 1 篇</p>
+<p><strong>首期说明</strong>：这是启动批次，用“2026 年广域传输新论文 + 该方向绕不开的奠基工作”搭出全景。摘要依据检索到的题录、公开页面片段与论文公开信息整理；涉及具体加速比的地方已标注来源口径，精确数字请以原文为准。</p>
+</blockquote>
+<h2 id="_1">速览</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>论文</th>
+<th>方向</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Prefill-as-a-Service: KVCache of Next-Generation Models Could Go Cross-Datacenter</td>
+<td>跨机房 PD 分离</td>
+<td>arXiv:2604.15039</td>
+</tr>
+<tr>
+<td>2</td>
+<td>KVCompass: A Discovery Plane for Internet-Scale Prefix Cache Sharing in LLM Serving</td>
+<td>广域前缀缓存发现</td>
+<td>arXiv:2610.24179</td>
+</tr>
+<tr>
+<td>3</td>
+<td>WAN Cache: Wide-Area Multi-Tier KV Cache Based Inference Acceleration Networks</td>
+<td>广域多级缓存</td>
+<td>IEEE 11716601</td>
+</tr>
+<tr>
+<td>4</td>
+<td>RTT- or Bandwidth-Bound? Demystifying the KV Cache Transfer in LLM Serving</td>
+<td>传输瓶颈刻画</td>
+<td>ACM NetAI@SIGCOMM'25</td>
+</tr>
+<tr>
+<td>5</td>
+<td>ShadowServe: Interference-Free KV Cache Fetching for Distributed Prefix Caching</td>
+<td>分布式取数</td>
+<td>arXiv:2509.16857</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Mooncake: A KVCache-centric Disaggregated Architecture for LLM Serving</td>
+<td>KV 池化/传输</td>
+<td>arXiv:2407.00079 / ACM TOS</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Stateful Large Language Model Serving with Pensieve</td>
+<td>KV 复用</td>
+<td>arXiv:2312.05516 / EuroSys'25</td>
+</tr>
+<tr>
+<td>8</td>
+<td>CacheGen: KV Cache Compression and Streaming for Fast LLM Serving</td>
+<td>压缩+流式传输</td>
+<td>arXiv:2310.07240 / SIGCOMM'24</td>
+</tr>
+<tr>
+<td>9</td>
+<td>RateQuant: Optimal Mixed-Precision KV Cache Quantization via Rate-Distortion Theory</td>
+<td>量化压缩</td>
+<td>arXiv:2605.06675</td>
+</tr>
+<tr>
+<td>10</td>
+<td>DropKV: Decoupling Residual-Output Perturbation for Near-Optimal KV-Cache Eviction</td>
+<td>驱逐压缩</td>
+<td>arXiv:2610.22130</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_2">一、跨广域 / 跨机房传输</h2>
+<h3 id="1-prefill-as-a-service-kvcache-of-next-generation-models-could-go-cross-datacenter">1. Prefill-as-a-Service: KVCache of Next-Generation Models Could Go Cross-Datacenter</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2604.15039">https://arxiv.org/abs/2604.15039</a></li>
+<li><strong>时间</strong>：2026-04（arXiv v2）</li>
+<li><strong>方向</strong>：跨机房 PD 分离 · KV 广域传输 · 模型架构与传输可行性的关系</li>
+</ul>
+<p><strong>摘要</strong>：论文提出 “Prefill-as-a-Service”（预填即服务）的部署形态：把计算密集的 prefill 集中到少数机房，把 decode 放到离用户更近的边缘机房，中间跨广域网传输 KV Cache。它指出跨机房 KV 传输是否划算，不只取决于网络带宽，还取决于<strong>模型架构决定的 KV 尺寸</strong>——下一代线性/混合线性注意力模型的 KV（或循环状态）随上下文增长远慢于标准 Transformer，使“跨机房搬运上下文状态”第一次具备经济性。论文给出了 prefill 吞吐与输出带宽之间的配比关系（用 prefill 时间与单请求 KV 大小的期望值来估算所需出口带宽），用于判断机房比例与何时该跨域。公开解读称其带来约 54% 的推理吞吐提升（口径待原文核对）。</p>
+<p><strong>对广域的启示</strong>：这是“用模型架构换网络带宽”的思路——广域 KV 传输的可行性边界会随模型从 full attention 转向线性注意力而整体外移；做跨域调度时，应把“单位 token 的 KV 字节数”作为一等参数，而不是假设它固定。</p>
+<h3 id="2-kvcompass-a-discovery-plane-for-internet-scale-prefix-cache-sharing-in-llm-serving">2. KVCompass: A Discovery Plane for Internet-Scale Prefix Cache Sharing in LLM Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.24179">https://arxiv.org/abs/2610.24179</a></li>
+<li><strong>时间</strong>：2026-10</li>
+<li><strong>方向</strong>：互联网级前缀缓存 · 缓存发现/索引 · 跨区域路由</li>
+</ul>
+<p><strong>摘要</strong>：论文关注“互联网规模”的前缀缓存共享：当大量区域各自持有可复用的前缀 KV 时，一个请求该去哪里取、取得到与否，取决于能否发现其他区域的前缀分布。KVCompass 设计了一个<strong>发现平面（discovery plane）</strong>，为各区域的 worker 提供前缀可用性查询与打分，并处理边缘节点只有局部视图、全局索引存在滞后与不完整的问题。它把“缓存命中”从单机/单集群问题扩展为<strong>跨区域的索引与路由问题</strong>，让请求在传输前就能判断复用是否值得。</p>
+<p><strong>对广域的启示</strong>：广域复用 = 发现问题 + 传输问题。只优化压缩/带宽，而不知道该去哪儿取，仍然会退化成跨域重复 prefill；“查得到”与“传得回”必须一起设计（索引新鲜度、探测开销、命中率-时延权衡）。</p>
+<h3 id="3-wan-cache-wide-area-multi-tier-kv-cache-based-inference-acceleration-networks">3. WAN Cache: Wide-Area Multi-Tier KV Cache Based Inference Acceleration Networks</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://ieeexplore.ieee.org/document/11716601">https://ieeexplore.ieee.org/document/11716601</a></li>
+<li><strong>时间</strong>：2026（IEEE，文献号 11716601）</li>
+<li><strong>方向</strong>：广域多级 KV 缓存 · 热度驱动同步 · 时延约束检索</li>
+</ul>
+<p><strong>摘要</strong>：论文把 KV Cache 当作可在广域范围内多级缓存的“内容”，构建面向推理加速的广域缓存网络。其调度包含两条主线：<strong>热度驱动的层间同步</strong>（把热点 KV 从下层/远端提升到更近的层级）与<strong>时延约束下的分层检索</strong>（在满足 TTFT/SLO 的前提下选择从哪一层取）。论文同时给出了推理实例写入缓存池、以及从缓存池读回实例这两侧的决策机制，并用实验室与现网测试评估广域传输表现。</p>
+<p><strong>对广域的启示</strong>：KV 缓存可以借鉴 CDN 的“热度 + 分层 + 时延约束”方法论；关键不是“缓存所有 KV”，而是用热度预测决定哪些 KV 值得占用广域带宽去同步，以及读路径上每一层的最晚可接受时延。</p>
+<h3 id="4-rtt-or-bandwidth-bound-demystifying-the-kv-cache-transfer-in-large-language-model-serving">4. RTT- or Bandwidth-Bound? Demystifying the KV Cache Transfer in Large Language Model Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://dl.acm.org/doi/10.1145/3748273.3749196">https://dl.acm.org/doi/10.1145/3748273.3749196</a></li>
+<li><strong>时间</strong>：2025（ACM NetAI Workshop @ SIGCOMM'25）</li>
+<li><strong>方向</strong>：KV 传输性能刻画 · RTT vs 带宽 · PD 分离</li>
+</ul>
+<p><strong>摘要</strong>：论文针对“KV Cache 传输慢是因为带宽不够”这一常见假设做拆解，通过测量与建模分析 KV 传输究竟在什么时候受 <strong>RTT/往返时延与协议开销</strong>限制、什么时候受<strong>有效带宽</strong>限制。不同模型规模、并行配置、KV 布局与网络条件下，瓶颈归属会变化；把两者混为一谈会导致优化方向错误（例如在 RTT-bound 场景一味加带宽收效甚微）。论文据此给出面向 PD 分离部署的传输与调度建议。</p>
+<p><strong>对广域的启示</strong>：这是做广域 KV 优化前的“体检表”。RTT-bound 时优先做<strong>流水线/批量/连接复用/预取</strong>（把往返次数降下来）；bandwidth-bound 时优先做<strong>量化/稀疏/驱逐</strong>（把字节数降下来）。先判瓶颈，再选武器。</p>
+<h3 id="5-shadowserve-interference-free-kv-cache-fetching-for-distributed-prefix-caching">5. ShadowServe: Interference-Free KV Cache Fetching for Distributed Prefix Caching</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2509.16857">https://arxiv.org/abs/2509.16857</a></li>
+<li><strong>时间</strong>：2025-09</li>
+<li><strong>方向</strong>：分布式前缀缓存 · KV 取数 · 干扰消除</li>
+</ul>
+<p><strong>摘要</strong>：在分布式前缀缓存中，命中后要把远端 KV 取回本地，这一过程会与本地 prefill/decode 争抢网络带宽、PCIe 拷贝和内存，造成尾延迟与抖动。ShadowServe 提出<strong>无干扰的 KV 取数</strong>：让远端取数与本地计算重叠，避免阻塞关键路径，并用最小拷贝（minimal-copy）的内存管理减少数据在层级间的搬移次数。其目标是让“缓存命中”真正转化为时延收益，而不是把排队从计算侧转移到传输侧。</p>
+<p><strong>对广域的启示</strong>：广域取数要把传输<strong>隐藏在计算后面</strong>（预取、流水线、零拷贝/最小拷贝）；同时要控制“取数风暴”——大量请求同时命中远端时的拥塞会让收益反转。</p>
+<hr />
+<h2 id="kv">二、KV 池化与系统底座</h2>
+<h3 id="6-mooncake-a-kvcache-centric-disaggregated-architecture-for-llm-serving">6. Mooncake: A KVCache-centric Disaggregated Architecture for LLM Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2407.00079">https://arxiv.org/abs/2407.00079</a> ｜ ACM TOS: <a href="https://doi.org/10.1145/3773772">https://doi.org/10.1145/3773772</a></li>
+<li><strong>时间</strong>：2024-06 预印本；FAST'25；ACM TOS 2026</li>
+<li><strong>方向</strong>：PD 分离 · KV 池化 · 传输引擎</li>
+</ul>
+<p><strong>摘要</strong>：Mooncake 是面向长上下文、高负载 LLM 服务的 KVCache-centric 分离式架构：prefill 与 decode 解耦，KV Cache 不再只躺在单卡 HBM，而是进入由 DRAM/SSD 等组成的<strong>分层缓存池</strong>，由全局调度器（Conductor）按 KV 复用潜力与负载做请求编排，并配套高性能传输引擎在实例与缓存池之间搬运 KV。它把“KV 的放置、复用、搬运”提升为系统的一等资源，而不是计算的附属品，已在 Kimi 的生产流量中验证。</p>
+<p><strong>对广域的启示</strong>：广域场景可直接复用其抽象——<strong>KV 是有地址、有生命周期、可调度的对象</strong>；把传输引擎、缓存层级、调度器解耦，才可能把 LAN 内的池化扩展到 WAN。</p>
+<hr />
+<h2 id="_3">三、复用</h2>
+<h3 id="7-stateful-large-language-model-serving-with-pensieve">7. Stateful Large Language Model Serving with Pensieve</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2312.05516">https://arxiv.org/abs/2312.05516</a></li>
+<li><strong>时间</strong>：EuroSys 2025</li>
+<li><strong>方向</strong>：有状态服务 · 前缀/部分 KV 复用 · 合批</li>
+</ul>
+<p><strong>摘要</strong>：Pensieve 针对“无状态请求-响应”造成的重复 prefill：它让服务端<strong>有状态</strong>地保留历史请求的 KV，当新请求与已有请求共享前缀（甚至只共享部分前缀）时，复用已算好的 KV，并把新请求与处于 prefill 阶段的请求<strong>合批</strong>，用剩余算力补齐未命中的部分。这样复用不必以“完全相同的 prefix”为前提，也能在多轮对话、模板化 prompt 等场景显著减少重复计算。</p>
+<p><strong>对广域的启示</strong>：<strong>最好的跨域传输是“不用传”</strong>——能在本地/近端复用的 KV 就不要跨域搬。设计广域系统时，应先把复用做到极致，再把剩下的未命中流量交给传输层优化。</p>
+<hr />
+<h2 id="_4">四、压缩</h2>
+<h3 id="8-cachegen-kv-cache-compression-and-streaming-for-fast-large-language-model-serving">8. CacheGen: KV Cache Compression and Streaming for Fast Large Language Model Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2310.07240">https://arxiv.org/abs/2310.07240</a></li>
+<li><strong>时间</strong>：SIGCOMM 2024</li>
+<li><strong>方向</strong>：KV 压缩 · 流式传输 · 带宽自适应</li>
+</ul>
+<p><strong>摘要</strong>：CacheGen 把 KV Cache 当成一种需要“编码-传输-解码”的数据对象：先用增量编码、量化与算术编码把 KV 张量压成紧凑的比特流，再<strong>按当前可用带宽自适应地分段流式传输</strong>，让解码端边收边解、边恢复 KV，而不必等整个 KV 传完才开始计算。公开结果显示其可把包含网络与计算延迟的 TTFT 降低 3.1–4.7×。它把“压缩率”和“传输调度”放在同一个优化问题里，而不是各自独立优化。</p>
+<p><strong>对广域的启示</strong>：广域高时延、带宽波动的环境下，<strong>压缩 + 流式 + 带宽自适应</strong>是基本组合拳；关键是让压缩粒度与流式分块对齐，避免“为了解压而等待”。</p>
+<h3 id="9-ratequant-optimal-mixed-precision-kv-cache-quantization-via-rate-distortion-theory">9. RateQuant: Optimal Mixed-Precision KV Cache Quantization via Rate-Distortion Theory</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2605.06675">https://arxiv.org/abs/2605.06675</a></li>
+<li><strong>时间</strong>：2026-05</li>
+<li><strong>方向</strong>：混合精度量化 · 率失真 · 位宽分配</li>
+</ul>
+<p><strong>摘要</strong>：混合精度 KV 量化的核心难题是“给哪些层/头/通道分配多少 bit”。RateQuant 用<strong>率失真理论</strong>把位宽分配建模为在给定比特预算下最小化重建/输出失真的优化问题，推导出各部分的边际收益并据此分配精度，而不是靠均匀位宽或启发式规则。这样在相同显存（或相同传输字节）预算下能获得更低的量化误差。</p>
+<p><strong>对广域的启示</strong>：量化本质上是在<strong>用比特换失真</strong>，而广域传输是在<strong>用字节换时间</strong>——率失真框架可以直接回答“砍掉多少字节、掉多少精度”，适合做跨域传输前的自适应压缩决策。</p>
+<h3 id="10-dropkv-decoupling-residual-output-perturbation-for-near-optimal-kv-cache-eviction">10. DropKV: Decoupling Residual-Output Perturbation for Near-Optimal KV-Cache Eviction</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.22130">https://arxiv.org/abs/2610.22130</a></li>
+<li><strong>时间</strong>：2026-10（检索显示 ICML/NeurIPS 2026 收录信息不一致，以原文为准）</li>
+<li><strong>方向</strong>：KV 驱逐 · 输出扰动估计</li>
+</ul>
+<p><strong>摘要</strong>：KV 驱逐的常见做法是用注意力分数等代理指标判断 token 重要性，但这些指标与“删掉它最终会让输出偏多少”并不等价。DropKV 把<strong>残差-输出扰动</strong>从代理分数中解耦出来，直接估计每个 KV 对被驱逐后输出的影响，并据此做近最优的驱逐决策。它试图回答的不是“这个 token 被关注得多不多”，而是“删掉它，最终结果会坏多少”。</p>
+<p><strong>对广域的启示</strong>：驱逐直接减少需要缓存和传输的 token 数，且与量化正交、可叠加；对广域而言，“按输出影响驱逐”比“按注意力分数驱逐”更贴近端到端质量约束。</p>
+<hr />
+<h2 id="_5">今日观察</h2>
+<ol>
+<li><strong>2026 年的新变量是“模型架构”</strong>：线性/混合线性注意力让跨机房搬运 KV 从“不划算”变成“可讨论”，Prefill-as-a-Service 是代表。</li>
+<li><strong>广域复用正在从“单集群前缀树”走向“互联网级发现平面”</strong>：KVCompass 说明索引与路由会成为独立的一层。</li>
+<li><strong>传输优化的顺序应是：先判瓶颈（RTT vs 带宽）→ 再压缩（量化/驱逐）→ 再调度（流式/预取/分层）</strong>，而不是默认“带宽不够就压缩”。</li>
+<li><strong>经典工作仍是底座</strong>：Mooncake 的池化抽象、Pensieve 的复用、CacheGen 的压缩流式，构成了今天广域方案的三块积木。</li>
+</ol>
+<blockquote>
+<p>注：本期为启动批次，部分 2026 年论文的会议信息与精确指标以检索页面为准，建议阅读原文核对；后续每日批次会优先补充可验证的 arXiv 新论文。</p>
+</blockquote>
+</main>
+<nav class="pager"><span></span><a class="pager-link next" href="2026-11-13.html"><span class="dir">下一期 →</span><span class="d">11月13日</span></a></nav>
+<footer class="footer"><span>KV Cache 日报</span><a href="../index.html">返回目录</a></footer>
+
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

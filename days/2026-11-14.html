@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KV Cache 日报 · 2026-11-14</title>
+<meta name="description" content="2026-11-14 的 KV Cache 论文摘要，10 篇。">
+<meta name="theme-color" content="#f6f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="day-page">
+
+<header class="topbar">
+  <a class="back" href="../index.html"><span aria-hidden="true">←</span> 全部日报</a>
+  <span class="top-date">2026年11月14日 · 周六</span>
+</header>
+<main class="report">
+<h1 id="kv-cache-2026-11-14">KV Cache 论文日报 · 2026-11-14</h1>
+<blockquote>
+<p><strong>今日 10 篇</strong>：跨广域/跨区域 3 篇 · 复用与路由 3 篇 · 压缩 2 篇 · 系统与卸载 2 篇</p>
+<p><strong>本期主线</strong>：跨区域场景开始把“缓存命中率”和“网络时延”放在同一个目标函数里（GORGO）；交换层面出现用光电路交换机替代过载分组网的方案（Optical KV Network）；异构加速器之间则用 layout-aware RDMA 把 KV 直接搬到对端可消费的布局（HAWK）。
+</p>
+</blockquote>
+<h2 id="_1">速览</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>论文</th>
+<th>方向</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>GORGO: Online Tuning for Cross-Region Network-Aware LLM Serving</td>
+<td>跨区域负载均衡</td>
+<td>arXiv:2602.11688</td>
+</tr>
+<tr>
+<td>2</td>
+<td>An Optical KV Cache Network for Disaggregated LLM Serving</td>
+<td>光交换 KV 网络</td>
+<td>arXiv:2610.18444</td>
+</tr>
+<tr>
+<td>3</td>
+<td>HAWK: Heterogeneity-Aware KV Cache Transfer for Efficient GPU-NPU Phase-Disaggregated LLM Inference</td>
+<td>异构设备传输</td>
+<td>arXiv:2610.29873</td>
+</tr>
+<tr>
+<td>4</td>
+<td>HiState: Hierarchical Prefix Cache Management for Hybrid LLM Serving in Agentic Workloads</td>
+<td>混合模型前缀缓存</td>
+<td>arXiv:2610.41508</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Can KV Cache Be Reused Across Model Updates? A DeepSeek-V4-Flash Case Study</td>
+<td>跨版本复用</td>
+<td>arXiv:2611.14051</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Randomization Boosts KV Caching, Learning Balances Query Load: A Joint Perspective</td>
+<td>缓存与路由联合</td>
+<td>arXiv:2601.18999</td>
+</tr>
+<tr>
+<td>7</td>
+<td>KVPath: Connecting Key-Value Representations Across Transformer Layers</td>
+<td>跨层压缩</td>
+<td>arXiv:2611.16072</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Coordinated Mixed-Precision KV Cache Quantization for Efficient LLM-based Multi-agent Systems</td>
+<td>多智能体量化</td>
+<td>arXiv:2611.10096</td>
+</tr>
+<tr>
+<td>9</td>
+<td>EfficientAgent: What Makes KV Cache Offloading Work for Concurrent Agents?</td>
+<td>卸载容量规划</td>
+<td>arXiv:2609.33762</td>
+</tr>
+<tr>
+<td>10</td>
+<td>TierKV: Long-Context On-Device LLMs via Predictive Multi-Tier KV Caching</td>
+<td>端侧多级缓存</td>
+<td>arXiv:2609.21172</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_2">一、跨广域 / 跨区域</h2>
+<h3 id="1-gorgo-online-tuning-for-cross-region-network-aware-llm-serving">1. GORGO: Online Tuning for Cross-Region Network-Aware LLM Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2602.11688">https://arxiv.org/abs/2602.11688</a></li>
+<li><strong>时间</strong>：2026-02-12（NeurIPS 2026）</li>
+<li><strong>方向</strong>：跨区域负载均衡 · KV 局部性 · 网络时延</li>
+</ul>
+<p><strong>摘要</strong>：全球部署的推理服务把用户请求代理到不同区域的副本，负载均衡必须同时考虑 <strong>KV 缓存局部性、副本负载和变化的网络时延</strong>；现有系统只把其中一部分因素放进代价模型，导致负载与 KV 缓存向少数副本集中。GORGO 提出一个可调参数的代理架构，把网络时延、prefill 成本和排队延迟统一进代价函数；由于公开聊天数据缺少“长上下文、高前缀复用”的样本，作者从生产元数据构造了 ART-Chat-2.5M 数据集，并在调参窗口上用进化策略直接优化 p95 TTFT。固定参数后在留出窗口评估：相比 session affinity、prefix-cache 等基线，p95 TTFT 降低 6.9–15.5%，p95 端到端时延降低 14.3–30.9%。</p>
+<p><strong>对广域的启示</strong>：跨区域调度不是“就近”或“命中优先”二选一，而是<strong>把命中收益和 WAN 时延折算到同一个代价里</strong>；参数需要按业务负载在线调，而不是拍脑袋定权重。</p>
+<h3 id="2-an-optical-kv-cache-network-for-disaggregated-llm-serving">2. An Optical KV Cache Network for Disaggregated LLM Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.18444">https://arxiv.org/abs/2610.18444</a></li>
+<li><strong>时间</strong>：2026-10-13</li>
+<li><strong>方向</strong>：光电路交换 · PD 分离 · 传输调度</li>
+</ul>
+<p><strong>摘要</strong>：PD 分离下每个请求的 KV 都要从 prefill GPU 搬到 decode GPU，coding agent 一轮就会搬整个长上下文的 KV；在超售的分组网上，这段传输直接推高 TTFT。光电路交换机（OCS）能为每次传输提供全速率电路，成本还低于超售分组网，但机械 OCS 重配置需要几十毫秒。论文把这段延迟<strong>藏进 prefill</strong>：预留调度器在 prefill 还在计算时就提交电路，等 KV 就绪时电路已准备好；每块 GPU 通过自己的 WDM 光模块接入一对光纤。基于真实 serving trace 和 H100 实测 prefill 时间的仿真显示，该光网络在 0.55–0.78 倍于 2:1 分组网成本的条件下达到 400G 分组网＋自适应路由的水平，并能容忍 384 端口机械 OCS 的 50ms 重配置。</p>
+<p><strong>对广域的启示</strong>：当 KV 传输成为跨域瓶颈时，<strong>电路交换 + 预留</strong>可能比“更大的分组网”更划算；关键是把重配置延迟与 prefill 计算重叠，而不是让传输等网络。</p>
+<h3 id="3-hawk-heterogeneity-aware-kv-cache-transfer-for-efficient-gpu-npu-phase-disaggregated-llm-inference">3. HAWK: Heterogeneity-Aware KV Cache Transfer for Efficient GPU-NPU Phase-Disaggregated LLM Inference</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.29873">https://arxiv.org/abs/2610.29873</a></li>
+<li><strong>时间</strong>：2026-10-21</li>
+<li><strong>方向</strong>：GPU-NPU 异构 · RDMA · 张量布局</li>
+</ul>
+<p><strong>摘要</strong>：prefill 是计算密集型、decode 更偏访存，GPU 适合 prefill、NPU 在 decode 阶段更能发挥算力。把两者拼成异构 PD 分离，核心障碍是 KV 要从 GPU 传到 NPU，而两端的通信机制和张量布局都不一样。HAWK 建立 RDMA 直传路径，并在 NPU 侧分配<strong>布局感知的 RDMA buffer</strong>，让数据从 GPU 的连续 buffer 直接落到目标布局的 NPU buffer，传完即可被消费，无需额外重排。在商用 GPU＋NPU 的实测中，同 SLO 下性能距纯 GPU 系统 7.88% 以内，能效高 1.26×、成本效率高 1.72×。</p>
+<p><strong>对广域的启示</strong>：KV 传输的优化对象不只是“字节数”，还有<strong>布局与语义</strong>；跨异构节点时，把重排融进传输（零拷贝、对端可消费布局）往往比压缩更直接。</p>
+<hr />
+<h2 id="_3">二、复用与路由</h2>
+<h3 id="4-histate-hierarchical-prefix-cache-management-for-hybrid-llm-serving-in-agentic-workloads">4. HiState: Hierarchical Prefix Cache Management for Hybrid LLM Serving in Agentic Workloads</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.41508">https://arxiv.org/abs/2610.41508</a></li>
+<li><strong>时间</strong>：2026-10-30</li>
+<li><strong>方向</strong>：混合模型 · 前缀缓存 · 检查点分层</li>
+</ul>
+<p><strong>摘要</strong>：混合模型（全注意力 + 循环线性层）能降低推理成本，但前缀缓存遇到一个结构性问题：循环状态无法从任意短前缀恢复，只能回到某个检查点。现有系统在固定边界保留检查点以覆盖常规对话的复用模式，而 agent 负载会修改、回访更早的上下文，暴露出的可复用前缀往往没有检查点或已被驱逐；简单多留检查点又会挤占其他会话的 KV。HiState 的关键观察是：<strong>前缀复用时所有匹配的 KV 都会被访问，但只需要一个循环检查点</strong>。利用这种不对称，它把历史检查点留在 SSD，把快内存优先给 KV；每次命中只取一个与上下文长度无关的检查点。再配自适应间隔控制与统一驱逐，在真实 coding-agent trace 上 p99 TTFT 相比 vLLM-Marconi 和 SGLang-HiCache 分别提升 5.73× 和 5.44×。</p>
+<p><strong>对广域的启示</strong>：混合/线性注意力模型的“状态检查点”比 KV 小得多，<strong>跨域传输一个检查点就能恢复整段前缀</strong>；这会让跨机房复用的成本结构完全不同。</p>
+<h3 id="5-can-kv-cache-be-reused-across-model-updates-a-deepseek-v4-flash-case-study">5. Can KV Cache Be Reused Across Model Updates? A DeepSeek-V4-Flash Case Study</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.14051">https://arxiv.org/abs/2611.14051</a></li>
+<li><strong>时间</strong>：2026-11-10</li>
+<li><strong>方向</strong>：跨版本复用 · 缓存保真度</li>
+</ul>
+<p><strong>摘要</strong>：如果模型更新后还能复用旧版本的 KV，就能省掉共享上下文的重复计算，但权重变化让“缓存到底保留了什么”成为根本问题。论文在四次模型更新上做直接复用实验，重点研究 DeepSeek-V4-Flash → Flash-0731：缓存可以保留有用的任务信息，却不一定忠实复现更新后模型的行为；检索准确率从接近原生到大幅下降都有可能。在已有源缓存的前提下，三个长前缀 QA 基准的中位 TTFT 加速为 2.10–5.08×。作者提出 <strong>Functional Cache Divergence</strong>，比较复用缓存与原生缓存下的 next-token 分布：自然文本续写更能保持原生行为，而单 token 检索任务中前缀越长兼容性越差；即使首 token 一致，也不保证答案内容与停止行为一致。</p>
+<p><strong>对广域的启示</strong>：跨版本共享 KV 缓存要区分“任务可用”和“行为保真”两个标准；把缓存放到广域共享池之前，需要按任务类型评估兼容性，不能只看准确率。</p>
+<h3 id="6-randomization-boosts-kv-caching-learning-balances-query-load-a-joint-perspective">6. Randomization Boosts KV Caching, Learning Balances Query Load: A Joint Perspective</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2601.18999">https://arxiv.org/abs/2601.18999</a></li>
+<li><strong>时间</strong>：2026-01-26</li>
+<li><strong>方向</strong>：缓存驱逐 · 查询路由 · 多 LLM 服务</li>
+</ul>
+<p><strong>摘要</strong>：KV 缓存的效果在有限内存下高度依赖驱逐策略，默认 LRU 难以应对动态到来的查询；在多 LLM 服务中，“把查询均匀分到各 worker”和“最大化每个 worker 的缓存命中率”本身是冲突目标。论文给出首个统一刻画 <strong>KV 驱逐与查询路由</strong>权衡的数学模型，分析现有方法的理论局限，并据此设计算法：用可证明竞争比的随机化驱逐，配合基于学习的路由自适应查询模式。四个基准、三种前缀共享设置下，缓存命中率最高提升 6.92×，时延降低 11.96×，TTFT 降低 14.06×，吞吐提升 77.4%。</p>
+<p><strong>对广域的启示</strong>：跨区域缓存路由不能只做“命中就转发”，还要<strong>同时管理各处的驱逐</strong>；随机化能避免对抗性最坏情况，学习负责跟上负载变化。</p>
+<hr />
+<h2 id="_4">三、压缩</h2>
+<h3 id="7-kvpath-connecting-key-value-representations-across-transformer-layers">7. KVPath: Connecting Key-Value Representations Across Transformer Layers</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.16072">https://arxiv.org/abs/2611.16072</a></li>
+<li><strong>时间</strong>：2026-11-11</li>
+<li><strong>方向</strong>：跨层冗余 · 低维增量</li>
+</ul>
+<p><strong>摘要</strong>：Transformer 通常为每个 token 在每一层都缓存独立的 KV，但相邻层的 KV 表示高度相关、包含共享信息。KVPath 假设这种相关性意味着层间是<strong>增量变化</strong>，可用低维 delta 捕捉：第一层存一份全维 base KV，后续层只生成低维 delta 来更新前一层，从而构造自己的 KV 状态。这样只存一份 base 加一组紧凑 delta，既保留层间差异，又不必每层存全量。两个变体：KVPath-Residual 用残差加法更新，KVPath-Rolling 按维度滚动更新。在参数量匹配的设置下，GQA 的 KV 存储最多降低 68%，MLA 降低 55%，性能保持甚至略有提升。</p>
+<p><strong>对广域的启示</strong>：跨层冗余是独立于量化/驱逐的新压缩轴，<strong>base + delta</strong> 的结构对广域传输很友好——先传一份 base，后续层只传小增量。</p>
+<h3 id="8-coordinated-mixed-precision-kv-cache-quantization-for-efficient-llm-based-multi-agent-systems">8. Coordinated Mixed-Precision KV Cache Quantization for Efficient LLM-based Multi-agent Systems</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.10096">https://arxiv.org/abs/2611.10096</a></li>
+<li><strong>时间</strong>：2026-11-06</li>
+<li><strong>方向</strong>：多智能体 · 混合精度 · 预算分配</li>
+</ul>
+<p><strong>摘要</strong>：多智能体系统通过协作解决复杂任务，但同时驻留的 KV 缓存越来越多，形成内存瓶颈；把单个模型的量化策略独立套到每个 agent 上，会忽略不同 agent 的精度需求差异，可能损害集体推理。CoMixKV 把<strong>在线敏感度估计</strong>与<strong>跨 agent、跨层的比特分配</strong>结合在共享内存预算下：敏感度由局部注意力误差上界、用近期 Q/K/V 推出，不需要校准数据、试量化或额外前向；共享控制器把敏感度、剩余可量化容量和字节级存储成本合起来，最小化总估计误差，并在 agent 启停、新观测到来时刷新分配。选中的位宽只作用于新量化块，近期状态保持原生精度，已量化块不变。四个基准、三个主干、平均 2/3/4 bit 设置下表现强劲；Gemma-4-31B-it 平均 3-bit 时 68.35% 平均准确率，比最强量化基线高 0.59%；Qwen3-32B 上峰值 KV 内存降 32.08%，相对 FullKV 加速 1.38×。</p>
+<p><strong>对广域的启示</strong>：多 agent/多租户共享缓存池时，<strong>跨缓存协调比特预算</strong>比单模型最优更重要；这直接对应广域共享 KV 池的资源分配问题。</p>
+<hr />
+<h2 id="_5">四、系统与卸载</h2>
+<h3 id="9-efficientagent-what-makes-kv-cache-offloading-work-for-concurrent-agents">9. EfficientAgent: What Makes KV Cache Offloading Work for Concurrent Agents?</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2609.33762">https://arxiv.org/abs/2609.33762</a></li>
+<li><strong>时间</strong>：2026-09-27</li>
+<li><strong>方向</strong>：Agent 负载 · 卸载 · 工作集</li>
+</ul>
+<p><strong>摘要</strong>：LLM agent 每轮都会重发整段对话，大部分内容上一轮已经算过；服务系统用 KV 缓存避免重算，GPU 显存不够时把状态卸载到主机内存。但对 agent 来说，卸载的效果很不稳定：同一个 coding-agent 负载，在一个部署上加速、另一个上变慢、第三个没变化——即使把 token 读回来比重算便宜好几倍。原因是缓存状态必须<strong>活到下次被使用</strong>：一个 agent 等工具时，服务器在处理其他 agent 的上下文，只有当主机层能装下整个 agent 池的可复用上下文（reuse working set）时，这个 agent 的前缀才会被复用；层太小就会一直写入还没被读就被驱逐的状态。EfficientAgent 用 stack-distance 模型从 agent 历史估计工作集来定主机层容量，并配运行时策略：层太小时停止写入大的“已驱逐上下文重填”，只续接仍在缓存里的前缀；层足够大时全写。SWE-bench Verified 上，按估计工作集 sizing 的主机层把重算 prompt token 减少 93%、端到端时间减少 39%；小固定层下策略减少 35% 重算，大层下避免“总是过滤写入”带来的 4.3× 增长。</p>
+<p><strong>对广域的启示</strong>：广域 KV 缓存池的容量要按<strong>复用工作集</strong>来定，而不是按单请求 KV 大小；否则会陷入“写得多、命中少”的无效传输。</p>
+<h3 id="10-tierkv-long-context-on-device-llms-via-predictive-multi-tier-kv-caching">10. TierKV: Long-Context On-Device LLMs via Predictive Multi-Tier KV Caching</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2609.21172">https://arxiv.org/abs/2609.21172</a></li>
+<li><strong>时间</strong>：2026-09-18</li>
+<li><strong>方向</strong>：端侧 · 多级缓存 · 预测放置</li>
+</ul>
+<p><strong>摘要</strong>：LLM 正在进入手机等端侧设备，长上下文让 KV 成为主要内存瓶颈。现有做法各有代价：低秩压缩有重建开销，token 驱逐不可逆地丢信息，flash offloading 有 I/O 停顿。TierKV 的 PMCO 在解码开始前，<strong>用 prefill 隐状态预测未来的缓存需求</strong>，在设备内存与精度预算下把 token 联合分配到 exact、low-rank、flash 三层，保留对完整上下文的访问，消除反应式驱逐的循环依赖，并给出可在运行时选择层边界和逐层秩的闭式解。八个文本/视觉/音频模型、三种移动 SoC 上，prefill 吞吐最高提升 17.6×，RAM 中的 KV 降低 12.5–34%，从而在同样内存下支持更长上下文，精度仅轻微下降。</p>
+<p><strong>对广域的启示</strong>：<strong>先预测需求、再决定放置</strong>，比“满了再驱逐”更适合多级缓存；这套思路可以直接迁移到“端—边—云”的 KV 分层。</p>
+<hr />
+<h2 id="_6">今日观察</h2>
+<ol>
+<li><strong>跨区域调度开始“算总账”</strong>：GORGO 把 KV 命中、副本负载、WAN 时延放进一个可调代价函数，并用真实长上下文数据调参；这比固定权重的前缀感知路由更接近生产。</li>
+<li><strong>传输层出现“光”的选项</strong>：Optical KV Network 用 OCS + 预留调度，把电路重配置藏进 prefill；当跨域 KV 流量足够大时，交换方式本身会成为优化对象。</li>
+<li><strong>异构与多级成为常态</strong>：HAWK（GPU-NPU）、TierKV（端侧三层）、HiState（KV/检查点分层）都在处理“同一份状态放在哪、怎么搬”。</li>
+<li><strong>复用从“同模型同前缀”扩展到跨版本、跨 agent、跨 LoRA</strong>：收益真实存在，但保真度和工作集大小是两个必须先回答的问题。</li>
+</ol>
+<blockquote>
+<p>注：本期摘要基于 arXiv 官方摘要页（标题、日期、摘要原文）整理；具体实验设置与数字以 PDF 原文为准。</p>
+</blockquote>
+</main>
+<nav class="pager"><a class="pager-link" href="2026-11-13.html"><span class="dir">← 上一期</span><span class="d">11月13日</span></a></nav>
+<footer class="footer"><span>KV Cache 日报</span><a href="../index.html">返回目录</a></footer>
+
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

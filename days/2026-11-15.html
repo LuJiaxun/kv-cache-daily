@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KV Cache 日报 · 2026-11-15</title>
+<meta name="description" content="2026-11-15 的 KV Cache 论文摘要，10 篇。">
+<meta name="theme-color" content="#f6f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="day-page">
+
+<header class="topbar">
+  <a class="back" href="../index.html"><span aria-hidden="true">←</span> 全部日报</a>
+  <span class="top-date">2026年11月15日 · 周日</span>
+</header>
+<main class="report">
+<h1 id="kv-cache-2026-11-15">KV Cache 论文日报 · 2026-11-15</h1>
+<blockquote>
+<p><strong>今日 10 篇</strong>：传输与跨区域 3 篇 · 调度与流媒体复用 3 篇 · 压缩与评估 4 篇</p>
+<p><strong>本期主线</strong>：跨区域这一侧同时出现“工程案例”和“理论保证”——多区域 K8s 的 prefix-aware 路由把全局命中率从 6.4% 拉到 82.3%，而非盲调度第一次给出常数竞争比；安全侧则提醒：KV 在网络上传输会被反演，需要可证明的差分隐私。
+</p>
+</blockquote>
+<h2 id="_1">速览</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>论文</th>
+<th>方向</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Towards Efficient Large Language Model Serving: A Survey on System-Aware KV Cache Optimization</td>
+<td>系统综述</td>
+<td>arXiv:2607.08057</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Differentially Private KV-Cache Transmission for Split LLM Inference</td>
+<td>传输隐私</td>
+<td>Zenodo 10.5281/zenodo.19365928</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Multi-Region Cloud-Native LLM Inference and Dynamic KV-Cache Routing</td>
+<td>多区域路由</td>
+<td>Zenodo 10.5281/zenodo.23513189</td>
+</tr>
+<tr>
+<td>4</td>
+<td>General Non-Clairvoyant KV-Cache Scheduling via Regime-Aware Routing</td>
+<td>KV 调度理论</td>
+<td>arXiv:2607.09248</td>
+</tr>
+<tr>
+<td>5</td>
+<td>HERMES: KV Cache as Hierarchical Memory for Efficient Streaming Video Understanding</td>
+<td>流媒体 KV 复用</td>
+<td>arXiv:2601.14724</td>
+</tr>
+<tr>
+<td>6</td>
+<td>StreamMem: Query-Agnostic KV Cache Memory for Streaming Video Understanding</td>
+<td>流媒体 KV 压缩</td>
+<td>arXiv:2508.15717</td>
+</tr>
+<tr>
+<td>7</td>
+<td>LookaheadKV: Fast and Accurate KV Cache Eviction by Glimpsing into the Future without Generation</td>
+<td>驱逐</td>
+<td>arXiv:2603.10899</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Value-Aware Stochastic KV Cache Eviction for Reasoning Models</td>
+<td>推理模型驱逐</td>
+<td>arXiv:2606.03928</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Does Accuracy Equal Evidence? Reasoning Faithfulness under KV Cache Compression</td>
+<td>压缩评估</td>
+<td>arXiv:2608.01631</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Understanding the Physics of Key-Value Cache Compression for LLMs through Attention Dynamics</td>
+<td>压缩机理</td>
+<td>arXiv:2603.01426</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_2">一、传输与跨区域</h2>
+<h3 id="1-towards-efficient-large-language-model-serving-a-survey-on-system-aware-kv-cache-optimization">1. Towards Efficient Large Language Model Serving: A Survey on System-Aware KV Cache Optimization</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2607.08057">https://arxiv.org/abs/2607.08057</a></li>
+<li><strong>时间</strong>：2026-07-09</li>
+<li><strong>方向</strong>：系统综述 · 时间/空间/结构三维度</li>
+</ul>
+<p><strong>摘要</strong>：这篇综述把“系统感知的 KV 基础设施”（sKis）拆成三个维度：<strong>执行与调度（时间）、放置与迁移（空间）、表示与保留（结构）</strong>。它不从单个算法出发，而是从系统行为看各类工作如何互相配合，并分析了跨行为的协同设计亲和性（例如调度策略会改变缓存放置的价值，表示压缩会改变迁移成本）以及行为与目标（时延、吞吐、成本）的对应关系。对跨广域场景来说，这篇的价值在于提供了一张“问题地图”：你做的压缩、复用、迁移、调度分别落在哪一格，彼此如何互相抵消或放大。</p>
+<p><strong>对广域的启示</strong>：跨域方案很少是单点优化，<strong>时间（调度）—空间（放置/迁移）—结构（表示/保留）必须一起设计</strong>；这张三维地图可以直接用来定位自己方案的盲区。</p>
+<h3 id="2-differentially-private-kv-cache-transmission-for-split-llm-inference">2. Differentially Private KV-Cache Transmission for Split LLM Inference</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://zenodo.org/records/19365928">https://zenodo.org/records/19365928</a> ｜ DOI: 10.5281/zenodo.19365928</li>
+<li><strong>时间</strong>：2026-04-01（Zenodo 预印本）</li>
+<li><strong>方向</strong>：Split 推理 · KV 传输 · 差分隐私</li>
+</ul>
+<p><strong>摘要</strong>：Split LLM inference 会把 KV 向量放到网络上传给下游，而 <strong>KV-cache inversion 攻击</strong>可以从截获的 KV 重建用户输入。现有防御多是启发式混淆，没有形式化保证。HeadDP 在<strong>每个头的 key/value 投影输出</strong>上注入校准的高斯噪声，提供可证明的 (ε, δ)-差分隐私；论文进一步说明为什么在 hidden state 上直接加噪会失败：最小可用隐私预算满足 ε_min ∝ √d（由香农信道容量与 Fano 不等式推出），而在 per-head 投影空间（d_h=128，对比 d=3584）注入可把 ε_min 降低 7 倍以上。在 MMLU Medical 上，Qwen2.5-7B、Llama-3-8B、Mistral-7B 在 ε=50–75 时准确率下降 ≤5 个百分点，而对比方法在同等预算下下降超过 65 个百分点（摘要口径）。</p>
+<p><strong>对广域的启示</strong>：KV 一旦离开可信域，就不只是“带宽/时延”问题，还是<strong>隐私边界</strong>问题；在跨机房/边缘传输前，per-head 加噪是比“加密整条链路”更细粒度、可证明的折中。</p>
+<h3 id="3-multi-region-cloud-native-llm-inference-and-dynamic-kv-cache-routing">3. Multi-Region Cloud-Native LLM Inference and Dynamic KV-Cache Routing</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://zenodo.org/records/23513189">https://zenodo.org/records/23513189</a> ｜ DOI: 10.5281/zenodo.23513189</li>
+<li><strong>时间</strong>：2026-10-20（Zenodo 预印本 / 生产案例研究）</li>
+<li><strong>方向</strong>：多区域 K8s · prefix-aware 路由 · 三层内存</li>
+</ul>
+<p><strong>摘要</strong>：跨多区域云服务 LLM 时，无状态的 round-robin / least-connections 负载均衡会把相同的 system prompt、多轮历史和共享检索上下文在不同 GPU 节点上反复重算。论文提出面向多区域 Kubernetes 的 <strong>prefix-aware KV 路由 + PD 分离</strong>架构：在全局边缘入口放一个<strong>一致性哈希 radix tree 目录</strong>，后端配 GPU HBM、host DDR5、NVMe-over-Fabrics 三层内存。基于三区域、64 张 H100、70B 模型、72 小时生产 trace 的案例评估：动态前缀树路由把全局 KV 命中率从 6.4% 提升到 82.3%，中位 TTFT 从 420ms 降到 135ms（-67.9%），p99 TTFT 从 1890ms 降到 410ms（-78.3%），单 GPU 可持续吞吐提升 210.7%。论文还讨论了 AZ 分区故障恢复、共享前缀缓存的跨租户侧信道风险与 FinOps 成本。</p>
+<p><strong>对广域的启示</strong>：这是“<strong>全局目录 + 本地命中</strong>”的工程样板：广域复用要先把“哪个 region 有哪个前缀”做成可路由的目录，再让请求就近命中；同时要提前考虑共享缓存带来的侧信道与故障切换。</p>
+<hr />
+<h2 id="_3">二、调度与流媒体复用</h2>
+<h3 id="4-general-non-clairvoyant-kv-cache-scheduling-via-regime-aware-routing">4. General Non-Clairvoyant KV-Cache Scheduling via Regime-Aware Routing</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2607.09248">https://arxiv.org/abs/2607.09248</a></li>
+<li><strong>时间</strong>：2026-07-10</li>
+<li><strong>方向</strong>：非盲调度 · 竞争比 · 内存预算</li>
+</ul>
+<p><strong>摘要</strong>：论文研究硬性 KV 内存预算下的批量推理调度：每个请求的 prompt 长度已知，但<strong>响应长度未知</strong>，内存占用由固定 prompt 部分加上随解码增长的响应部分组成；每一轮调度器要选一个可行 batch，驱逐请求就会丢掉已累积的 KV、浪费之前的计算。目标是在不知道真实响应长度的情况下，逼近“全知”最优调度。作者给出<strong>首个对任意 prompt 长度、任意响应长度都成立的常数竞争比算法</strong>：不依赖单一通用策略，而是用 regime-aware 路由框架，让不同子调度器处理不同的内存增长几何，再由元调度器在它们之间时间共享内存预算，并随着作业行为逐渐显露动态路由。该框架还把常数竞争比保证扩展到 makespan 与在线到达下的总完成时间。</p>
+<p><strong>对广域的启示</strong>：跨域调度常面对“请求会跑多久”未知的问题；<strong>按内存增长形态分而治之、再动态路由</strong>，比拍一个固定驱逐阈值更有理论保障。</p>
+<h3 id="5-hermes-kv-cache-as-hierarchical-memory-for-efficient-streaming-video-understanding">5. HERMES: KV Cache as Hierarchical Memory for Efficient Streaming Video Understanding</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2601.14724">https://arxiv.org/abs/2601.14724</a></li>
+<li><strong>时间</strong>：2026-01-21</li>
+<li><strong>方向</strong>：流式视频 · 分层 KV 记忆 · 训练免费</li>
+</ul>
+<p><strong>摘要</strong>：流式视频理解要求同时保持稳定理解、实时响应和低显存，而现有 MLLM 很难兼顾。HERMES 通过注意力机制分析，把 KV cache 当作<strong>分层记忆</strong>：不同粒度封装视频信息，推理时复用一份紧凑 KV，从而在资源受限下做流式理解；查询到来时不需要任何额外计算，因此能保证连续视频交互的实时性。相比此前 SOTA，TTFT 快 10 倍；即使相比均匀采样减少最多 68% 的视频 token，在所有基准上仍取得更好或相当准确率，流式数据集上最高提升 11.4%。</p>
+<p><strong>对广域的启示</strong>：分层 KV 记忆让“历史上下文”可以<strong>只保留一份紧凑表示</strong>，查询时不再回传/重算；对跨域流式场景，这等价于把“每帧都传”变成“只同步压缩记忆”。</p>
+<h3 id="6-streammem-query-agnostic-kv-cache-memory-for-streaming-video-understanding">6. StreamMem: Query-Agnostic KV Cache Memory for Streaming Video Understanding</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2508.15717">https://arxiv.org/abs/2508.15717</a></li>
+<li><strong>时间</strong>：2025-08-21</li>
+<li><strong>方向</strong>：流式视频 · 查询无关压缩 · 固定大小记忆</li>
+</ul>
+<p><strong>摘要</strong>：长视频理解中，KV cache 的存储与注意力开销随视觉上下文增长；现有视觉压缩方法要么需要先编码完整上下文再压缩，要么必须预知问题，无法用于长视频和多轮对话。StreamMem 提出<strong>查询无关</strong>的 KV 记忆：以流式方式编码新帧，用视觉 token 与<strong>通用查询 token</strong> 之间的注意力分数压缩 KV，并维持固定大小的 KV 内存，从而在内存受限的长视频场景下做 QA。在三个长视频理解与两个流式视频 QA 基准上，它取得查询无关压缩的 SOTA，并与查询感知方法有竞争力。</p>
+<p><strong>对广域的启示</strong>：固定大小、查询无关的记忆意味着<strong>带宽和存储可预测</strong>；对跨域流式应用，不必等用户问题到达再决定传什么，能提前把记忆压到固定预算。</p>
+<hr />
+<h2 id="_4">三、压缩与评估</h2>
+<h3 id="7-lookaheadkv-fast-and-accurate-kv-cache-eviction-by-glimpsing-into-the-future-without-generation">7. LookaheadKV: Fast and Accurate KV Cache Eviction by Glimpsing into the Future without Generation</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2603.10899">https://arxiv.org/abs/2603.10899</a></li>
+<li><strong>时间</strong>：2026-03-11</li>
+<li><strong>方向</strong>：驱逐 · 重要性预测 · 低开销</li>
+</ul>
+<p><strong>摘要</strong>：长上下文下 KV 随输入线性增长，现有方法靠重要性分数驱逐 prompt KV；近期工作用“瞥见未来”提升驱逐质量——先让 draft 模型生成一个代理未来响应，再用它估计重要性，但 draft 生成本身带来大量 prefill 开销。LookaheadKV 保留“代理未来”的好处，却<strong>不需要显式 draft 生成</strong>：给 Transformer 层加参数高效模块，直接预测真实重要性分数，运行时开销与廉价启发式相当，准确率却优于更贵的近似方法。长上下文基准上全面优于近期强基线，并把驱逐成本最多降低 14.5 倍，显著加快 TTFT。</p>
+<p><strong>对广域的启示</strong>：驱逐的“判断成本”本身要算进预算；<strong>用小模块预测重要性</strong>比生成代理响应更适合在线服务，也更容易和跨域预取结合。</p>
+<h3 id="8-value-aware-stochastic-kv-cache-eviction-for-reasoning-models">8. Value-Aware Stochastic KV Cache Eviction for Reasoning Models</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2606.03928">https://arxiv.org/abs/2606.03928</a></li>
+<li><strong>时间</strong>：2026-06-02</li>
+<li><strong>方向</strong>：推理模型 · 值状态异常 · 随机驱逐</li>
+</ul>
+<p><strong>摘要</strong>：推理模型靠长思维链提升准确率，但长输出让 KV 成为瓶颈；驱逐方法常不如“保留全量 KV 的选择式稀疏注意力”。论文定位两个关键因素：第一，<strong>极少数 value 状态幅度异常大</strong>，驱逐它们会导致灾难性失败——模型陷入重复推理循环；第二，在驱逐中引入<strong>随机性</strong>能通过增加缓存多样性提升准确率。据此提出 VaSE：训练免费，保护大幅度 value 状态，同时让驱逐决策更分散。六个推理任务上，Qwen3 模型在 4× KV 压缩下平均准确率高于同稀疏度的 SOTA 选择式方法，比最强驱逐方法高 4% 以上；支持 FlashAttention2，并可保持静态显存占用。</p>
+<p><strong>对广域的启示</strong>：压缩不能只看“平均重要性”，<strong>尾部异常值</strong>决定成败；对需要跨域传输的推理负载，保护少量关键 value 比均匀压缩更稳。</p>
+<h3 id="9-does-accuracy-equal-evidence-reasoning-faithfulness-under-kv-cache-compression">9. Does Accuracy Equal Evidence? Reasoning Faithfulness under KV Cache Compression</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2608.01631">https://arxiv.org/abs/2608.01631</a></li>
+<li><strong>时间</strong>：2026-08-03</li>
+<li><strong>方向</strong>：压缩评估 · 答案-证据差距</li>
+</ul>
+<p><strong>摘要</strong>：KV 压缩通常用最终答案准确率评估，隐含假设“答案对＝推理过程也保住了”。论文用<strong>固定轨迹重放</strong>协议（保持推理内容不变，只隔离压缩是否保留了可用信息）检验这个假设，覆盖 10 种 token 驱逐方法与 1 种量化方法、3 个模型、数学推理/科学 QA/临床计算/长上下文检索四类任务，测量最终准确率、答案链一致性与扰动忠实度。结果发现 <strong>answer-evidence gap</strong>：token 驱逐方法可以保持有竞争力的最终准确率，却显著削弱链式支持或扰动忠实度；而保留覆盖率的量化对照受影响小得多，说明问题更多来自“丢失了对推理轨迹部分内容的访问”，而非单纯的 KV 内存减少。</p>
+<p><strong>对广域的启示</strong>：跨域压缩/驱逐的质量评估不能只看准确率；<strong>证据链是否还在</strong>是更敏感的信号，尤其对审计、医疗、代码等高风险场景。</p>
+<h3 id="10-understanding-the-physics-of-key-value-cache-compression-for-llms-through-attention-dynamics">10. Understanding the Physics of Key-Value Cache Compression for LLMs through Attention Dynamics</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2603.01426">https://arxiv.org/abs/2603.01426</a></li>
+<li><strong>时间</strong>：2026-03-02</li>
+<li><strong>方向</strong>：压缩机理 · 注意力路由 · 相变</li>
+</ul>
+<p><strong>摘要</strong>：论文反对“80–90% 压缩、基准几乎不掉分”式的评估，指出注意力不只是存储，还是<strong>路由</strong>：保留 KV 不等于语义上仍可访问。作者提出把 KV 压缩视为对 token 级路由的受控扰动，区分<strong>保留（retention）、可访问（accessibility）、可利用（utilization）</strong>三个概念。用多实体跟踪、消歧、共指、多跳推理等合成任务发现：中等压缩会明显退化内部表示但准确率几乎不变（冗余）；所有模型在约 <strong>90% 压缩</strong>附近出现幻觉安全悬崖，并与 Global Eviction Ratio 尖峰相关，提示语义可达性发生相变；架构差异明显——LLaMA 早共识、晚分化，Qwen 呈漏斗式后收敛，抗压性不同；除“擦除”外还存在<strong>表示刚性</strong>：过度 head 级共识会压缩路由灵活性，即使 token 还在。</p>
+<p><strong>对广域的启示</strong>：压缩比的“安全区”不是线性的，接近某个阈值会出现相变；跨域传输若按固定压缩比削减字节，需要留出安全余量，并按模型架构校准。</p>
+<hr />
+<h2 id="_5">今日观察</h2>
+<ol>
+<li><strong>跨区域开始有“可复制的工程配方”</strong>：全局一致性哈希 radix 目录 + 本地三层内存，命中率 6.4%→82.3%，这比单点压缩更能解释真实收益。</li>
+<li><strong>KV 传输的安全性被正式提出</strong>：HeadDP 说明截获 KV 可反演输入，per-head 加噪能给出 (ε,δ)-DP 保证；跨域共享缓存必须考虑侧信道。</li>
+<li><strong>调度理论补上了“未知响应长度”这一块</strong>：常数竞争比的 regime-aware 路由，为跨域批处理提供了可证明的基线。</li>
+<li><strong>压缩评估正在从“准确率”转向“证据链/可达性”</strong>：answer-evidence gap 与 90% 压缩相变都说明，压缩比的安全边界需要重新定义。</li>
+</ol>
+<blockquote>
+<p>注：本期第 2、3 篇为 Zenodo 预印本/案例研究，数字来自作者摘要与正文自述；其余为 arXiv 摘要。具体实验设置以 PDF 原文为准。</p>
+</blockquote>
+</main>
+<nav class="pager"><a class="pager-link" href="2026-11-14.html"><span class="dir">← 上一期</span><span class="d">11月14日</span></a></nav>
+<footer class="footer"><span>KV Cache 日报</span><a href="../index.html">返回目录</a></footer>
+
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

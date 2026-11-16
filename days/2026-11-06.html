@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KV Cache 日报 · 2026-11-06</title>
+<meta name="description" content="2026-11-06 的 KV Cache 论文摘要，10 篇。">
+<meta name="theme-color" content="#f6f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="day-page">
+
+<header class="topbar">
+  <a class="back" href="../index.html"><span aria-hidden="true">←</span> 全部日报</a>
+  <span class="top-date">2026年11月6日 · 周五</span>
+</header>
+<main class="report">
+<h1 id="kv-cache-2026-11-06">KV Cache 论文日报 · 2026-11-06</h1>
+<blockquote>
+<p><strong>今日 10 篇</strong>：压缩与驱逐 3 篇 · 传输与系统 4 篇 · 复用与生成 3 篇</p>
+<p><strong>本期主线</strong>：压缩正从“把字节砍掉”转向“在结构性冗余里保住有效精度”——体积医学 KV 沿三条解剖轴做频域能量集中、门控驱逐被证明卡在目标函数本身、低比特量化靠按需流送高精度残差补回精度；与此同时，传输与系统侧反复说明：KV 交接的收益来自“传哪几层、放在哪个域、何时该重算”的联合取舍，而不是拆分或压缩本身。</p>
+<p><strong>说明</strong>：本期为补录批次，收录 arXiv 公告日期集中在 2026-11-05 至 11-06 的论文；摘要依据 arXiv 官方摘要整理。</p>
+</blockquote>
+<h2 id="_1">速览</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>论文</th>
+<th>方向</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>TACT-KV: Tri-Axis Cosine Transform for Compressing Volumetric KV Caches in Medical VLMs</td>
+<td>频域变换压缩 · 位分配 · 医学视觉语言模型</td>
+<td>arXiv:2611.07593</td>
+</tr>
+<tr>
+<td>2</td>
+<td>The Gating Mechanism of KV Cache Eviction</td>
+<td>可学习驱逐 · softmax 门控 · 目标函数分析</td>
+<td>arXiv:2611.07605</td>
+</tr>
+<tr>
+<td>3</td>
+<td>StrataFlux: Memory-Hierarchy-Native Low-Bit LLM Inference</td>
+<td>低比特量化 · 精度流送 · 内存层级</td>
+<td>arXiv:2611.08363</td>
+</tr>
+<tr>
+<td>4</td>
+<td>ReKV: Overlapping Quantized KV Transfer and Suffix Recomputation</td>
+<td>量化传输 · 后缀重算 · PD 分离</td>
+<td>arXiv:2611.08770</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Should You Split Decode? Disaggregation Across Future Models and Accelerators</td>
+<td>解码拆分 · 硬件规划 · 吞吐成本</td>
+<td>arXiv:2611.08299</td>
+</tr>
+<tr>
+<td>6</td>
+<td>MORTIS: Compiler-Guided KV-Cache Management for LLM Agent Programs</td>
+<td>编译分析 · 生命周期管理 · 智能体服务</td>
+<td>arXiv:2611.08638</td>
+</tr>
+<tr>
+<td>7</td>
+<td>CAMP: Context-Aware Mapping and Placement for LLMs on 3D-IMC Arrays</td>
+<td>权值映射 · 三维存内计算 · 并发调度</td>
+<td>arXiv:2611.07707</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Inside the Trap: A Renewal Law for Prefix-Cache Collapse in LLM Agent Serving</td>
+<td>前缀缓存 · 缓存塌陷 · 排队论</td>
+<td>arXiv:2611.08902</td>
+</tr>
+<tr>
+<td>9</td>
+<td>SwarmEvolve: Latent Agent Swarms for Evolutionary Discovery and Optimization</td>
+<td>KV 传递 · 隐空间通信 · 进化搜索</td>
+<td>arXiv:2611.08483</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Measured Coupling for Parallel Decoding in Diffusion Language Models</td>
+<td>并行解码 · 耦合度量 · 扩散语言模型</td>
+<td>arXiv:2611.08307</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_2">一、压缩：变换域、门控目标与低比特精度补偿</h2>
+<h3 id="1-tact-kv-tri-axis-cosine-transform-for-compressing-volumetric-kv-caches-in-medical-vlms">1. TACT-KV: Tri-Axis Cosine Transform for Compressing Volumetric KV Caches in Medical VLMs</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.07593">https://arxiv.org/abs/2611.07593</a></li>
+<li><strong>时间</strong>：2026-11-05</li>
+<li><strong>方向</strong>：频域变换压缩 · 逐层位分配 · 医学视觉语言模型</li>
+</ul>
+<p><strong>摘要</strong>：面向三维医学影像的视觉语言模型撞上了一堵结构性内存墙：单个 CT 或 MRI 体数据会产生数万个视觉 token，KV 缓存随批大小与上下文线性膨胀。已有压缩方法只利用缓存的特征统计或 token 统计、或施加一维/二维变换，丢掉了三维扫描 KV 沿三条解剖轴的空间结构。TACT-KV 是免校准的压缩方法，对 KV 缓存做可分离三维离散余弦变换，用逆向注水在频率分箱间分配逐层比特预算（高能量分量给更多比特），再用固定标量码本逐箱量化，并推导出失真下降主要由变换后缓存的频谱集中度决定。六个医学视觉语言模型、两个三维 CT 基准上，它在 12 组模型-数据对中的 11 组取得最低的 1-bit 预测翻转率；同等高带宽内存下，单卡解码批大小最高放大 8 倍。</p>
+<p><strong>对广域的启示</strong>：被传输的 KV 若来自高度结构化的模态（体积影像、视频），冗余不只是 token 级而是沿空间轴成片存在；先做可分离变换把能量集中，再按频带分配字节，比全局均匀量化更省带宽，且这套“沿轴分解”可直接用于跨域链路前的压缩编码。</p>
+<h3 id="2-the-gating-mechanism-of-kv-cache-eviction">2. The Gating Mechanism of KV Cache Eviction</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.07605">https://arxiv.org/abs/2611.07605</a></li>
+<li><strong>时间</strong>：2026-11-05</li>
+<li><strong>方向</strong>：可学习驱逐 · softmax 内门控 · 训练目标分析</li>
+</ul>
+<p><strong>摘要</strong>：KV 驱逐的核心是判断哪些条目承载了其余缓存无法再提供的信息，一个自然的估计方式是给每条缓存的注意力权重配一个可学习门，并用模型自身目标训练。论文指出门位于归一化 softmax 之内，压制一个条目是把它的质量让给其他条目，而同一归一化子会吸收任意逐查询常数，因此常数门会相互抵消、精确复现冻结模型；以语言建模损失训练时，门停在近似常数分数上但损失在整个过程中持续下降——优化是成功的，只是目标本身偏好“什么都不做”。第二个障碍即使门动起来也依然存在：同一梯度会把冻结模型已有的误差记在门上，任何位置重加权都无法分离。作者把稠密注意力放到门的作用范围之外、并以稠密模型的预测为目标，两处障碍同时消失；此时容量不是缺失项——更大的打分器、显式访问历史、可训练主干都无帮助。被驱逐必然丢弃的信息，由同一 softmax 内读取的无参数质心恢复，效果远好于在 softmax 外做记忆读取。75% KV 压缩下，Qwen3-8B 上取得 RULER 8K 90.14、LongBench 46.03，仅比全缓存推理低 3.72 与 1.36 分。</p>
+<p><strong>对广域的启示</strong>：驱逐策略的收益上限由训练目标决定，“加容量”“加记忆”往往治不了根因；这类分析也提示，跨域缓存复用若要裁剪条目，应把密集模型的输出当作对齐目标，而非只按注意力分数排序。</p>
+<h3 id="3-strataflux-memory-hierarchy-native-low-bit-llm-inference">3. StrataFlux: Memory-Hierarchy-Native Low-Bit LLM Inference</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.08363">https://arxiv.org/abs/2611.08363</a></li>
+<li><strong>时间</strong>：2026-11-05</li>
+<li><strong>方向</strong>：低比特权值与 KV · 选择性精度流送 · 主机内存/SSD 分级</li>
+</ul>
+<p><strong>摘要</strong>：量化能降低大模型推理的显存与带宽需求，但会损害精度；把更高精度数据搬回设备又会卡住生成。StrataFlux 试图打破这一权衡：它协同设计精度残差的表示、选择与投递，让主机内存与固态硬盘成为可用的额外精度来源。其选择性精度流送压缩传输量、把投递与计算重叠，并让已取回的精度在多个解码步之间复用，使生成不必等待每一次传输。评测覆盖 2–4 bit 权重与 2–3 bit KV 缓存、独立 GPU 与统一内存平台：2-bit 权重的 Llama-3.1-8B-Instruct 上 WikiText-2 困惑度从 9.46 降到 8.40，同时在 RTX 5090 上保持量化基座 95.4% 的吞吐；2-bit 权重加 2-bit KV 使 Qwen3-8B 的 AIME 2024/2025 准确率从 11.0% 升到 47.1%，GPU 显存占用不变；128K 上下文下，3-bit 权重与 2-bit KV 的 Llama-3.1-8B-Instruct 在困惑度与速度上与 vLLM 的 4-bit AWQ 权重加 8-bit KV 相当，显存只用约一半。</p>
+<p><strong>对广域的启示</strong>：这是“冷数据低比特、热路径流送残差”的完整实现——把精度当成可分级、可预取、可跨步复用的资源；跨域缓存分层（远端低比特存、近端按需补精度）可以直接借用这一表示与投递设计。</p>
+<hr />
+<h2 id="_3">二、传输与系统：交接、拆分、编译期管理与硬件放置</h2>
+<h3 id="4-rekv-overlapping-quantized-kv-transfer-and-suffix-recomputation">4. ReKV: Overlapping Quantized KV Transfer and Suffix Recomputation</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.08770">https://arxiv.org/abs/2611.08770</a></li>
+<li><strong>时间</strong>：2026-11-05</li>
+<li><strong>方向</strong>：量化 KV 传输 · 后缀重算 · 预填-解码分离</li>
+</ul>
+<p><strong>摘要</strong>：预填-解码分离要在首个 token 生成前把提示词的 KV 缓存搬到另一个工作节点，把这次交接简化为“纯压缩”或“纯重算”都漏掉了一个有用选择：传输哪些层、以什么精度传、哪些层改在解码节点上重算。ReKV 传输量化后的前缀 KV 与一个 BF16 边界状态，并在前缀传输在途时重建连续后缀。在跨节点 H100 上的模型形状合成基准中，满足另行评测质量标准的 Q8 配置把 8K 交接时延相对 BF16 传输分别降低 2.36×、2.84×、3.65×（Qwen2.5-7B、Qwen2.5-3B、Qwen3-8B），同样快于实测最优的纯传输或纯重算动作；另一项真实权重 BF16 重算实验把预填到返回 token 的时间降低 1.16–1.63×。最优动作随提示长度与链路带宽变化。</p>
+<p><strong>对广域的启示</strong>：跨域交接不应是“传完再算”或“全部重算”的二选一，而应按层、按精度、按带宽把传输与重算流水铺开；这也意味着调度器需要一条“当前链路下哪种动作最优”的决策规则，而不是固定策略。</p>
+<h3 id="5-should-you-split-decode-disaggregation-across-future-models-and-accelerators">5. Should You Split Decode? Disaggregation Across Future Models and Accelerators</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.08299">https://arxiv.org/abs/2611.08299</a></li>
+<li><strong>时间</strong>：2026-11-05</li>
+<li><strong>方向</strong>：解码拆分 · 硬件与模型路线 · 每千瓦有效吞吐</li>
+</ul>
+<p><strong>摘要</strong>：生产中已部署预填/解码分离来隔离资源需求不同的两个阶段，注意力/前馈网络分离则把解码再拆一次，代价是额外通信、放置约束与又一个资源池。论文追问：随着模型与加速器路线演进，这种角色专属放置是否还值得。作者提出 SiliconForge，一个可独立变化服务分解方式与硬件分配的可标定模型，在四种模型方向、四类锚定现有与已公布器件的加速器、两种互连网络上比较预填/解码与预填/解码/注意力-前馈分离，并用相同的流水重叠规则与功耗预算做协同优化。结果显示在每千瓦服务水平目标有效吞吐上不存在稳健的部署级分离优势，多数名义估计偏向预填/解码；分离最大的领先来自多塞进一个预填副本，而非更高效的解码池；仅在 KV 占比重、且共置专家池跨多个小规模扩展域时才有名义优势，扩展域更大或两侧都用快速互连时该优势减弱。固定硬件分配会随模型、互连、硬件假设与目标变化而失去优势；在同一硬件上重新优化映射与池大小，可把早期承诺的中位归一化有效吞吐损失从 36% 降到 9%。</p>
+<p><strong>对广域的启示</strong>：拆分不是收益来源，<strong>预填配置、解码内存带宽、链路与池粒度</strong>才是；对广域部署，这意味着应优先投资跨域 KV 局部性与池的粒度设计，并保留映射与池大小的可调整性以对冲模型与硬件的快速换代。</p>
+<h3 id="6-mortis-compiler-guided-kv-cache-management-for-llm-agent-programs">6. MORTIS: Compiler-Guided KV-Cache Management for LLM Agent Programs</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.08638">https://arxiv.org/abs/2611.08638</a></li>
+<li><strong>时间</strong>：2026-11-05</li>
+<li><strong>方向</strong>：编译分析 · 组件生命周期 · 智能体 KV 复用</li>
+</ul>
+<p><strong>摘要</strong>：现有智能体服务系统把每个提示词切成“可复用前缀 + 不透明后缀”，在这个粗粒度上管理 KV，不区分各组成部分。论文观察到提示词组件在“哪些调用共享其取值”和“取值可复用多久”上并不相同，称之为提示词内部异质性。关键洞察是：在以带类型的 LLM 函数调用生成提示词的框架里，这些组件对应程序变量，编译器分析即可恢复其共享模式与生命周期。MORTIS 把该分析与运行时观测结合，重排提示词组件以暴露更多前缀复用，并用预测的复用性与生命周期指导缓存保留、驱逐与预取。评测显示相对 SGLang 最高 1.99× 作业完成时间加速与 1.97× 吞吐提升，几何平均分别为 1.45× 与 1.49×。</p>
+<p><strong>对广域的启示</strong>：KV 的生命周期不必靠猜测，程序结构里已经写着“这段上下文会被谁、用多久”；跨域缓存池若能拿到这种语义级的复用与失效信息，就能把复制、预取与驱逐做成有依据的决策，而不是按访问频率启发式处理。</p>
+<h3 id="7-camp-context-aware-mapping-and-placement-for-llms-on-3d-imc-arrays">7. CAMP: Context-Aware Mapping and Placement for LLMs on 3D-IMC Arrays</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.07707">https://arxiv.org/abs/2611.07707</a></li>
+<li><strong>时间</strong>：2026-11-05</li>
+<li><strong>方向</strong>：权值放置 · 三维存内计算 · 运行时上下文</li>
+</ul>
+<p><strong>摘要</strong>：大模型推理要为加载大权重矩阵与 KV 缓存付出严重的内存访问开销，模拟存内计算把计算直接放在静态权值所在的存储上，可显著降低能耗与时延；三维存内计算进一步把存储阵列垂直堆叠提高容量，却引出新问题：权值在存储中的放置方式决定了哪些矩阵-向量乘可以并发执行，从而影响时延与吞吐。论文指出三维存内计算的权值映射在并发性上仍研究不足，导致算力利用不佳。CAMP 是推理上下文感知的权值映射算法，用冲突矩阵刻画来自架构、目标网络与运行时上下文的潜在资源争用，再通过性能剖析驱动的反馈回路高效剪枝搜索空间，在实际运行时间内返回优化映射。作为离线软件方案、无需改动硬件，它把三维存内计算的计算利用率从 42.4% 提升到 60.3%，三维存内计算吞吐最高 2.0×、端到端吞吐最高 1.74× 于当前最优映射算法。</p>
+<p><strong>对广域的启示</strong>：KV 的形状与布局不只影响访存带宽，也决定了哪些计算能并发；在近存计算这类新硬件上，“KV 放哪里”与“权重放哪里”是同一个映射问题的两面，缓存策略需要和硬件放置一起设计。</p>
+<hr />
+<h2 id="_4">三、复用与生成：前缀塌陷、隐空间通信与并行解码</h2>
+<h3 id="8-inside-the-trap-a-renewal-law-for-prefix-cache-collapse-in-llm-agent-serving">8. Inside the Trap: A Renewal Law for Prefix-Cache Collapse in LLM Agent Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.08902">https://arxiv.org/abs/2611.08902</a></li>
+<li><strong>时间</strong>：2026-11-06</li>
+<li><strong>方向</strong>：前缀缓存 · 缓存塌陷 · 更新方程</li>
+</ul>
+<p><strong>摘要</strong>：前缀缓存让智能体后续轮次复用已缓存的 KV，但一阵突发流量可能把引擎推入陷阱：每一轮都未命中、积压不再被消化，而这一负载此前是能服务的。在两个引擎、两块 GPU、两个模型上的注册配对测试中（10 个速率里 9 个通过），一次 200 会话突发让全部 30 次运行到结束时命中率仍为零，而每次匹配的无突发运行都保持良好，会话上限在全部 30 次限流运行中阻止了陷阱。作者对陷阱状态做了精确理想化：对每一轮都未命中的流体 FIFO 服务器，证明沿 FIFO 轨道其周期服从线性更新递推；经典结论是当到达率低于全未命中容量时陷阱会排空，高于该容量时由一个 Perron 根决定动力学，每个被困状态收敛到已知自相似区间，轮次间隔线性增长、被服务的轮次又新又短。该工作负载下积压以超额负载的 0.6 到 0.8 倍增长，会话完成速度快于全未命中容量（一种“年轻溢价”，带轮次数与成本增长因子），因此模型内测得的陷阱吞吐会高估恢复阈值。回顾性检验中理论未对陷阱数据做任何拟合，与 57 次卡死运行吻合：50 次运行中平均被服务提示词误差在 3% 以内、每次运行的完成量都高于全未命中容量、池化间隔增长也一致。对结果盲测的 4 次由工具变慢导致的陷阱满足 5 项预设指标中的 4 项，限流后的陷阱持续存在；在 20 步预算下，被困运行完成量如预测般低于全未命中容量。两种出口里，拒绝到达会流失会话，会话上限则恢复复用：注册测试中它在同等负载下、不流失会话地救回 9 个已形成的陷阱中的 9 个，释放后引擎仍保持良好。作者并未证明引擎收敛到该模型。</p>
+<p><strong>对广域的启示</strong>：前缀复用的命中率不是平滑下降的，而是存在一个由突发触发的非线性塌陷点；跨域/多租户共享缓存池尤其需要准入控制与会话上限，并且<strong>不能用吞吐指标反推恢复阈值</strong>——一旦进陷阱，测得的高吞吐可能只是“年轻溢价”的假象。</p>
+<h3 id="9-swarmevolve-latent-agent-swarms-for-evolutionary-discovery-and-optimization">9. SwarmEvolve: Latent Agent Swarms for Evolutionary Discovery and Optimization</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.08483">https://arxiv.org/abs/2611.08483</a></li>
+<li><strong>时间</strong>：2026-11-05</li>
+<li><strong>方向</strong>：KV 缓存传递 · 隐空间智能体通信 · 进化式程序搜索</li>
+</ul>
+<p><strong>摘要</strong>：以大模型引导的进化搜索用智能体迭代改进程序、组合高分方法，但过程往往很慢，因为模型每轮都要生成长文本思维链，且为维持种群多样性要重复生成很多次。SwarmEvolve 让每轮数百个低成本智能体以集群方式工作：在隐空间推理而不解码成文本，并通过传递 KV 缓存共享信息。每个集群从不同角度研究问题，新颖性过滤器直接度量智能体隐状态向量之间的距离来保留最不同的想法，而想法的交叉在隐空间中自然发生——一个汇总智能体接收所有集群成员的合并 KV 缓存。在数学发现与科学计算共 21 个问题上，它取得最高平均分，并且取得其他最优框架 60 分钟才能达到的最佳分数只需中位 3 到 8 分钟；在若干问题上，Qwen3 8B 改进的方案超过了 AlphaEvolve 最初用前沿模型找到的解。</p>
+<p><strong>对广域的启示</strong>：当智能体之间传递的不再是文本而是 KV 缓存时，“复用”就从缓存命中问题变成了<strong>通信原语</strong>——合并多份 KV、跨智能体对齐隐空间表示，会成为新的带宽、兼容性与一致性约束。</p>
+<h3 id="10-measured-coupling-for-parallel-decoding-in-diffusion-language-models">10. Measured Coupling for Parallel Decoding in Diffusion Language Models</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.08307">https://arxiv.org/abs/2611.08307</a></li>
+<li><strong>时间</strong>：2026-11-05</li>
+<li><strong>方向</strong>：并行解码 · 提交耦合度量 · 扩散语言模型</li>
+</ul>
+<p><strong>摘要</strong>：扩散语言模型可以每步写出多个 token，但必须判断哪些 token 可以安全地一起提交。平均场解码用“两个位置预测看起来相似就惩罚”作为代理指标，论文直接用耦合本身替换这一代理：提交一个 token 会多大程度改变另一个位置的置信度。作者在主前向过程中用廉价探针测量该耦合，无需训练、不引入额外模型，并可直接接入同一套平均场规则。在三个模型、四个基准上，本方法所需步数远少于平均场解码，在多数设置下更快（带 KV 缓存时同样成立），平均准确率代价为 1.1 分；打乱耦合值或换成统一奖励项都会失去该收益。</p>
+<p><strong>对广域的启示</strong>：并行生成的提交决策可以在同一次前向里顺带测出，说明“缓存复用”与“并行多 token”并不冲突；对广域服务，这意味着单请求的算力占用可以压得更低，从而把省下的预算让给 KV 传输或更长的上下文。</p>
+<hr />
+<h2 id="_5">今日观察</h2>
+<ol>
+<li>
+<p><strong>压缩的共识正在从“砍字节”转向“保住结构性精度”</strong>：TACT-KV 沿三条解剖轴做能量集中、按频带分配比特，同等高带宽内存下单卡解码批大小最高 8×；StrataFlux 把被量化掉的那部分精度做成可从主机内存与固态硬盘按需流送的残差，2-bit 权重加 2-bit KV 下 Qwen3-8B 的 AIME 准确率从 11.0% 回到 47.1% 而显存不变。压缩比的竞争开始让位于“精度放在哪一层”的设计。</p>
+</li>
+<li>
+<p><strong>驱逐与复用的失败往往不是排序问题，而是目标与动力学问题</strong>：门控驱逐被证明卡在“冻结主干本来就偏好稠密注意力”这一目标函数上，加容量、加历史、加可训练主干都无效；前缀缓存则会因一次突发整体塌陷，30 次运行全部归零命中。对 KV 系统而言，低命中率与低质量可能是同一类“吸引子”，需要准入控制与会话上限这类结构性出口，而非更好的打分器。</p>
+</li>
+<li>
+<p><strong>传输的收益来自“传还是算”的细粒度联合调度，拆分本身不产生收益</strong>：ReKV 按层与精度把量化前缀传输与后缀重算重叠，8K 交接时延相对 BF16 传输降低 2.36–3.65×；而跨模型与加速器路线的规划研究显示，注意力/前馈分离在每千瓦有效吞吐上没有稳健优势，真正决定部署的是预填配置、解码内存带宽、链路与池粒度，保留映射可调整性可把中位损失从 36% 压到 9%。</p>
+</li>
+<li>
+<p><strong>KV 正在变成一等通信与放置对象</strong>：SwarmEvolve 让数百个智能体直接传 KV 缓存而不解码文本，MORTIS 用编译器从程序变量推出组件的共享模式与生命周期，CAMP 则把运行时上下文（含 KV 布局）写进三维存内计算的权值映射。三者共同指向同一件事——KV 的语义、生命周期与物理位置，正在被当作可分析、可调度、可传输的对象来设计。</p>
+</li>
+</ol>
+<blockquote>
+<p>注：本期为补录批次，摘要基于 arXiv 官方摘要页整理；具体实验设置与数字以 PDF 原文为准。</p>
+</blockquote>
+</main>
+<nav class="pager"><a class="pager-link" href="2026-11-05.html"><span class="dir">← 上一期</span><span class="d">11月5日</span></a><a class="pager-link next" href="2026-11-07.html"><span class="dir">下一期 →</span><span class="d">11月7日</span></a></nav>
+<footer class="footer"><span>KV Cache 日报</span><a href="../index.html">返回目录</a></footer>
+
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

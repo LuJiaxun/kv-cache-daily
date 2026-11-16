@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KV Cache 日报 · 2026-11-07</title>
+<meta name="description" content="2026-11-07 的 KV Cache 论文摘要，10 篇。">
+<meta name="theme-color" content="#f6f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="day-page">
+
+<header class="topbar">
+  <a class="back" href="../index.html"><span aria-hidden="true">←</span> 全部日报</a>
+  <span class="top-date">2026年11月7日 · 周六</span>
+</header>
+<main class="report">
+<h1 id="kv-cache-2026-11-07">KV Cache 论文日报 · 2026-11-07</h1>
+<blockquote>
+<p><strong>今日 10 篇</strong>：复用与缓存调度 4 篇（DARIC、Nebula、TwinHash、Intent-Aware Caching）· 极致压缩与低比特计算 4 篇（Transformer-FSQ、FOSCAR、BitDecoding-FP4、AutoEMatic）· 存储刻画与架构协同 2 篇（The Storage View of KV Cache、TailDART）</p>
+<p><strong>本期主线</strong>：KV cache 的竞争焦点正从“压得更小”转向“在分布式缓存、智能体工作流与存储层级中把复用做实”，而低比特压缩必须靠算法—内核—系统协同，才能把省下的带宽兑现为真实吞吐。</p>
+<p><strong>说明</strong>：本期为补录批次，收录 arXiv 公告日期集中在 2026-11-06 前后的论文；摘要依据 arXiv 官方摘要整理。</p>
+</blockquote>
+<h2 id="_1">速览</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>论文</th>
+<th>方向</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>DARIC: A Position-Independent KV Cache Reuse System with Distribution-Aware Recomputation</td>
+<td>位置无关复用 · 重算调度 · 系统协同</td>
+<td>arXiv:2611.09109</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Nebula: Distributed Position-Independent Caching for LLM Serving</td>
+<td>分布式缓存 · 位置无关复用 · 预填充调度</td>
+<td>arXiv:2611.09474</td>
+</tr>
+<tr>
+<td>3</td>
+<td>TwinHash: Two-Sided Object Identity Management for Time- and Energy-Efficient Agentic Workflows</td>
+<td>对象标识 · 智能体工作流 · 层级存储</td>
+<td>arXiv:2611.09254</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Intent-Aware Caching for Efficient LLM Serving</td>
+<td>前缀缓存 · 淘汰策略 · 意图预测</td>
+<td>arXiv:2611.09715</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Transformer-FSQ: Discrete Latents for Extreme KV-Cache Compression</td>
+<td>极端压缩 · 离散量化 · 融合内核</td>
+<td>arXiv:2611.09598</td>
+</tr>
+<tr>
+<td>6</td>
+<td>FOSCAR: Accelerating Decode Attention over 2- and 4-Bit KV Caches through Affine Folding</td>
+<td>低比特缓存 · 解码注意力 · GPU 内核</td>
+<td>arXiv:2611.09722</td>
+</tr>
+<tr>
+<td>7</td>
+<td>BitDecoding-FP4: Native FP4 KV Cache Decoding via Algorithm-System Co-Design</td>
+<td>FP4 量化 · 误差控制 · 服务吞吐</td>
+<td>arXiv:2611.09825</td>
+</tr>
+<tr>
+<td>8</td>
+<td>AutoEMatic: Runtime-Adaptive Mixed-Precision LLM Inference via Automatic Exponent-Mantissa Refinement</td>
+<td>混合精度 · 运行时自适应 · 软硬协同</td>
+<td>arXiv:2611.10165</td>
+</tr>
+<tr>
+<td>9</td>
+<td>The Storage View Of KV Cache: Characterizing Cache Behavior Across LLM Workloads</td>
+<td>存储管理 · 负载刻画 · 生命周期</td>
+<td>arXiv:2611.10178</td>
+</tr>
+<tr>
+<td>10</td>
+<td>TailDART: Compute-Efficient Foundation Models for Financial Time-Series Forecasting</td>
+<td>分组查询注意力 · KV 带宽 · 时间序列</td>
+<td>arXiv:2611.09176</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_2">一、复用：从位置无关到分布式与智能体</h2>
+<h3 id="1-daric-a-position-independent-kv-cache-reuse-system-with-distribution-aware-recomputation">1. DARIC: A Position-Independent KV Cache Reuse System with Distribution-Aware Recomputation</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.09109">https://arxiv.org/abs/2611.09109</a></li>
+<li><strong>时间</strong>：2026-11-06</li>
+<li><strong>方向</strong>：位置无关复用 · 重算调度 · 系统协同</li>
+</ul>
+<p><strong>摘要</strong>：agent 系统与 RAG 把上下文不断拉长，预填充成为主要开销，而跨请求复用<strong>位置无关 KV cache</strong> 需要对选定 token 子集做重算来恢复跨块交互。已有方案在算法上忽略 KV 偏差的<strong>分布特征</strong>，导致 token 选择开销高或生成质量下降；在系统上又依赖自定义执行流，难以嵌入高度优化的推理引擎。DARIC 以系统—算法协同设计：用<strong>分布感知的 token 选择策略</strong>按经验偏差模式自适应调度重计算，并以轻量架构支持独立的 KV 生成与重计算、保留引擎原有的系统级优化。多数据集与多模型实验显示，TTFT 取得 1.1×–4.5× 加速，生成质量损失可忽略。</p>
+<p><strong>对广域的启示</strong>：复用的收益不只取决于“能否命中”，更取决于“命中后要补多少交互”——把偏差分布当作调度信号，是位置无关缓存走向生产部署的关键一步。</p>
+<h3 id="2-nebula-distributed-position-independent-caching-for-llm-serving">2. Nebula: Distributed Position-Independent Caching for LLM Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.09474">https://arxiv.org/abs/2611.09474</a></li>
+<li><strong>时间</strong>：2026-11-06</li>
+<li><strong>方向</strong>：分布式缓存 · 位置无关复用 · 预填充调度</li>
+</ul>
+<p><strong>摘要</strong>：RAG 与 agent 的长提示由多个独立文本段拼成，预填充成为主要计算来源；分布式缓存把 KV 摊到集群以扩大总容量，位置无关缓存（PIC）则让反复出现的段能在不同前缀下复用，但现有分布式系统仍只做前缀缓存（PC），而现有 PIC 方法又缺乏集群级资源管理。Nebula 把 PIC 段当作<strong>一等公民</strong>，支持远程 PIC 复用与并行预填充：用乐观记账＋事件驱动更新维护及时可信的集群视图，用<strong>集群级幽灵命中反馈</strong>自动调节 PC 与 PIC 之间的共享容量分配，并把排队、计算与 KV 传输成本纳入统一的预填充完成时间模型以指导弹性并行与局部性感知放置。四个模型、四类真实 RAG 与 agent 负载上，中位 TTFT 平均降低 61.4%，并挽回前缀缓存漏掉的 76.1% token。</p>
+<p><strong>对广域的启示</strong>：分布式 KV 的下一个战场是“容量如何在 PC 与 PIC 之间分配”以及“传输成本如何进入调度决策”，这两点决定了跨节点复用能否真正兑现。</p>
+<h3 id="3-twinhash-two-sided-object-identity-management-for-time-and-energy-efficient-agentic-workflows">3. TwinHash: Two-Sided Object Identity Management for Time- and Energy-Efficient Agentic Workflows</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.09254">https://arxiv.org/abs/2611.09254</a></li>
+<li><strong>时间</strong>：2026-11-06</li>
+<li><strong>方向</strong>：对象标识 · 智能体工作流 · 层级存储</li>
+</ul>
+<p><strong>摘要</strong>：agent 服务在 LLM 生成与外部工具执行之间交替，反复回到相同的推理状态，在工具输出、LLM 响应与 <strong>KV 前缀</strong>上造成大量冗余；现有服务系统只优化共享提示前缀，而仅以输入为键的朴素缓存，在相同请求可能产生不同输出时并不安全。TwinHash 为每个对象同时分配<strong>输入侧哈希键</strong>（识别重复请求）与<strong>输出侧内容指纹</strong>（校验并定位已存状态），配合按类型的复用守卫保证正确性与响应多样性；软件侧的对象标识表跨请求与轨迹管理可复用对象，硬件侧的放置表跟踪其在多级内存中的驻留，使被逐出的状态可被取回而非重算。在七个 agent 框架、五个基准上，工具输出复用率达 81%，搜索类框架的 LLM 响应复用率达 92%；从 DRAM 取回被逐出的 KV 前缀在 Qwen3-32B 上最多降低 5.6× TTFT，端到端墙钟时间最多减少 87%，任务能耗最多降低 81%。</p>
+<p><strong>对广域的启示</strong>：agent 负载的冗余是结构性的，缓存键必须同时覆盖“输入相同”与“输出可复用”；KV 的多级放置本质上是一个<strong>存储对象管理</strong>问题，而非单纯的张量调度问题。</p>
+<h3 id="4-intent-aware-caching-for-efficient-llm-serving">4. Intent-Aware Caching for Efficient LLM Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.09715">https://arxiv.org/abs/2611.09715</a></li>
+<li><strong>时间</strong>：2026-11-06</li>
+<li><strong>方向</strong>：前缀缓存 · 淘汰策略 · 意图预测</li>
+</ul>
+<p><strong>摘要</strong>：前缀缓存复用上一轮对话的 KV 状态以省掉重复预填充，但能否命中取决于对话是否继续、下一轮何时到来，高命中率难以达成。对真实负载的分析显示，<strong>用户意图</strong>是有用信号：不同意图的续聊概率与轮间延迟明显不同。Intent-Aware Caching（IAC）按意图对请求分类，从近期服务日志中学习轻量复用统计，并据此引导一种受 oracle 启发的在线淘汰策略。在 WildChat 与 ShareChat 上，缓存命中率达 34.6%，高于此前的学习方法（18.8%）与传统 LRU（12.2%），平均服务延迟最多降低 46.1%。</p>
+<p><strong>对广域的启示</strong>：KV 淘汰正在从“按访问时间”转向“按行为预测”；把业务语义（意图）引入缓存管理，可能比改进缓存数据结构更划算。</p>
+<hr />
+<h2 id="_3">二、压缩：离散瓶颈、低比特内核与运行时精度</h2>
+<h3 id="5-transformer-fsq-discrete-latents-for-extreme-kv-cache-compression">5. Transformer-FSQ: Discrete Latents for Extreme KV-Cache Compression</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.09598">https://arxiv.org/abs/2611.09598</a></li>
+<li><strong>时间</strong>：2026-11-06</li>
+<li><strong>方向</strong>：极端压缩 · 离散量化 · 融合内核</li>
+</ul>
+<p><strong>摘要</strong>：本地消费设备上的长上下文受制于随上下文线性增长的 KV cache：Qwen3-1.7B-Base 保留 200,000 条目需 21 GiB，是模型权重的 6.6 倍，而实测的压缩方法在较高压缩率下普遍失效。Transformer-FSQ 用<strong>有限标量量化瓶颈</strong>替换标准 key/value 投影，每个 token 只存打包的离散整数码、<strong>没有逐 token 量化元数据</strong>；微调只训练这些投影，消耗每原始参数 0.25 个 token。在 0.6B 到 8B 的模型上，长上下文检索（RULER）在 12× 至 97.5× 压缩率区间内均为所评估方法中最准确；配套融合 Triton 内核在 32× 时解码吞吐为原生 SDPA 的 1.01×（95% 区间 0.98–1.05），97.5× 时为 1.54×。</p>
+<p><strong>对广域的启示</strong>：把 KV 压缩从“事后量化”改为“结构内建离散瓶颈”，能在极端压缩率下同时拿到精度与免除元数据的解码效率——这对跨域传输尤为友好，因为码本比浮点张量更耐带宽约束。</p>
+<h3 id="6-foscar-accelerating-decode-attention-over-2-and-4-bit-kv-caches-through-affine-folding">6. FOSCAR: Accelerating Decode Attention over 2- and 4-Bit KV Caches through Affine Folding</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.09722">https://arxiv.org/abs/2611.09722</a></li>
+<li><strong>时间</strong>：2026-11-06</li>
+<li><strong>方向</strong>：低比特缓存 · 解码注意力 · GPU 内核</li>
+</ul>
+<p><strong>摘要</strong>：解码注意力每个生成 token 都要流式读取 KV cache，把缓存打包成 2/4 bit 整数可降低访存但不自动变成延迟收益：现有 2-bit 融合内核在 H100/B200 上仅达峰值 HBM 吞吐的 31%/15% 以下，瓶颈是逐值施加 scale/offset 消耗了稀缺的指令发射带宽。FOSCAR 用<strong>仿射折叠</strong>把 scale 与 offset 作用到另一个操作数或矩阵乘输出上（按 token-wise 或 channel-wise 方案选择），把缩放操作减少最多两个数量级，同时保持反量化后的注意力输出在精确算术下不变；再用位操作高效喂给 Tensor Core，H100/B200 上每个 INT2 元素仅需 1 与 0.19 条 ALU 指令，并针对 Hopper（wgmma）与 Blackwell（tcgen05）构建 warp 特化流水线。H100 上 INT2/INT4 内核相对 FlashInfer BF16 几何平均加速 3.36×/2.83×、相对 TensorRT-LLM FP8 为 2.03×/1.71×；B200 上相对 FlashInfer BF16 为 2.67×/2.30×、相对 NVFP4 为 1.16×/1.00×。集成进 SGLang 后，长上下文服务峰值聚合吞吐相对 2-bit 与 16-bit 基线分别最多提升 170% 与 341%。</p>
+<p><strong>对广域的启示</strong>：低比特 KV 的收益上限由<strong>反量化开销</strong>决定；把缩放折叠到矩阵乘的另一侧，是把“省带宽”翻译成“省时间”的关键一步。</p>
+<h3 id="7-bitdecoding-fp4-native-fp4-kv-cache-decoding-via-algorithm-system-co-design">7. BitDecoding-FP4: Native FP4 KV Cache Decoding via Algorithm-System Co-Design</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.09825">https://arxiv.org/abs/2611.09825</a></li>
+<li><strong>时间</strong>：2026-11-06</li>
+<li><strong>方向</strong>：FP4 量化 · 误差控制 · 服务吞吐</li>
+</ul>
+<p><strong>摘要</strong>：KV cache 主导长上下文服务的内存容量与带宽，FP4 微缩放格式（NVFP4、MXFP4）能在 FP4 张量核心上跑注意力，但算法量化与系统加速之间存在缺口：现有 FP4 KV 系统用朴素量化导致精度严重下降，而精度导向的 4-bit 算法依赖向量码本、查表开销拖慢解码。BitDecoding-FP4 逐源治理三类误差：<strong>双残差查询量化</strong>把查询切成两个 FP4 张量，将查询 logit 误差从 60% 降到 1%；<strong>下溢感知概率缩放</strong>避免 E4M3 scale 把长上下文概率舍入为零；<strong>离群感知键量化</strong>结合静态平滑、Hadamard 旋转与 scale 搜索压制 token-wise 缩放下的键离群值。系统侧用转置 softmax、融合概率量化与堆叠查询 MMA 在分页 KV 上消除 softmax 瓶颈。在密集与 MoE、GQA 与 MLA 模型上，NVFP4 与 BF16 KV 精度相差 0.5 分以内（MXFP4 为 1 分），并在 B300 上用 Qwen3-4B 与 Qwen3-30B-A3B 取得 2.4–3.0× 的峰值服务吞吐。</p>
+<p><strong>对广域的启示</strong>：原生 FP4 要在 KV 上可用，误差必须<strong>逐源拆解</strong>——查询、概率下溢与键离群值各有各的对策，单纯换格式不够。</p>
+<h3 id="8-autoematic-runtime-adaptive-mixed-precision-llm-inference-via-automatic-exponent-mantissa-refinement">8. AutoEMatic: Runtime-Adaptive Mixed-Precision LLM Inference via Automatic Exponent-Mantissa Refinement</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.10165">https://arxiv.org/abs/2611.10165</a></li>
+<li><strong>时间</strong>：2026-11-06</li>
+<li><strong>方向</strong>：混合精度 · 运行时自适应 · 软硬协同</li>
+</ul>
+<p><strong>摘要</strong>：现有训练后量化在推理开始前就把精度定死，但模型所需的精度会随提示、层与推理阶段动态变化。AutoEMatic 在运行时自适应调整权重、激活与 <strong>KV cache</strong> 的精度：轻量策略在每个预填充与解码步，依据下一 token 分布的熵与该层隐藏状态更新的幅度为每层选精度，并由 AutoFP 这种从单一 NVFP4 基准格式派生 2/4/6 bit 的多尺度浮点格式支撑；实现覆盖在 NVFP4 张量核心上执行 AutoFP 的 GPU 内核，以及原生执行全部 AutoFP 格式的向量 MAC 加速器。在推理与 agent 基准上，相对 NVFP4 精度最多提升 21.7%，在多数基准上匹配组缩放 FP6，每权重 4.9 bit（NVFP4 为 4.5）；GB300 上保留约 90–98% 的 NVFP4 解码吞吐，加速器在同精度下延迟降低 1.6–2.3×、能耗降低 7–23%。</p>
+<p><strong>对广域的启示</strong>：KV 精度不必是全局常数；用运行时信号做分层、分阶段的决策，比静态混合精度更接近“按需付费”，也让压缩比可以随请求难度浮动。</p>
+<hr />
+<h2 id="_4">三、存储视角与架构协同</h2>
+<h3 id="9-the-storage-view-of-kv-cache-characterizing-cache-behavior-across-llm-workloads">9. The Storage View Of KV Cache: Characterizing Cache Behavior Across LLM Workloads</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.10178">https://arxiv.org/abs/2611.10178</a></li>
+<li><strong>时间</strong>：2026-11-06</li>
+<li><strong>方向</strong>：存储管理 · 负载刻画 · 生命周期</li>
+</ul>
+<p><strong>摘要</strong>：KV cache 正从 GPU 显存扩展到主机 DRAM、SSD 与远程存储，但这些存储仍由 LRU、固定 TTL 等与负载无关的策略管理。该工作以<strong>块粒度</strong>刻画 11 条生产与公开 trace（聊天、API 服务、RAG、编码 agent、工具 agent、多谱系工作流）中的复用来源、重现时间与频率、有效生命周期和存储占用，发现 KV 状态呈两种反复出现的形态：<strong>单会话状态</strong>在会话内复用、随会话加深而增长并跨并发会话累积，可在长时间空闲后仍有用，但随会话结束失去价值；<strong>多会话状态</strong>跨会话复现、寿命超过单个会话，既含热点前缀也有大量低频长尾。trace 驱动比较显示，负载特定的重现估计可多保留最多 22% 的会话内命中并把死状态减少最多 40%；会话完成信号可消除单会话状态的空闲回收权衡；会话感知的复用分类比请求级访问计数精确 4–700 倍。</p>
+<p><strong>对广域的启示</strong>：KV 存储管理不需要应用专用语义——一个工作负载标识、一个会话标识、一个会话完成信号，就足以暴露大部分结构，这提示推理栈与存储栈之间需要一个小的跨层接口。</p>
+<h3 id="10-taildart-compute-efficient-foundation-models-for-financial-time-series-forecasting">10. TailDART: Compute-Efficient Foundation Models for Financial Time-Series Forecasting</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.09176">https://arxiv.org/abs/2611.09176</a></li>
+<li><strong>时间</strong>：2026-11-06</li>
+<li><strong>方向</strong>：分组查询注意力 · KV 带宽 · 时间序列</li>
+</ul>
+<p><strong>摘要</strong>：时间序列基础模型在高信息密度的物理系统上零样本迁移能力很强，但量化金融的低信噪比、非平稳与高昂的自回归解码延迟，使超参数化模型难以落地。TailDART 是一个 <strong>268 万参数的稠密</strong>基础模型，在轻量骨干中引入<strong>分组查询注意力（GQA）</strong>，大幅削减 KV cache 的内存带宽开销，相对主流时间序列基础模型取得最高 48.1% 的推理加速，从而支持低延迟、高吞吐的流式执行。多资产、多时间分辨率的基准显示，紧凑模型在预测保真度上可媲美显著更大的基线，并在高波动区间表现出更强的误差韧性。</p>
+<p><strong>对广域的启示</strong>：GQA 这类<strong>注意力结构选择</strong>在非 LLM 负载上同样是 KV 带宽的直接杠杆；KV 优化的经验正在外溢到时间序列等相邻领域。</p>
+<hr />
+<h2 id="_5">今日观察</h2>
+<ol>
+<li><strong>复用从“前缀命中”走向“结构识别”</strong>：DARIC 看偏差分布、Nebula 认位置无关段、TwinHash 认对象指纹、IAC 认用户意图、Storage View 认会话生命周期——五种信号指向同一件事：KV 复用的单位正在从“字符串前缀”变成“可识别的复用单元”。</li>
+<li><strong>低比特压缩进入“系统兑现期”</strong>：FOSCAR、BitDecoding-FP4、Transformer-FSQ 都不再只报比特数与精度，而是直接报内核吞吐与端到端服务吞吐；省带宽与省时间之间的那层反量化开销，成了新的主战场。</li>
+<li><strong>分布式与层级化让 KV 变成存储对象</strong>：Nebula 把 KV 传输成本写进预填充完成时间模型，TwinHash 用放置表管理多级内存驻留，Storage View 则证明块粒度的生命周期足以指导回收——KV 管理越来越像缓存/存储系统问题，而不是注意力算子问题。</li>
+<li><strong>精度分配从静态走向运行时</strong>：AutoEMatic 按 token 熵与层更新幅度逐层定精度，配合“按需压缩”，说明 KV 预算未来更可能是随请求与阶段浮动的策略，而非一次性配置。</li>
+</ol>
+<blockquote>
+<p>注：本期为补录批次，摘要基于 arXiv 官方摘要页整理；具体实验设置与数字以 PDF 原文为准。</p>
+</blockquote>
+</main>
+<nav class="pager"><a class="pager-link" href="2026-11-06.html"><span class="dir">← 上一期</span><span class="d">11月6日</span></a><a class="pager-link next" href="2026-11-08.html"><span class="dir">下一期 →</span><span class="d">11月8日</span></a></nav>
+<footer class="footer"><span>KV Cache 日报</span><a href="../index.html">返回目录</a></footer>
+
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

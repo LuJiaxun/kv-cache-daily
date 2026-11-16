@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KV Cache 日报 · 2026-11-10</title>
+<meta name="description" content="2026-11-10 的 KV Cache 论文摘要，10 篇。">
+<meta name="theme-color" content="#f6f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="day-page">
+
+<header class="topbar">
+  <a class="back" href="../index.html"><span aria-hidden="true">←</span> 全部日报</a>
+  <span class="top-date">2026年11月10日 · 周二</span>
+</header>
+<main class="report">
+<h1 id="kv-cache-2026-11-10">KV Cache 论文日报 · 2026-11-10</h1>
+<blockquote>
+<p><strong>今日 10 篇</strong>：跨域传输与远程层 4 篇 · 存储与介质 4 篇 · 压缩编解码 2 篇</p>
+<p><strong>本期主线</strong>：这一批论文几乎都在回答同一个问题——<strong>「远端取 KV 到底划不划算」</strong>。从 FEC 优先级重传、远程层的成本模型，到存储层的对象粒度与 SSD 寿命，衡量的都是「一次命中要付出多少代价」。</p>
+<p><strong>说明</strong>：本期为补录批次，收录 arXiv 公告日期集中在 2026-10-15 至 10-28 的论文；摘要依据 arXiv 官方摘要整理。</p>
+</blockquote>
+<h2 id="_1">速览</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>论文</th>
+<th>方向</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>PriorityFEC: Deadline-Aware Streaming FEC for KV-Cache Handoff in Edge Multi-Agent Systems</td>
+<td>边缘交接可靠性</td>
+<td>arXiv:2610.21390</td>
+</tr>
+<tr>
+<td>2</td>
+<td>When the KV Cache Is Slower Than the GPU: Scaling Remote KV Tiers for Context-Parallel Prefill</td>
+<td>远程 KV 层成本</td>
+<td>arXiv:2610.21500</td>
+</tr>
+<tr>
+<td>3</td>
+<td>RISK-KV: Quality-Aware Selective KV Cache Reconstruction for Distributed LLM Inference</td>
+<td>迁移中的选择性重建</td>
+<td>arXiv:2610.29544</td>
+</tr>
+<tr>
+<td>4</td>
+<td>KVStream: Adaptive Parallel Storage Management for KV Caching in Large-Scale LLM Serving</td>
+<td>分层带宽调度</td>
+<td>arXiv:2610.31827</td>
+</tr>
+<tr>
+<td>5</td>
+<td>DCKV: Learned Transform Coding of the Prompt KV Cache in Hybrid Language Models</td>
+<td>端到端 KV 编解码</td>
+<td>arXiv:2610.36950</td>
+</tr>
+<tr>
+<td>6</td>
+<td>GAAC: Lossless KV Compression for Bandwidth-Efficient LLM Inference on Personal Devices</td>
+<td>无损指数编码</td>
+<td>arXiv:2610.38210</td>
+</tr>
+<tr>
+<td>7</td>
+<td>WAKMan: Workload Aware KVCache Manager</td>
+<td>负载自适应淘汰</td>
+<td>arXiv:2610.36355</td>
+</tr>
+<tr>
+<td>8</td>
+<td>ZipFusion: Fusing Lossless KV Decompression with Attention for Efficient LLM Decoding</td>
+<td>解压与注意力融合</td>
+<td>arXiv:2610.33719</td>
+</tr>
+<tr>
+<td>9</td>
+<td>SARIA: Persistence-Aware KV Caching with Coordinated DRAM–SSD Reload for LLM Agents</td>
+<td>DRAM-SSD 协同</td>
+<td>arXiv:2610.31169</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Gandalf: Flash Shall Not Die! Increasing Flash Storage Lifetime for KV Cache Offloading in LLM Serving</td>
+<td>SSD 寿命</td>
+<td>arXiv:2610.30791</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_2">一、跨域传输与远程层</h2>
+<h3 id="1-priorityfec-deadline-aware-streaming-fec-for-kv-cache-handoff-in-edge-multi-agent-systems">1. PriorityFEC: Deadline-Aware Streaming FEC for KV-Cache Handoff in Edge Multi-Agent Systems</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.21390">https://arxiv.org/abs/2610.21390</a></li>
+<li><strong>时间</strong>：2026-10-15</li>
+<li><strong>方向</strong>：边缘交接 · 优先级传输 · 前向纠错</li>
+</ul>
+<p><strong>摘要</strong>：协作边缘 LLM 系统在任务上下文于 agent 之间转移时往往要重复 prefill；复用已算好的 KV 能消除这部分开销，但必须在接收方开始解码之前送达。在严格 deadline 与不可靠边缘链路下，完整传输可能根本不可行，因此「按时送到有用的那部分 KV」才是关键。PriorityFEC 把 KV 块组织成<strong>效用感知的源队列</strong>优先发送重要信息，再用 ACK 滑动窗口的流式 FEC 与一个轻量 Double-DQN 调度器，在 deadline 约束下动态平衡「首发」与「修补」两类传输。作者在分布式边缘 LLM 服务原型上做了评估。</p>
+<p><strong>对广域的启示</strong>：广域链路的丢包与抖动无法靠重传兜底；<strong>优先级 + FEC + 学习型调度</strong>的组合，能在 deadline 内把“最重要的 KV 先送到”，这正是跨域交接需要的取舍方式。</p>
+<h3 id="2-when-the-kv-cache-is-slower-than-the-gpu-scaling-remote-kv-tiers-for-context-parallel-prefill">2. When the KV Cache Is Slower Than the GPU: Scaling Remote KV Tiers for Context-Parallel Prefill</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.21500">https://arxiv.org/abs/2610.21500</a></li>
+<li><strong>时间</strong>：2026-10-15</li>
+<li><strong>方向</strong>：远程缓存层 · 成本模型 · 生产部署</li>
+</ul>
+<p><strong>摘要</strong>：长上下文服务普遍用跨请求复用 KV 来省 prefill，生产系统越来越多地用共享的<strong>远程层</strong>（每个引擎之上的集群级缓存）来存放这些 KV。论文研究 GLM-5.3（FP8 MoE + MLA）在 8×B300、开启 prefill 上下文并行（PCP8）的分离式部署：启用远程层（LMCache + Valkey）后，中位 TTFT 不变，但 16k token 的 p99 从 3.96s 升到 17.3s；在隔离引擎上回放生产请求流发现，一次远程命中耗时 0.88s，而重算该 prompt 只要 0.31s；同步加载把“高命中”的请求流变成了不稳定队列，p99 达 83.32s 而 GPU 仅忙 7%。论文给出两项成本模型来解释：只有远程层交付带宽超过 <strong>B* = sR</strong>（该模型与 GPU 上为 2.53 GB/s）时命中才划算，且每次命中还有约 0.33s 的固定引擎开销。</p>
+<p><strong>对广域的启示</strong>：这是最值得警惕的一篇——<strong>命中不等于收益</strong>。跨域取 KV 之前必须算清两件事：远端交付带宽是否超过阈值、以及是否存在与数据量无关的固定开销（握手、调度、锁）。否则“优化”会把稳定队列变成雪崩。</p>
+<h3 id="3-risk-kv-quality-aware-selective-kv-cache-reconstruction-for-distributed-llm-inference">3. RISK-KV: Quality-Aware Selective KV Cache Reconstruction for Distributed LLM Inference</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.29544">https://arxiv.org/abs/2610.29544</a></li>
+<li><strong>时间</strong>：2026-10-21</li>
+<li><strong>方向</strong>：请求迁移 · 选择性重建 · 质量门控</li>
+</ul>
+<p><strong>摘要</strong>：分布式推理中的请求迁移与中断恢复依赖历史 KV；保留或传输完整缓存的状态开销很大，而重放历史 token 又要额外算力。RISK-KV 用目标层两侧的精确 KV 状态与跨层 ridge 回归来预测缺失层的 attention 投影输入，再把原模型的 KV 投影矩阵折进来以减少预测器存储。它用实际重建引起的 NLL 变化度量<strong>重建风险</strong>，并用低开销的拓扑搜索 + 质量门控选择哪些层组需要重建。三个语言模型的独立测试中，代表性恢复配置省掉 18.2%–33.3% 的历史 KV。</p>
+<p><strong>对广域的启示</strong>：跨域迁移不必“全传或全重算”——<strong>传一部分、回归重建一部分、并用质量指标卡阈值</strong>，可以把状态开销和精度的权衡显式化。</p>
+<h3 id="4-kvstream-adaptive-parallel-storage-management-for-kv-caching-in-large-scale-llm-serving">4. KVStream: Adaptive Parallel Storage Management for KV Caching in Large-Scale LLM Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.31827">https://arxiv.org/abs/2610.31827</a></li>
+<li><strong>时间</strong>：2026-10-22</li>
+<li><strong>方向</strong>：多层存储 · 聚合带宽 · 前缀检索</li>
+</ul>
+<p><strong>摘要</strong>：agent、编程与文档类负载反复复用前缀，KV 早已超出 GPU 与主机内存，前缀检索的存储 I/O 直接落在推理关键路径上；现状是单个节点本地 NVMe 吃掉所有检索流量，而节点已挂载的并行文件系统或云文件存储几乎不承担推理流量。KVStream 把前缀检索视为<strong>跨这些层级的聚合带宽调度</strong>问题：批量提交一步所需的读、把写推迟到前向之后、让每个分块在每一层都有副本，并在某层空闲时自适应地领取下一批未读分块。性能模型显示这种路由能达到聚合带宽上界且无需预测或调参，而任何静态切分都会随着各层带宽漂移而偏离上界；模型还预测 TTFT 收益随负载上升。</p>
+<p><strong>对广域的启示</strong>：广域可以看作“再加一层、带宽更低、延迟更高”的存储层；<strong>让每一层都持有副本、谁空闲谁取</strong>，比静态分配更接近上界，也天然适配带宽波动。</p>
+<hr />
+<h2 id="_3">二、存储与介质</h2>
+<h3 id="5-dckv-learned-transform-coding-of-the-prompt-kv-cache-in-hybrid-language-models">5. DCKV: Learned Transform Coding of the Prompt KV Cache in Hybrid Language Models</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.36950">https://arxiv.org/abs/2610.36950</a></li>
+<li><strong>时间</strong>：2026-10-27</li>
+<li><strong>方向</strong>：端到端编解码 · 混合模型 · 熵编码</li>
+</ul>
+<p><strong>摘要</strong>：混合语言模型只在少数全注意力层保留 KV，但这部分缓存仍是随 prompt 增长、复用时必须存储或搬移的状态。DCKV 是首个<strong>端到端训练的 KV 编解码器</strong>：它的变换、量化器与熵模型（以 prompt token 与已解码的相邻位置为条件）一起针对冻结的语言模型优化，目标同时包含熵模型给出的码长和模型输出的变化。在 Qwen3.5-2B 上，压缩后每个 token 的字节数比 bf16 少 55 倍以上，三个长上下文基准上的损失不超过 1.8 分；少 100 倍以上时损失不超过 3.6 分。</p>
+<p><strong>对广域的启示</strong>：压缩比从“均匀量化”跨到“学出来的编码”，意味着跨域传输的字节预算可以再降一到两个量级，而且<strong>码长本身由熵模型决定</strong>，天然适合按带宽做变码率传输。</p>
+<h3 id="6-gaac-lossless-kv-compression-for-bandwidth-efficient-llm-inference-on-personal-devices">6. GAAC: Lossless KV Compression for Bandwidth-Efficient LLM Inference on Personal Devices</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.38210">https://arxiv.org/abs/2610.38210</a></li>
+<li><strong>时间</strong>：2026-10-28</li>
+<li><strong>方向</strong>：无损压缩 · 指数冗余 · 融合 kernel</li>
+</ul>
+<p><strong>摘要</strong>：权重量化能降低存储与内存需求，但长上下文推理中不断增长的 KV 仍是个人设备上的瓶颈。GAAC 是<strong>无损</strong>的 KV 压缩与服务体系：利用指数位的冗余，用按通道校准的 base-plus-offset 码在连续范围上编码 BF16 指数，并按小组自适应调整码宽，同时保持 KV 值逐位不变。它配有融合注意力 kernel，在 tile 上即时重建 KV，避免整缓存解压；块级压缩与固定容量槽位支持增量更新与分页式服务。五个模型上取得 1.405–1.407× 的无损压缩，并进一步研究了 FP8 E4M3 缓存的压缩表现。</p>
+<p><strong>对广域的启示</strong>：无损压缩是跨域传输最“无脑可用”的一档——<strong>不引入任何精度风险</strong>就能省带宽；1.4× 看似不多，但对必须保持逐位一致的审计/回放场景是刚需。</p>
+<h3 id="7-wakman-workload-aware-kvcache-manager">7. WAKMan: Workload Aware KVCache Manager</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.36355">https://arxiv.org/abs/2610.36355</a></li>
+<li><strong>时间</strong>：2026-10-26</li>
+<li><strong>方向</strong>：淘汰策略 · 负载类型 · 自适应切换</li>
+</ul>
+<p><strong>摘要</strong>：前缀缓存让复用相同前缀的请求省去 prefill，但在内存有限时<strong>淘汰策略</strong>决定收益。生产流量混合了单轮、多轮、agentic 等类型：论文发现 agentic 步骤几秒内就返回、偏好「新近」，而热门 prompt 与长对话要隔很多请求才返回、偏好「频率」。在 20 种混合负载上<strong>没有单一策略总是最优</strong>：vLLM 默认的 LRU 在 agentic 为主的负载上命中率比面向频率的 S3FIFO 高 12%，在别处却落后最多 22%，甚至单个负载参数就能翻转胜负。WAKMan 据此做负载感知的淘汰管理。</p>
+<p><strong>对广域的启示</strong>：跨域缓存池同样面对混合负载；<strong>淘汰策略必须随负载类型切换</strong>，否则会出现「本地命中率看起来不差，但远端取数比例异常高」的隐性带宽浪费。</p>
+<h3 id="8-zipfusion-fusing-lossless-kv-decompression-with-attention-for-efficient-llm-decoding">8. ZipFusion: Fusing Lossless KV Decompression with Attention for Efficient LLM Decoding</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.33719">https://arxiv.org/abs/2610.33719</a></li>
+<li><strong>时间</strong>：2026-10-24</li>
+<li><strong>方向</strong>：解压融合 · 带宽瓶颈 · kernel 协同</li>
+</ul>
+<p><strong>摘要</strong>：KV 的显存占用限制并发，而注意力反复读取 KV 又让解码受限于内存带宽。以往的无损压缩方法只是减少设备间传输，<strong>在注意力之前仍要把未压缩的 KV 还原到 GPU 显存</strong>，因此反复读取的问题没变，还多了一次解压开销。ZipFusion 让注意力<strong>直接消费压缩后的 KV</strong>：压缩格式与注意力 kernel 协同设计，用简单位运算在寄存器里就地重建原值，跳过独立的解压 pass，从而真正减少从显存读的字节，并把压缩释放出的内存重新分配。</p>
+<p><strong>对广域的启示</strong>：压缩只有落到<strong>数据通路里</strong>才有意义；如果解压发生在接收端之后又还原成原格式，收益会被抵消。跨域设计应尽量让“压缩态”一路走到计算。</p>
+<hr />
+<h2 id="_4">三、写放大与介质寿命</h2>
+<h3 id="9-saria-persistence-aware-kv-caching-with-coordinated-dramssd-reload-for-llm-agents">9. SARIA: Persistence-Aware KV Caching with Coordinated DRAM–SSD Reload for LLM Agents</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.31169">https://arxiv.org/abs/2610.31169</a></li>
+<li><strong>时间</strong>：2026-10-22</li>
+<li><strong>方向</strong>：DRAM-SSD 协同 · 选择性落盘 · 会话局部性</li>
+</ul>
+<p><strong>摘要</strong>：多轮 agent 反复复用长上下文前缀，KV 缓存对降低 prefill 延迟至关重要；SSD 是 DRAM 的低成本扩展，但带来两个问题：一是「急于持久化所有 KV」会产生大量写流量并迅速耗尽 SSD 寿命，二是典型 GPU 服务器只配少量 SSD，聚合重载带宽有限，使 SSD 上的 KV 检索远慢于 DRAM。SARIA 利用 agent 的<strong>会话级时间局部性</strong>联合管理 DRAM 与 SSD：写路径上用淘汰与复用历史，只选择“在离开 DRAM 之后仍会被复用”的 KV 块落盘，避免无谓写；读路径上协调重载以降低 prefill 延迟。</p>
+<p><strong>对广域的启示</strong>：跨域缓存池若把“落盘/上云”当成无成本操作，很快就会撞上写放大与介质寿命；<strong>只持久化那些确定还会被复用的状态</strong>，和传输侧“只传有用的字节”是同一条原则。</p>
+<h3 id="10-gandalf-flash-shall-not-die-increasing-flash-storage-lifetime-for-kv-cache-offloading-in-llm-serving">10. Gandalf: Flash Shall Not Die! Increasing Flash Storage Lifetime for KV Cache Offloading in LLM Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.30791">https://arxiv.org/abs/2610.30791</a></li>
+<li><strong>时间</strong>：2026-10-22</li>
+<li><strong>方向</strong>：SSD 寿命 · 写入门控 · 应用语义</li>
+</ul>
+<p><strong>摘要</strong>：KV 缓存持续膨胀、超出 GPU 与主机内存，业界用 SSD 扩容；但在多轮对话与 agent 这类生产负载中，KV 写入总量远超 SSD 容量，把寿命从数年缩短到数月。一个自然的解法是按历史访问模式<strong>门控写</strong>，但这会显著降低命中率——因为不同注意力类型的 KV 可能历史模式相同、未来模式却不同。Gandalf 的洞察是：要在不牺牲命中率的前提下减少写入，不能只看访问模式，还必须结合<strong>应用层信息</strong>（例如任务/会话语义）来判断这次写入是否值得。</p>
+<p><strong>对广域的启示</strong>：与 SARIA 呼应——<strong>缓存分层的每一级都有成本</strong>（带宽、寿命、费用）。跨域方案做容量规划时，应把“介质写放大”也纳入成本模型，而不是只算时延。</p>
+<hr />
+<h2 id="_5">今日观察</h2>
+<ol>
+<li><strong>「命中收益」被重新审视</strong>：远程层论文直接给出命中不划算的实测（0.88s 取回 vs 0.31s 重算），并用阈值带宽 B* 与固定开销 T0 解释了原因；这比任何“加速比”都更有决策价值。</li>
+<li><strong>可靠性成为传输的一等公民</strong>：PriorityFEC 把 deadline、丢包、优先级放进同一个调度器，而不是假设链路可靠。</li>
+<li><strong>压缩的落点在数据通路</strong>：DCKV 让码长可学、ZipFusion 让解压融进注意力、GAAC 保证逐位无损——三条路线都在减少“真正被搬运/读取的字节”。</li>
+<li><strong>介质成本浮出水面</strong>：SARIA 与 Gandalf 都在处理 SSD 写放大与寿命，说明缓存层级越深，运维成本越不能忽略。</li>
+</ol>
+<blockquote>
+<p>注：本期为补录批次，摘要基于 arXiv 官方摘要页整理；具体实验设置与数字以 PDF 原文为准。</p>
+</blockquote>
+</main>
+<nav class="pager"><a class="pager-link" href="2026-11-09.html"><span class="dir">← 上一期</span><span class="d">11月9日</span></a><a class="pager-link next" href="2026-11-11.html"><span class="dir">下一期 →</span><span class="d">11月11日</span></a></nav>
+<footer class="footer"><span>KV Cache 日报</span><a href="../index.html">返回目录</a></footer>
+
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

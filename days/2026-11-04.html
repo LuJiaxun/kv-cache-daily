@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KV Cache 日报 · 2026-11-04</title>
+<meta name="description" content="2026-11-04 的 KV Cache 论文摘要，10 篇。">
+<meta name="theme-color" content="#f6f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="day-page">
+
+<header class="topbar">
+  <a class="back" href="../index.html"><span aria-hidden="true">←</span> 全部日报</a>
+  <span class="top-date">2026年11月4日 · 周三</span>
+</header>
+<main class="report">
+<h1 id="kv-cache-2026-11-04">KV Cache 论文日报 · 2026-11-04</h1>
+<blockquote>
+<p><strong>今日 10 篇方向分布</strong>：压缩·量化·表示 3 篇（LoopVQ、EchoKV、SEED）· 服务系统·调度·评测·安全 5 篇（cμ 优先级调度、循环模型服务、视频扩散实时系统、引擎对照评测、KVGuard）· KV 复用与多智能体 1 篇（Octopus）· 存储访问剖析（可迁移）1 篇（多核缓存干扰剖析）</p>
+<p><strong>本期主线</strong>：KV 正在同时被两个方向重新定义——压缩侧把 KV 从"全精度张量"变成"联合码本 / 低秩状态 / 可纠错的保留集合"，系统侧把 KV 的带宽、容量与块级元数据直接写进服务率、传输预算与安全边界。</p>
+<p><strong>说明</strong>：本期为补录批次，收录 arXiv 公告日期集中在 2026-11-03 至 11-04 的论文；摘要依据 arXiv 官方摘要整理。</p>
+</blockquote>
+<h2 id="_1">速览</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>论文</th>
+<th>方向</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>LoopVQ: Sub 1-bit KV Cache Quantization for Looped Transformers</td>
+<td>亚比特级量化</td>
+<td>arXiv:2611.05304</td>
+</tr>
+<tr>
+<td>2</td>
+<td>EchoKV: Self-Corrective KV Cache Eviction via Iterative Query Feedback</td>
+<td>查询反馈驱逐</td>
+<td>arXiv:2611.05903</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Shallow Encoding Emits Deep Memories</td>
+<td>混合模型状态压缩</td>
+<td>arXiv:2611.06084</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Asymptotic Optimality of $c\mu$-Rule for LLM Inference Scheduling under Memory Constraint</td>
+<td>KV 容量感知调度</td>
+<td>arXiv:2611.04807</td>
+</tr>
+<tr>
+<td>5</td>
+<td>What Sets the Serving Speed of Looped Language Models? Measurements and Optimizations Graded by Exactness</td>
+<td>循环模型服务优化</td>
+<td>arXiv:2611.05150</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Runway Characters: Serving a 57B Video Diffusion Transformer for Real-Time Conversation</td>
+<td>实时视频系统</td>
+<td>arXiv:2611.05642</td>
+</tr>
+<tr>
+<td>7</td>
+<td>A Controlled Experimental Evaluation of Configuration and Cache Architecture in LLM Serving Engines</td>
+<td>前缀缓存对照评测</td>
+<td>arXiv:2611.05991</td>
+</tr>
+<tr>
+<td>8</td>
+<td>KVGuard: A KV Cache Safety Checker for LLM Serving Systems</td>
+<td>KV 内存安全</td>
+<td>arXiv:2611.06138</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Octopus: One Brain, Many Branches for Latent-KV Multi-Agent Reinforcement Learning</td>
+<td>多智能体 KV 复用</td>
+<td>arXiv:2611.06956</td>
+</tr>
+<tr>
+<td>10</td>
+<td>BeNice! Closing Looping's Inference-Memory Gap via KV-Sharing</td>
+<td>循环模型 KV 共享</td>
+<td>arXiv:2610.31633</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_2">一、压缩、量化与表示</h2>
+<h3 id="1-loopvq-sub-1-bit-kv-cache-quantization-for-looped-transformers">1. LoopVQ: Sub 1-bit KV Cache Quantization for Looped Transformers</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.05304">https://arxiv.org/abs/2611.05304</a></li>
+<li><strong>时间</strong>：2026-11-03</li>
+<li><strong>方向</strong>：KV 量化 · 循环 Transformer · 联合码本</li>
+</ul>
+<p><strong>摘要</strong>：循环 Transformer 靠复用同一组层来降低参数内存，但每个循环步仍要存自己的 key 与 value，KV cache 随循环步数线性增长，成为主要内存瓶颈。作者观察到循环轴上的 KV 高度冗余，且不同循环步对量化的敏感度差异很大，于是提出 LoopVQ：把多个循环步的通道放在一起联合编码做向量量化，并微调码本以对齐全精度模型的输出。在 0.5 bit/element 下，它在通用任务、长链式思考推理与长上下文检索上（Ouro 与 Huginn）就超过了面向标准 LLM 的现有 KV 向量量化方法；与 TaSQ 组合后，即使压到 0.25 bit/element 仍能保住大部分 BF16 精度。作者还在 SGLang 中实现该方案，32K 上下文下解码时延几乎减半，1.4B 与 2.6B 的 Ouro 模型峰值服务吞吐相对 BF16 基线分别最高提升 4.3× 与 6.1×。</p>
+<p><strong>对广域的启示</strong>：亚比特级表示把单请求 KV 的体积压到原来的数分之一，跨机房搬运与落盘的字节成本随之成比例下降；沿循环轴共享码本的做法，也可推广为跨段/跨层共享码本来进一步降低远距离传输量。</p>
+<h3 id="2-echokv-self-corrective-kv-cache-eviction-via-iterative-query-feedback">2. EchoKV: Self-Corrective KV Cache Eviction via Iterative Query Feedback</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.05903">https://arxiv.org/abs/2611.05903</a></li>
+<li><strong>时间</strong>：2026-11-04</li>
+<li><strong>方向</strong>：KV 驱逐 · 查询反馈 · 长上下文</li>
+</ul>
+<p><strong>摘要</strong>：论文指出 KV 驱逐不只是 token 排序问题：用来生成驱逐查询的那份 workspace 本身决定了查询质量，早期的 workspace 误差会污染后续查询观测，在证据分散的长上下文中把错误的驱逐决策越加固化。EchoKV 用迭代纠错来对付这一失效模式：先基于未来解码位置的 proposal 初始化一个可反馈的引导 workspace，再用早期解码产生的查询、在剩余 lookahead 步骤之前把 workspace 修复回来；它的 workspace 前向次数与 LAQ 相同，只多了一次用于修复的张量重打分。在 LongBench 的 16 个任务、Mistral-7B-Instruct-v0.2 与 Qwen2.5-7B-Instruct 两个骨干上，它在多跳跨文档问答与长单文档理解等证据密集任务上明显优于 LAQ，其余子集保持可比。这说明"查询—workspace 耦合"是查询驱动式 KV 驱逐的一个实际失效点。</p>
+<p><strong>对广域的启示</strong>：驱逐决策依赖在线查询，意味着保留集合本身携带"判断时的上下文"，跨域复用若只搬留下的 KV 而不带这层依据，下游机器上的误差会被继承放大；把 workspace 修复机制前移到缓存出口，是复用前值得加的一步。</p>
+<h3 id="3-shallow-encoding-emits-deep-memories">3. Shallow Encoding Emits Deep Memories</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.06084">https://arxiv.org/abs/2611.06084</a></li>
+<li><strong>时间</strong>：2026-11-04</li>
+<li><strong>方向</strong>：混合模型 · 循环状态压缩 · 低秩分解</li>
+</ul>
+<p><strong>摘要</strong>：混合模型在少数 softmax 注意力层之间插入大量线性注意力或状态空间层，于是每一层都在保留对历史 token 的记忆——或是一份 KV cache，或是一个固定大小的循环状态；服务这些记忆所花的算力与高带宽显存超过了输出本身所需，在 Qwen3.8-Flash-Next 上每请求的状态字节量相当于数千 token 的注意力缓存。作者发现训练后的混合模型有两个性质：写比读容易，用浅层 anchor 的残差流即可训练出"emitter"写出深层记忆，从而让除最后一个之外的所有 prompt token 只需跑低至 63% 的层；循环状态则存在 state sink，大部分能量集中在每个头某个固定方向的秩一项上，其余是低秩工作记忆。SEED 据此让 prefill 在深度上变浅、decode 状态在表示上变浅：每个循环状态存为 sink 加低秩因子，Gated DeltaNet、Kimi Delta Attention 与 Mamba-2 的更新都能精确扩展，并证明周期性压回低秩的开环误差有与压缩次数无关的界。它冻结原始权重、不压缩注意力缓存、每个生成 token 仍跑所有层；在 5 个生产混合模型（30B 到 300B 以上）的 6 个 checkpoint 上的 11 个官方考试中接近无损，并在 NVIDIA GB300 上用 SGLang 跑 agentic-coding trace 时把 Qwen3.8-Flash-Next 的单 GPU 吞吐提升 1.2–1.4×。</p>
+<p><strong>对广域的启示</strong>：混合架构把"KV"扩展成"KV + 循环状态"，跨域迁移时要分开处理——注意力部分可按前缀共享，循环状态则必须按 sink + 低秩因子的紧凑形式单独搬运；"写路径浅、读路径深"的洞见也提示可以只传写出来的结果而不搬完整状态。</p>
+<hr />
+<h2 id="_3">二、服务系统、调度、评测与安全</h2>
+<h3 id="4-asymptotic-optimality-of-cmu-rule-for-llm-inference-scheduling-under-memory-constraint">4. Asymptotic Optimality of $c\mu$-Rule for LLM Inference Scheduling under Memory Constraint</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.04807">https://arxiv.org/abs/2611.04807</a></li>
+<li><strong>时间</strong>：2026-11-03</li>
+<li><strong>方向</strong>：推理调度 · KV 容量约束 · 排队论</li>
+</ul>
+<p><strong>摘要</strong>：agentic 与推理负载的长 prompt、长生成使 KV cache 占用大幅上升，GPU 显存成为关键瓶颈。论文从排队视角研究由此产生的在线调度问题：请求随机到达、prompt 与输出长度异构，要经历 prefill 与自回归 decode 两个阶段，并竞争有限的 KV cache 容量；与经典排队模型不同，一个处理步的时长同时取决于 prefill 计算与 KV cache 的 I/O，因此服务能力由计算、访存与内存占用共同决定。作者用流体模型把系统化简为带有效服务率的多类单服务器队列，导出 cμ 优先级规则，其中有效服务率 μ 由计算速度、内存带宽与内存容量共同决定；论文证明该规则在流体模型下最小化累积持有成本，对有限负载还能最小化完成时间并最大化整轮输出 token 吞吐，并构造出可行调度策略、证明其缩放动态收敛到最优流体策略。在 NVIDIA H800 上的真实 LLM 服务引擎实验中，该规则的实用实现相对现有调度策略显著降低平均时延，同时保持高吞吐。</p>
+<p><strong>对广域的启示</strong>：把 KV 的带宽与容量直接折算进服务率，意味着跨机房/跨集群调度也不该只按算力排队，而应把"KV 是否本地命中、链路能给出多少有效带宽"算进同一个 μ 里，才能得到可比的优先级。</p>
+<h3 id="5-what-sets-the-serving-speed-of-looped-language-models-measurements-and-optimizations-graded-by-exactness">5. What Sets the Serving Speed of Looped Language Models? Measurements and Optimizations Graded by Exactness</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.05150">https://arxiv.org/abs/2611.05150</a></li>
+<li><strong>时间</strong>：2026-11-03</li>
+<li><strong>方向</strong>：循环模型服务 · 内核融合 · PD 分离</li>
+</ul>
+<p><strong>摘要</strong>：循环语言模型对每个 token 反复执行同一组层，服务引擎要为每层开销在每个循环里各付一次。论文在开源循环模型引擎上实测 Ouro 与 Huginn-0125，并把优化按精确性分级——从比特级一致到必须做精度校验。batch 1 时，把所有 loop 提交融合后 Ouro 吞吐仍只有 0.99×，真正的成本是每 token 5689 个小 kernel；在 rounding fence 后融合这些小 kernel 使吞吐提升 1.11–1.59× 且 1014/1014 个请求结果完全一致，而近似融合并不更快，还在 GSM8K 的一条规则所对应的 87 道题上失手（61 与 62 题正确，基线 64 题），因此没有上线。Huginn 的发布默认配置避开了死 KV 槽、复用了前缀缓存页，比基础引擎快 1.77–3.16×，Ouro 达 1.65–2.15×、agent 会话达 1.91–3.21×，而噪声与前缀复用改动在全部 1319 道测试题上都控制在一分以内；位置键控噪声让 CPU 缓存复用变精确，但 128 次 GPU full hit 中仍有 20 次不同，loop 融合会推迟 prefill 准入，64 图缓存则避免了 eager 回退。在 prefill-decode 分离下，ExactLoop 在关闭对端错误处理时达到基础吞吐的 3.3×、开启时三次运行中有两次达到 3.1×；其传输预算按容纳"一个请求在飞的 KV"来设定，把 commit 尾延迟从早前预算下的约 1 秒压到 16 ms（基线 2.8 s），并消除了引擎间隔本会引入的轮询轮次。</p>
+<p><strong>对广域的启示</strong>：把传输预算定为"一个请求在飞 KV"就能把 commit 尾延迟压到 16 ms 量级，这条简单规则可直接搬到跨机房 KV 预取/迁移的缓冲与带宽配置上，避免按全量缓存预留。</p>
+<h3 id="6-runway-characters-serving-a-57b-video-diffusion-transformer-for-real-time-conversation">6. Runway Characters: Serving a 57B Video Diffusion Transformer for Real-Time Conversation</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.05642">https://arxiv.org/abs/2611.05642</a></li>
+<li><strong>时间</strong>：2026-11-03</li>
+<li><strong>方向</strong>：视频扩散 · KV 环形缓存 · 实时推理</li>
+</ul>
+<p><strong>摘要</strong>：对话式视频角色必须让生成速度跟上播放速度，且一次只服务一个用户：24 fps 下每个四帧块只有 166.7 ms，缓冲仅几块。论文描述了支撑 Runway Characters 的系统，它在四张 H100 上以 704×1088、24 fps 服务一个约 57B 参数的自回归视频扩散 Transformer（每块四次去噪），并把语音 agent 接在回路里。每个块有 240 次 attention 调用，每次都要读一份 5,788 槽的 KV cache，而其中只有 757 个 token 是新的，原始步骤有 29% 的工作是每次调用都重做的整缓存工作；作者把这份工作挪到写时完成（环形缓存、每次写入只做一次 RoPE 与 FP8 量化、位置重置时做 delta rotation），把张量并行的 all-reduce 融进 FP8 GEMM 用 in-switch reduction，并给把 latent 解码成帧的解码器单独一张 GPU。不含融合 kernel 时，这些优化把扩散步从 240.9 ms 降到 159.3 ms（1.51×，持续 24.5 fps）且 lip-sync 分数未见退化；融合 kernel 版本（在生产中回滚过一次、此后重新启用）达到 147.4 ms（1.63×，FP8 峰值的 43%）。七周生产中，流式超过一秒的会话有 99.5% 平均高于 23.5 fps，整条流水线只占 2.1 s 中位对话轮中的 0.49 s。</p>
+<p><strong>对广域的启示</strong>：这是"写时一次算完、读时只读增量"的极端形态——29% 的重复整缓存工作被彻底消掉；跨域 KV 传输同样应把 RoPE、量化这类逐次变换放到写入侧只做一遍，只搬新增槽位而不是每跳重算。</p>
+<h3 id="7-a-controlled-experimental-evaluation-of-configuration-and-cache-architecture-in-llm-serving-engines">7. A Controlled Experimental Evaluation of Configuration and Cache Architecture in LLM Serving Engines</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.05991">https://arxiv.org/abs/2611.05991</a></li>
+<li><strong>时间</strong>：2026-11-04</li>
+<li><strong>方向</strong>：引擎对照评测 · 前缀缓存 · 分块 prefill</li>
+</ul>
+<p><strong>摘要</strong>：多智能体 LLM 应用在请求之间重复大部分 prompt token，服务引擎因此复用共享前缀的缓存状态；vLLM 与 SGLang 的复用粒度不同，其默认部署的基准测试曾报告巨大性能差距，并通常把差距归功于缓存。但这些比较很少控制其他配置差异，其中一项——长 prompt 是否分块 prefill——由各引擎依据硬件与版本默认决定，直接混淆了结论。作者在 Kubernetes 上搭建可复现测试床与带种子的多智能体负载生成器，在厂商默认与对齐分块 prefill 两种设置下对比两引擎，并利用"两臂中 SGLang 配置相同"这一点把它当作跨独立部署的内部对照；默认设置下 vLLM 的中位首 token 时延最高达到 SGLang 的 64×，而仅对齐这一项设置，就在差距最大的地方消除了 78% 的容量差距与 30–67% 的时延差距。接近饱和时剩余时延差距反映队列增长，一个只由 4.4% 吞吐缺口驱动的流体排队模型即可复现，并显示该差距会随基准运行时长放大；对齐后存活下来的是同等吞吐下 2.4–6.4× 的尾延迟优势，与对等待请求的缓存感知排序一致，作者据此给出六条引擎比较建议。</p>
+<p><strong>对广域的启示</strong>：如果两套集群的默认分块 prefill 与缓存策略不一致，测出来的"跨域复用收益"很可能只是配置伪差；做跨机房、跨版本对比前必须先把这类默认开关对齐，再谈缓存架构的贡献。</p>
+<h3 id="8-kvguard-a-kv-cache-safety-checker-for-llm-serving-systems">8. KVGuard: A KV Cache Safety Checker for LLM Serving Systems</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.06138">https://arxiv.org/abs/2611.06138</a></li>
+<li><strong>时间</strong>：2026-11-04</li>
+<li><strong>方向</strong>：KV 内存安全 · PagedAttention · 块级元数据</li>
+</ul>
+<p><strong>摘要</strong>：现代 LLM 服务系统用 PagedAttention 管理 KV cache：把一块 CUDA 分配区切成固定大小的物理块，再用 CPU 构建的 block table 把每个请求映射到这些块上。这种按块的设计暴露出此前未被研究的一类 KV cache 内存安全 bug，包括 double free、use-after-free、越界访问、未初始化读与权限违规，它们会静默污染输出或破坏请求隔离，却从不使系统崩溃。现有内存 sanitizer 检测不到，因为它们推理的是 CUDA 级地址而非 KV 块、请求与 block table，且其 redzone/quarantine 设计不适合 LLM 服务紧张的显存预算。KVGuard 给出首个针对 KV cache 管理的系统化内存安全抽象：为每个物理 KV 块维护紧凑的 shadow block，记录逐请求权限与逐条目初始化状态，并据此在 PagedAttention 工作流的 CPU 分配、block table 构建与翻译、GPU 侧查表与 KV 访问上执行五项检查，每项检查在引入违规的那个边界处触发。基于 vLLM 与 SGLang 的原型覆盖了两系统补丁史中全部 29 个真实 KV cache 安全 bug，另外发现 8 个此前未知的违规且无假阳性；在 Qwen 2.5 14B 上给 vLLM 与 SGLang 分别带来 3.0% 与 7.4% 的 TPOT 几何平均开销，内存开销至多占 KV cache 的 0.11%，比 NVIDIA Compute Sanitizer 在相同负载上低两个数量级。</p>
+<p><strong>对广域的启示</strong>：一旦 KV 要跨进程、跨机器搬运，块级的权限与初始化元数据也必须跟着走；shadow block 这种"让每个块自带轻量元数据"的做法，可以成为跨域 KV 交换格式的一部分，用来做隔离与完整性校验。</p>
+<hr />
+<h2 id="_4">三、复用、共享与可迁移洞察</h2>
+<h3 id="9-octopus-one-brain-many-branches-for-latent-kv-multi-agent-reinforcement-learning">9. Octopus: One Brain, Many Branches for Latent-KV Multi-Agent Reinforcement Learning</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.06956">https://arxiv.org/abs/2611.06956</a></li>
+<li><strong>时间</strong>：2026-11-03</li>
+<li><strong>方向</strong>：多智能体 · KV 前缀共享 · DAG 调度</li>
+</ul>
+<p><strong>摘要</strong>：深度搜索与长程推理本质上是分叉的轨迹——并行推进子查询、放弃死路、交叉核对兄弟分支的发现，但现代服务引擎、harness 与 RL 训练器却把 episode 当成扁平、只追加的序列：拉长上下文会留下失败的弯路稀释注意力，原地编辑会破坏 KV 缓存与循环状态，整层缓存拼接会覆盖混合循环工作记忆并触发劫持。Octopus 协同设计服务运行时、内存管理器与 RL 框架，把 episode 表示为 GPU 常驻的 DAG 并跑在 radix cursor 上（89.6% KV 命中率），智能体通过五个原语协作：fork 以 O(1) 共享父 KV 前缀并配隔离的 32K 预算，rewind 恢复循环 checkpoint，read_thread 零拷贝挂载兄弟 KV 页，wait 与 done 同步结果。它只在全注意力层、按单调位置偏移拼接兄弟 KV 页，循环层跳过挂载区间，保住 92.2% 的全文答案信息，把劫持降低 21×（57.9%→2.7%）且不新增 KV 页。RL 训练中，打包 DAG kernel 与 DAG-GRPO 目标用 loss mask 去重共享前缀、同时保持挂载 KV 边可微，把 rollout-training 的 KL 散度降低 32×，并把 reader 的梯度路由回 producer 的 KV 投影。在 Qwen3.5-4B 上用二值奖励训练后，它自组织出指挥—执行层级与 latent KV mesh，把 BrowseComp-Plus 在 BM25 下的准确率从 26.0%（32K ReAct）与 32.1%（143K GRPO）提升到 49.6%（+17.5 点，OpenResearcher 上 51.2%），超过 9B 上下文编辑 RL 的 42.5%，与 o3 的 49.3% 持平，并优于规模最高达 250× 的稠密检索智能体：Tongyi-DeepResearch 44.5%、DeepSeek-R1 16.4%、Kimi-K2 35.4%、GPT-4.1 36.4%、Claude 4 Opus 36.8%。</p>
+<p><strong>对广域的启示</strong>：分支 agent 的 KV 天生是树或 DAG 而非一条序列，跨机房共享时应传 radix 前缀而不是整段上下文；fork 的常数时间前缀共享与 read_thread 的零拷贝挂载，正是把"共享前缀"做成可被远距离引用的两种基本操作。</p>
+<h3 id="10-benice-closing-loopings-inference-memory-gap-via-kv-sharing">10. BeNice! Closing Looping's Inference-Memory Gap via KV-Sharing</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.31633">https://arxiv.org/abs/2610.31633</a></li>
+<li><strong>时间</strong>：2026-10-22</li>
+<li><strong>方向</strong>：循环架构 · KV 共享 · 可共享性</li>
+</ul>
+<p><strong>摘要</strong>：循环（looped）架构通过反复把激活送过同一组层来提升质量而不增加参数量，但推理时每次循环都会生成独立的 KV cache，显存随循环步数线性增长。此前工作发现某些情况下最后一次循环的 KV 可以共享给更早的循环而不掉质量（作者称之为 KV-shareability），但其机制并不清楚——即使训练配置相同的循环模型也未必具备该性质。论文研究如何<strong>使循环模型获得 KV 可共享性</strong>，提出两阶段方法：第一阶段在预训练中使用随机深度，诱导出收缩型残差动力学，从而把不同循环步的 KV 拉近到可共享区间，再在此基础上显式训练共享。这样从结构上消除重复 KV，而非事后压缩。</p>
+<p><strong>对广域的启示</strong>：如果模型架构本身就让多层/多步 KV 可共享，那么需要传输和存储的字节数会按共享倍数直接下降——<strong>把可共享性设计进训练，比在推理时压缩更彻底</strong>。</p>
+<hr />
+<h2 id="_5">今日观察</h2>
+<ol>
+<li><strong>压缩的粒度从"每个元素"转向"结构性冗余"</strong>：LoopVQ 沿循环轴联合编码并共享码本，SEED 把循环状态拆成 sink 秩一项加低秩因子，都是在架构自带的冗余上做文章，而不是无差别地降比特。</li>
+<li><strong>驱逐的开始被当成"决策质量问题"而不是"排序问题"</strong>：EchoKV 指出 workspace 误差会自我强化，只用一次张量重打分就换来证据密集任务的提升，说明驱逐策略的失效点常在查询侧而不在打分函数。</li>
+<li><strong>KV 的带宽与容量正在进入服务率与传输预算</strong>：cμ 规则把访存和容量折算进 μ，ExactLoop 用"单请求在飞 KV"定预算把尾延迟压到 16 ms，两篇都在把"内存子系统"变成一阶调度变量。</li>
+<li><strong>复用与安全同时逼近块级语义</strong>：Octopus 以 radix 前缀 + DAG 把复用做成常数时间共享，KVGuard 则给每个物理块配上权限与初始化元数据——共享得越激进，块级元数据就越不能缺。</li>
+</ol>
+<blockquote>
+<p>注：本期为补录批次，摘要基于 arXiv 官方摘要页整理；具体实验设置与数字以 PDF 原文为准。</p>
+</blockquote>
+</main>
+<nav class="pager"><a class="pager-link" href="2026-11-03.html"><span class="dir">← 上一期</span><span class="d">11月3日</span></a><a class="pager-link next" href="2026-11-05.html"><span class="dir">下一期 →</span><span class="d">11月5日</span></a></nav>
+<footer class="footer"><span>KV Cache 日报</span><a href="../index.html">返回目录</a></footer>
+
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

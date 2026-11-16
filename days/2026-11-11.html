@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KV Cache 日报 · 2026-11-11</title>
+<meta name="description" content="2026-11-11 的 KV Cache 论文摘要，10 篇。">
+<meta name="theme-color" content="#f6f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="day-page">
+
+<header class="topbar">
+  <a class="back" href="../index.html"><span aria-hidden="true">←</span> 全部日报</a>
+  <span class="top-date">2026年11月11日 · 周三</span>
+</header>
+<main class="report">
+<h1 id="kv-cache-2026-11-11">KV Cache 论文日报 · 2026-11-11</h1>
+<blockquote>
+<p><strong>今日 10 篇</strong>：存储与地址空间 3 篇 · 压缩与重建 4 篇 · 负载刻画与跨模型复用 3 篇</p>
+<p><strong>本期主线</strong>：这一批把 KV 当成<strong>有地址、有粒度、有寿命的数据对象</strong>来治理——对象粒度决定存储开销、锚点决定无损重建、地址空间决定 GPU/CPU 之间能否透明搬运；同时用两篇实测回答「跨模型复用到底行不行」。</p>
+<p><strong>说明</strong>：本期为补录批次，收录 arXiv 公告日期集中在 2026-10-15 至 10-28 的论文；摘要依据 arXiv 官方摘要整理。</p>
+</blockquote>
+<h2 id="_1">速览</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>论文</th>
+<th>方向</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Range: Decoupling KV-Cache Reuse Granularity from Storage Work</td>
+<td>存储粒度</td>
+<td>arXiv:2610.21241</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Characterizing Predictability-Latency Trade-offs of KV-Cache SSD Offloading in LMCache</td>
+<td>卸载刻画</td>
+<td>arXiv:2610.21249</td>
+</tr>
+<tr>
+<td>3</td>
+<td>UlaCache: Unified Logical Addressing for Sparse LLM Serving</td>
+<td>统一地址空间</td>
+<td>arXiv:2610.29820</td>
+</tr>
+<tr>
+<td>4</td>
+<td>AnchorKV: Lossless Key-Value Cache Reconstruction from Layer-Sparse Residual Anchors</td>
+<td>无损重建</td>
+<td>arXiv:2611.00117</td>
+</tr>
+<tr>
+<td>5</td>
+<td>BellowsKV: One Latent for Many Layers, Expanded on Demand</td>
+<td>跨层共享 latent</td>
+<td>arXiv:2610.35023</td>
+</tr>
+<tr>
+<td>6</td>
+<td>MoEZip: Routing-Aware KV Cache Compression for Sparse Mixture-of-Experts LLMs</td>
+<td>MoE 路由感知</td>
+<td>arXiv:2610.30206</td>
+</tr>
+<tr>
+<td>7</td>
+<td>RIFT: KV Cache Compression for Draft Models with Complementary Compressibility Training</td>
+<td>草稿模型压缩</td>
+<td>arXiv:2610.31098</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Cache Engineering for Agents</td>
+<td>Agent 主动管理缓存</td>
+<td>arXiv:2610.28577</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Understanding KV Residency in Production-Scale Agentic LLM Workloads</td>
+<td>生产负载刻画</td>
+<td>arXiv:2610.22863</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Close Enough is Nowhere Near: Fidelity-Consumability Decoupling in KV Caches</td>
+<td>跨模型复用边界</td>
+<td>arXiv:2610.22016</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_2">一、存储与地址空间</h2>
+<h3 id="1-range-decoupling-kv-cache-reuse-granularity-from-storage-work">1. Range: Decoupling KV-Cache Reuse Granularity from Storage Work</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.21241">https://arxiv.org/abs/2610.21241</a></li>
+<li><strong>时间</strong>：2026-10-15</li>
+<li><strong>方向</strong>：对象粒度 · 存储栈开销 · 前缀恢复</li>
+</ul>
+<p><strong>摘要</strong>：上下文变长把 KV 推过 GPU HBM 与 CPU DRAM，落到 NVMe SSD 上，前缀恢复因此落在 TTFT 的关键路径。论文发现，在配置良好的 host-issued 路径上<strong>SSD 并不是瓶颈</strong>：恢复同样 6 GiB 的 KV，按 192 个对象取是 2.1s，按 6,144 个对象取是 3.0s，分层加载时更差——因为存储栈的每一层（查找、分配、I/O 提交、GPU 交付、存储、索引）都在按<strong>逻辑对象</strong>计费，而字节数没变。这个开销会随 KV 体积放大：更长上下文、更深模型、张量并行都会乘上对象数。以往工作把这份按对象的开销从 CPU 挪到 GPU，但“按对象”这件事本身没变。Range 是以「存储栈上每一笔开销都不应随对象数增长」为原则构建的 KV 存储引擎（适配 vLLM 与 LMCache）。</p>
+<p><strong>对广域的启示</strong>：跨域取数同样会被“对象数”而不是“字节数”拖慢——<strong>把小对象合并成连续大块</strong>（更大分区、层主序布局）往往比提升带宽更有效。</p>
+<h3 id="2-characterizing-predictability-latency-trade-offs-of-kv-cache-ssd-offloading-in-lmcache">2. Characterizing Predictability-Latency Trade-offs of KV-Cache SSD Offloading in LMCache</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.21249">https://arxiv.org/abs/2610.21249</a></li>
+<li><strong>时间</strong>：2026-10-15</li>
+<li><strong>方向</strong>：卸载实测 · 页缓存 · 去重</li>
+</ul>
+<p><strong>摘要</strong>：KV 卸载被广泛用于扩展显存，但其<strong>块设备级行为</strong>缺乏刻画。论文用真实多会话负载（同/不同上下文 × 同/不同 prompt，每种超 100 个无状态请求）研究 LMCache，对比两个可实现的部署快照：0.3.0（缓冲 I/O + 内核页缓存）与 0.3.16（前缀感知去重 + O_DIRECT）。关键发现：旧栈在四种负载下看起来「几乎不读盘」，但 <code>flush_ram</code> 实验显示这依赖页缓存热度——一旦缓存被逐出，同一路径会在 683ms 内发出约 1GB 顺序读；去重的写缩减只对完全重复负载显著。</p>
+<p><strong>对广域的启示</strong>：性能数字高度依赖<strong>缓存是否预热</strong>；跨域方案的评估必须区分冷启动与热态，否则会把“页缓存红利”误读成传输优化效果。</p>
+<h3 id="3-ulacache-unified-logical-addressing-for-sparse-llm-serving">3. UlaCache: Unified Logical Addressing for Sparse LLM Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.29820">https://arxiv.org/abs/2610.29820</a></li>
+<li><strong>时间</strong>：2026-10-21</li>
+<li><strong>方向</strong>：逻辑地址 · 异构内存 · 稀疏注意力</li>
+</ul>
+<p><strong>摘要</strong>：长上下文下 KV 使显存承压；token 级稀疏注意力能减少注意力计算与访存，但 KV 条目仍需保留供未来查询，存储容量依然限制解码并发。GPU+CPU 组合内存可以扩容，但跨异构内存池的高效访问是难点。UlaCache 提供跨 GPU 与 CPU 内存的<strong>统一逻辑寻址</strong>：其逻辑槽位接口让推理引擎用稳定标识分配、写入、访问、释放 KV 条目，对注意力并行模式透明；UlaCache 负责物理放置、驻留与传输，并在 KV 迁移后更新地址映射。配套的 Parallel Bucketed LRU（PB-LRU）把最近使用信息更新的开销并行化。</p>
+<p><strong>对广域的启示</strong>：<strong>把“地址”和“位置”解耦</strong>，KV 迁移就变成透明的重映射；这正是跨域缓存池需要的能力——应用只认逻辑句柄，调度器决定它此刻在哪个 region。</p>
+<hr />
+<h2 id="_3">二、压缩与重建</h2>
+<h3 id="4-anchorkv-lossless-key-value-cache-reconstruction-from-layer-sparse-residual-anchors">4. AnchorKV: Lossless Key-Value Cache Reconstruction from Layer-Sparse Residual Anchors</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.00117">https://arxiv.org/abs/2611.00117</a></li>
+<li><strong>时间</strong>：2026-10-28</li>
+<li><strong>方向</strong>：无损重建 · 残差锚点 · 架构相关</li>
+</ul>
+<p><strong>摘要</strong>：残差流缓存可以无损重建 KV，但其内存优势取决于架构。AnchorKV 给出一个<strong>存储-重放的连续谱</strong>：通过可配置的残差锚点，在“每层都存残差”和“完全重算”之间取值；一条依赖架构的盈亏平衡规则给出第一个省存储的间隔，部署时可在谱上选工作点，并用级联重放把重建复杂度从 O(Ls) 降到 O(L)，其中 L 为层数、s 为锚点间隔。对交错滑窗架构，用精确动态规划在非均匀重建需求下布置锚点。跨 CPU、CUDA、Ascend NPU 后端、六个架构族、fp32/bf16 的评估验证了<strong>逐位精确的 KV 重建</strong>与不变的后续 logits/token；4k 上下文下级联重建比朴素重放快 16.3 倍。</p>
+<p><strong>对广域的启示</strong>：如果 KV 能由少量锚点无损重建，那么跨域只需传锚点、接收端本地重建——<strong>把带宽换成算力</strong>，这在 GPU 空闲率高、链路紧张时是很好的取舍。</p>
+<h3 id="5-bellowskv-one-latent-for-many-layers-expanded-on-demand">5. BellowsKV: One Latent for Many Layers, Expanded on Demand</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.35023">https://arxiv.org/abs/2610.35023</a></li>
+<li><strong>时间</strong>：2026-10-26</li>
+<li><strong>方向</strong>：跨层共享 · 按需展开 · 高压缩比</li>
+</ul>
+<p><strong>摘要</strong>：agent 多轮、工具调用与长任务让 KV 成为显存主要瓶颈。多数压缩方法在单层内工作——量化、降通道维、淘汰 token，但在高压缩比下三者都明显掉精度；跨层共享把一份压缩缓存供给相邻层，能突破这个上限，但高压缩比时同样急剧退化。论文发现关键处不在“层间 KV 相似”，而是<strong>相邻层的输入隐状态高度相似</strong>：因此 BellowsKV 共享的是隐状态层面的一个 latent，再按需展开成各层 KV，而不是强行让相邻层共用同一份 KV 表示。</p>
+<p><strong>对广域的启示</strong>：压缩的正确对象可能是<strong>层的输入</strong>而不是层的输出；这类“共享+按需展开”的结构，让一份传输对应多层缓存，跨域带宽按层数摊薄。</p>
+<h3 id="6-moezip-routing-aware-kv-cache-compression-for-sparse-mixture-of-experts-llms">6. MoEZip: Routing-Aware KV Cache Compression for Sparse Mixture-of-Experts LLMs</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.30206">https://arxiv.org/abs/2610.30206</a></li>
+<li><strong>时间</strong>：2026-10-21</li>
+<li><strong>方向</strong>：MoE · 路由敏感度 · Fisher 度量</li>
+</ul>
+<p><strong>摘要</strong>：MoE 通过每 token 激活少量参数来高效扩展容量，但长上下文下 KV 仍随序列线性增长。现有 KV 压缩方法主要针对稠密 Transformer，忽略了一个 MoE 特有风险：<strong>KV 淘汰会改变生成时被选中的专家</strong>，从而损害质量。MoEZip 提出用路由分布的 Fisher 信息矩阵来度量专家路由对扰动的敏感度，把它与注意力权重结合做路由感知的上下文打分，最后组合出兼顾稠密与稀疏 MoE 架构的互补评分体系。</p>
+<p><strong>对广域的启示</strong>：对 MoE 模型做跨域压缩/驱逐时，必须监控<strong>路由是否漂移</strong>；否则会出现“准确率掉了但看不出原因”的隐性退化。</p>
+<h3 id="7-rift-kv-cache-compression-for-draft-models-with-complementary-compressibility-training">7. RIFT: KV Cache Compression for Draft Models with Complementary Compressibility Training</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.31098">https://arxiv.org/abs/2610.31098</a></li>
+<li><strong>时间</strong>：2026-10-22</li>
+<li><strong>方向</strong>：推测解码 · 草稿模型 · 解码陈旧</li>
+</ul>
+<p><strong>摘要</strong>：推测解码是长输出生成的重要加速手段，而长输出又需要越来越大的 KV。以 prefill 信息为中心的压缩方法会随着输出变长而失去相关性，论文把这一现象称为 <strong>decode staleness</strong>，并证明它会在基于选择的 KV 压缩下损害草稿模型准确率。RIFT 是一族基于选择的压缩策略，在「prefill 信息」与「近期生成的 token」之间做平衡；实验显示在生成过程中刷新 KV 选择能显著提升草稿质量，代价是额外的解码延迟，因此作者引入自适应刷新策略，在保持质量的同时减少打分次数。</p>
+<p><strong>对广域的启示</strong>：<strong>压缩策略要随生成长度演进</strong>，静态压缩比在长输出下会悄悄失效；跨域缓存若按固定压缩率存储长会话，需要定期“重新打分”。</p>
+<hr />
+<h2 id="_4">三、负载刻画与跨模型复用</h2>
+<h3 id="8-cache-engineering-for-agents">8. Cache Engineering for Agents</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.28577">https://arxiv.org/abs/2610.28577</a></li>
+<li><strong>时间</strong>：2026-10-20</li>
+<li><strong>方向</strong>：Agent 主动控制 · 免重算 · 轨迹不变</li>
+</ul>
+<p><strong>摘要</strong>：agent 轨迹变长后，KV 的 I/O 与存储成为主要成本，轨迹还可能超出模型最大上下文，需要控制活跃缓存的增长。以往用 context engineering 通过裁剪或摘要历史来缩小缓存，但<strong>修改轨迹前缀会使后续缓存状态失效</strong>、触发昂贵的重新 prefill，保留太少上下文又会掉准确率。论文提出 cache engineering：让 agent <strong>直接控制自己的活跃 KV</strong>，在不修改轨迹、不重新 prefill 保留上下文的前提下操作缓存——例如用 drop 把选定缓存排除在后续注意力之外，用 repos 调整保留 key 的位置等。</p>
+<p><strong>对广域的启示</strong>：把缓存控制权交给应用层，等于让“传什么、留什么”由业务语义决定，而不是由系统盲猜；跨域场景下这能显著减少无意义的同步。</p>
+<h3 id="9-understanding-kv-residency-in-production-scale-agentic-llm-workloads">9. Understanding KV Residency in Production-Scale Agentic LLM Workloads</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.22863">https://arxiv.org/abs/2610.22863</a></li>
+<li><strong>时间</strong>：2026-10-16</li>
+<li><strong>方向</strong>：生产刻画 · 长会话 · 容量估算</li>
+</ul>
+<p><strong>摘要</strong>：agent 应用把一次用户请求拆成一系列模型与工具调用，上下文不断增长；把这份上下文的 KV 留在显存里可以让后续调用复用，但在集群规模下需要巨量内存。论文刻画微软 M365 的四个生产负载（Deep Research、Enterprise Assistant、Coding Agent、Enterprise Chat），覆盖<strong>超过 1.21 亿次模型调用</strong>。在 Deep Research 中，应用本身发出 89% 的模型调用，中位上下文到第 30 次调用时从约 10K 增长到 68K token；约 80% 的上下文 token 由前缀缓存提供。用公开的 Llama-2-70B KV 布局代替保密模型估算，单个 p99 Deep Research 会话就超过一张 H100 的 80GB HBM，若把所有活跃会话都按峰值驻留需要约 <strong>501.8 TB HBM</strong>，而推理实际只占用 5.6%。</p>
+<p><strong>对广域的启示</strong>：这是最有说服力的容量数据——<strong>不能按峰值驻留规划，必须按复用概率分层</strong>；否则要么 HBM 爆炸，要么全部外溢到广域链路。</p>
+<h3 id="10-close-enough-is-nowhere-near-fidelity-consumability-decoupling-in-kv-caches">10. Close Enough is Nowhere Near: Fidelity-Consumability Decoupling in KV Caches</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.22016">https://arxiv.org/abs/2610.22016</a></li>
+<li><strong>时间</strong>：2026-10-15</li>
+<li><strong>方向</strong>：跨模型复用 · 可消费性 · 负结果</li>
+</ul>
+<p><strong>摘要</strong>：多 agent 系统以文本通信，既有损又浪费——发送方丢掉了自己已经完成的“阅读理解”。已有研究转而传输 KV 缓存。论文研究其中最诱人的形式：两边模型都冻结，发送方的缓存被直接替换给接收方、不做任何训练。<strong>它不成立</strong>，而且障碍在接收方：冻结的 Transformer 只读得动与自己会写出的缓存足够接近的那一片区域（称为其 tolerable set）；论文进一步证明，<strong>与该缓存的几何相似度并不能预测接收方能否使用它</strong>，且失败不是渐进的，所以“造一个更保真的替代品”并不是解法。作者用竞争性注意力解释这一现象，并用八种替换方法与两个实测锚点（无信息缓存基线、接收方自身准确率）做对比。</p>
+<p><strong>对广域的启示</strong>：这是跨模型/跨节点共享 KV 的重要冷水——<strong>“看起来像”不等于“能被消费”</strong>。跨域复用要么保证同模型同版本，要么必须引入训练过的适配（如仿射校正），否则收益是幻觉。</p>
+<hr />
+<h2 id="_5">今日观察</h2>
+<ol>
+<li><strong>对象粒度被确认为隐藏成本</strong>：Range 证明同字节数下 192 个对象 2.1s、6,144 个对象 3.0s，说明跨域取数应优先减少对象数。</li>
+<li><strong>地址与位置解耦</strong>：UlaCache 的逻辑槽位让 KV 迁移对上层透明，这是把本地池化扩展到跨域池化的前提。</li>
+<li><strong>无损重建打开“传锚点、算 KV”的新路径</strong>：AnchorKV 实现逐位精确重建，跨域可以把带宽换成算力。</li>
+<li><strong>跨模型复用被证伪于“零训练”形式</strong>：Close Enough 论文指出可消费性与几何相似度解耦，提醒跨域共享必须同源或带适配。</li>
+</ol>
+<blockquote>
+<p>注：本期为补录批次，摘要基于 arXiv 官方摘要页整理；具体实验设置与数字以 PDF 原文为准。</p>
+</blockquote>
+</main>
+<nav class="pager"><a class="pager-link" href="2026-11-10.html"><span class="dir">← 上一期</span><span class="d">11月10日</span></a><a class="pager-link next" href="2026-11-12.html"><span class="dir">下一期 →</span><span class="d">11月12日</span></a></nav>
+<footer class="footer"><span>KV Cache 日报</span><a href="../index.html">返回目录</a></footer>
+
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

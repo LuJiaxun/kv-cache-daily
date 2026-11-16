@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KV Cache 日报 · 2026-11-08</title>
+<meta name="description" content="2026-11-08 的 KV Cache 论文摘要，10 篇。">
+<meta name="theme-color" content="#f6f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="day-page">
+
+<header class="topbar">
+  <a class="back" href="../index.html"><span aria-hidden="true">←</span> 全部日报</a>
+  <span class="top-date">2026年11月8日 · 周日</span>
+</header>
+<main class="report">
+<h1 id="kv-cache-2026-11-08">KV Cache 论文日报 · 2026-11-08</h1>
+<blockquote>
+<p><strong>今日 10 篇</strong>：压缩与可验证读取 3 篇 · 复用与系统协同 4 篇 · 安全、数值与一致性 3 篇</p>
+<p><strong>本期主线</strong>：判断 KV 质量的标尺正从“留下多少”转向“留下的部分能否被验证地取回”——PACE 说明驻留率 0.996 仍会失败，CVSA 与 VerKV 则把误差估计直接做进解码/回取循环；共享与复用一侧把 KV 从张量提升为跨阶段、跨环境的接口，安全与数值一侧则提醒：共享与并行都会留下可测量的痕迹。</p>
+<p><strong>说明</strong>：本期为补录批次，收录 arXiv 公告日期集中在 2026-11-06 至 11-08 的论文；摘要依据 arXiv 官方摘要整理。</p>
+</blockquote>
+<h2 id="_1">速览</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>论文</th>
+<th>方向</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>PACE: Keeping the Right Tokens in the KV Cache Is Not Enough for Long-Horizon LLM Agents</td>
+<td>驱逐与位置</td>
+<td>arXiv:2611.10240</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Coverage-Verified Sparse Attention: Closed-Loop Quality Control for Long-Context LLM Decoding</td>
+<td>稀疏读取</td>
+<td>arXiv:2611.10634</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Verify Before You Fetch: Reliable KV Cache Compression for LLM Inference</td>
+<td>压缩与回取</td>
+<td>arXiv:2611.11319</td>
+</tr>
+<tr>
+<td>4</td>
+<td>SepLRM: A Foundation Model Paradigm for Recommendation</td>
+<td>跨阶段复用</td>
+<td>arXiv:2611.10356</td>
+</tr>
+<tr>
+<td>5</td>
+<td>BunshinRL: Whole-Workspace Forking for Agentic Reinforcement Learning Rollouts</td>
+<td>环境与前缀复用</td>
+<td>arXiv:2611.10453</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Efficient VLA Inference via Retrieval-Based Speculation and Hardware Acceleration</td>
+<td>边缘投机推理</td>
+<td>arXiv:2611.11098</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Repeating Work Can Lower Energy per Successful Goal in LLM Agents</td>
+<td>恢复与能耗</td>
+<td>arXiv:2611.10315</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Mirage: Provable Defense Against LLM KV Cache Timing Side Channels with Topology-Aware Isolation</td>
+<td>KV 侧信道防御</td>
+<td>arXiv:2611.10756</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Reproducible LoRA Inference Through Deterministic Split-K Reduction</td>
+<td>数值可复现</td>
+<td>arXiv:2611.10334</td>
+</tr>
+<tr>
+<td>10</td>
+<td>How Much Training-Inference Mismatch Can On-Policy Distillation Tolerate?</td>
+<td>训练推理一致性</td>
+<td>arXiv:2611.11450</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_2">一、压缩与可验证读取</h2>
+<h3 id="1-pace-keeping-the-right-tokens-in-the-kv-cache-is-not-enough-for-long-horizon-llm-agents">1. PACE: Keeping the Right Tokens in the KV Cache Is Not Enough for Long-Horizon LLM Agents</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.10240">https://arxiv.org/abs/2611.10240</a></li>
+<li><strong>时间</strong>：2026-11-06</li>
+<li><strong>方向</strong>：长时程 Agent · 位置重编号 · 驱逐</li>
+</ul>
+<p><strong>摘要</strong>：长时程 LLM agent 的单次会话可累积上百万 token 的 KV，远超单卡容量，服务系统只能保留一个很小的 token 预算、其余驱逐；现有驱逐方法的差别只在“留哪些 token”，共同目标是让后续步骤要用的 token 仍在缓存里。论文指出这个目标不够：在 Qwen3-8B、2,048 token 预算、100K token 编码会话中，一个 planner 引导、使所需 token 驻留率超过 99% 的策略，仍会随“定义”与“使用”的距离从 2K 增长到 90K 而把准确率从 93% 降到 64%——所需 token 确实在缓存里，却因为到查询的旋转位置距离过大而取不到。PACE 把两件事耦合起来：planner 提前告知缓存未来步骤会读哪些上下文，并把保留下来的 token 重新编号，使其到查询的旋转距离在任意会话长度下都低于 8K。预注册评测中，100K token 下 PACE 通过 97% 的隐藏单元测试，同预算下 H2O 为 42%、SnapKV 为 3%，两个组件单独使用都只有 63%（p &lt; 10^-4）；在 1M 与 2M token 会话、单张 24GB GPU 上（定义分别写在使用前 0.9M 与 1.8M token），PACE 仍通过 99% 与 100% 的检查并召回全部会话事实，而缺少前瞻的有界位置方案从 33% 掉到 13%；PACE 的 KV 状态不到 0.7GB，全量缓存则需要 147–295GB。重编号是精确的、无可测困惑度损失、只增加 9% 墙钟时间，说明压缩侧的“可访问性”与存储侧的预算可以同时兑现。</p>
+<p><strong>对广域的启示</strong>：跨域复用的前提是“取回后仍然可用”，<strong>驻留率不等于可访问性</strong>：位置、编号这类元信息会独立地毁掉复用价值。跨域搬运或集中存储 KV 时，应把位置距离与读者（planner）意图一起纳入保留/重写决策，而不是只搬运字节。</p>
+<h3 id="2-coverage-verified-sparse-attention-closed-loop-quality-control-for-long-context-llm-decoding">2. Coverage-Verified Sparse Attention: Closed-Loop Quality Control for Long-Context LLM Decoding</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.10634">https://arxiv.org/abs/2611.10634</a></li>
+<li><strong>时间</strong>：2026-11-07</li>
+<li><strong>方向</strong>：稀疏注意力 · 覆盖度验证 · 闭环回退</li>
+</ul>
+<p><strong>摘要</strong>：稀疏注意力靠只读一部分 KV 加速长上下文解码，但现有方法是开环的：内核一旦提交选择，就没有信号说明注意力质量是否保住，也没有质量不足时的恢复路径。CVSA 指出所需信号本就存在于内核内部——选中 token 上的 softmax 质量占比（称为覆盖度 coverage）与单步输出误差满足精确的代数等式，因此它同时充当接受判据与恢复时的插值权重。据此构造训练免费的“先验证再纠正”解码闭环：高覆盖度的草稿直接接受，只对不达标的 head 做恢复，无需采样、草稿模型或投机解码设施。LongBench 上 7B 与 70B 模型与稠密注意力的差距在 1.13 个点以内（70B 上统计等价），RULER 上损失 0.8 个点；128K 上下文下实测中位解码步加速 6.21×，且阈值扫描中质量波动仅 0.14 个点，说明该闭环对阈值选择不敏感。</p>
+<p><strong>对广域的启示</strong>：稀疏读取若自带误差估计与按需回退，就可以把“压缩率”换成“可承诺的精度”。对广域而言，这相当于给远程 KV 读取配一个可协商的容差参数：先近似、不达标再补取，避免为最坏情况预留全额带宽。</p>
+<h3 id="3-verify-before-you-fetch-reliable-kv-cache-compression-for-llm-inference">3. Verify Before You Fetch: Reliable KV Cache Compression for LLM Inference</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.11319">https://arxiv.org/abs/2611.11319</a></li>
+<li><strong>时间</strong>：2026-11-08</li>
+<li><strong>方向</strong>：查询无关压缩 · 误差保证 · 分层回取</li>
+</ul>
+<p><strong>摘要</strong>：长上下文应用、长期存活的 agent 与多智能体系统让 KV 很容易超出 HBM，只能卸载到主机内存，而 CPU 到 GPU 的搬运会成为推理延迟的主项；但要对任意查询都保证准确率的“查询无关压缩”几乎不可能做到。VerKV 改走混合路线，给出对任意给定查询近似注意力的 (ε, δ) 保证：GPU 上常驻一小组查询无关的 pivotal token 加一份全量 KV 的 token 级 sketch，完整缓存留在 CPU 内存。pivotal token 由新提出的随机采样过程 PoissonComp 选出；推理时 KVFetch 用 pivotal token 与 sketch 估计当前注意力计算的相对误差，若满足用户给定的 (ε, δ) 容差就在 GPU 上直接算完、完全不访问主机内存，否则做查询感知的检索，从 CPU 拉回少量 token 把误差压回容差内。在 RULER 与 LOFT 的 32K 上下文上，Qwen3-4B、Qwen3.5-9B、Ministral-3-8B 达到稠密质量 90–100%，GPU 显存占用降低 8–32 倍，每生成一个 token 的 CPU→GPU 取回量仅占缓存的 2–23%。</p>
+<p><strong>对广域的启示</strong>：这是“分层放置 + 按需回取”的可验证模板：<strong>近端留可检验摘要、远端留全量</strong>，用一个可估的误差上界决定是否发起跨层/跨域搬运。把 (ε, δ) 显式暴露给调度器，跨域 KV 传输就能做成“先估后传”，而不是盲目预取。</p>
+<hr />
+<h2 id="_3">二、复用、共享与系统协同</h2>
+<h3 id="4-seplrm-a-foundation-model-paradigm-for-recommendation">4. SepLRM: A Foundation Model Paradigm for Recommendation</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.10356">https://arxiv.org/abs/2611.10356</a></li>
+<li><strong>时间</strong>：2026-11-07</li>
+<li><strong>方向</strong>：推荐基础模型 · KV 接口复用 · 分布式缓存存储</li>
+</ul>
+<p><strong>摘要</strong>：大规模推荐模型靠加长行为序列、扩大参数与算力提升效果，但边际收益递减、长序列编码成本上升，且这些昂贵编码会被不同推荐阶段、不同业务场景的多个模型各自重复执行一遍。SepLRM 把多个端到端模型重组为一个推荐基础模型（RFM）加若干独立优化的垂类模型（VM）：RFM 采用 encoder-decoder 结构，把最后一层 encoder 状态导出为与下游候选无关的共享 KV 缓存。与候选相关 logits 或聚合用户向量不同，KV 缓存保留了细粒度的行为信息；分离点选在原生 KV 接口上，各 VM 仍可构造候选相关的 query，保持与端到端模型相同的 query-KV 交互，从而做到高保真迁移。为保证迁移效果与系统效率，论文把缓存压缩、训练与服务工作流、以及分布式 KV 缓存存储系统 LG-Store 一起协同设计。三个大规模数据集上取得 SOTA 离线效果、迁移率约 100%，并在两个大规模工业场景部署，线上 A/B 测试稳定正向。</p>
+<p><strong>对广域的启示</strong>：把 KV 缓存当作模型之间的<strong>稳定接口</strong>而非内部实现细节，一份编码就能被多个下游消费；广域场景下，这种“与候选无关”的共享状态最适合集中生成、边缘按需读取。</p>
+<h3 id="5-bunshinrl-whole-workspace-forking-for-agentic-reinforcement-learning-rollouts">5. BunshinRL: Whole-Workspace Forking for Agentic Reinforcement Learning Rollouts</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.10453">https://arxiv.org/abs/2611.10453</a></li>
+<li><strong>时间</strong>：2026-11-07</li>
+<li><strong>方向</strong>：工作区 fork · 工具前缀缓存 · rollout 内存</li>
+</ul>
+<p><strong>摘要</strong>：agentic RL 的 rollout 要在持久工作区里交替进行模型推理与工具调用，扩展并发环境会带来可观的常驻内存，慢工具调用又会拖住整个 rollout 批次。BunshinRL 从共享的环境状态与重复出现的工具调用中找效率，用三项技术：跨环境的内存共享、tool-prefix 缓存、投机式工具执行。三者建立在 BunshinFork 之上——一种面向容器的活体全工作区 fork 机制，重建进程树、以写时复制共享内存，并保留文件、通信与 GUI 状态，因此既能复用缓存状态，也能在投机失败后回滚。实现依赖 Linux 内核模块与 CRIU 改造。评测中峰值内存最多降低 43%、总内存消耗最多降低 51%、端到端 rollout 延迟降低 23%。</p>
+<p><strong>对广域的启示</strong>：复用的瓶颈常常不在 KV 张量本身，而在<strong>环境状态与工具前缀</strong>能否共享和回滚。可 fork 的执行状态 + 前缀缓存提示：跨域 agent 的复用单元应从缓存扩展到整个工作区。</p>
+<h3 id="6-efficient-vla-inference-via-retrieval-based-speculation-and-hardware-acceleration">6. Efficient VLA Inference via Retrieval-Based Speculation and Hardware Acceleration</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.11098">https://arxiv.org/abs/2611.11098</a></li>
+<li><strong>时间</strong>：2026-11-08</li>
+<li><strong>方向</strong>：VLA 推理 · 投机解码 · KV 共享注意力</li>
+</ul>
+<p><strong>摘要</strong>：视觉-语言-动作（VLA）模型要在机器人上理解并执行复杂指令，但自回归的动作生成在资源受限平台上延迟很高；投机解码可以并行生成与验证来加速，然而现有方案依赖昂贵的草稿模型，在边缘平台上并不划算。Zora 改为软硬件协同设计：用检索增强（RAG）的轻量草稿模型直接利用机器人动力学、不引入额外的神经草稿网络，并用运动学引导的动作接受策略降低批量验证开销。它还引入 KV-cache 共享的注意力机制，把草稿与验证阶段的缓存复用起来；针对 RAG 草稿带来的内存访问不规则问题，配套设计了专用硬件 Zora core。在四个 VLA 模型、LIBERO 基准上精度相当，纯软件优化最高 3.4× 加速，加入硬件支持最高 7.6×。</p>
+<p><strong>对广域的启示</strong>：边缘侧“草稿—验证”这类多阶段推理若能共享一份 KV，投机解码的成本就从“多一个模型”变成“多一次复用”。对边缘-云协同，共享 KV 通常比回传中间激活更省带宽。</p>
+<h3 id="7-repeating-work-can-lower-energy-per-successful-goal-in-llm-agents">7. Repeating Work Can Lower Energy per Successful Goal in LLM Agents</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.10315">https://arxiv.org/abs/2611.10315</a></li>
+<li><strong>时间</strong>：2026-11-06</li>
+<li><strong>方向</strong>：失败恢复 · 前缀缓存 · 每目标能耗</li>
+</ul>
+<p><strong>摘要</strong>：工具调用型 agent 遭遇临时调用失败时，框架必须决定重做多少已完成的工作；直觉上少重做能省算力，但恢复机制也会改变后续执行轨迹与成功概率。论文用“每个成功目标的能耗”（EpG）作指标，把包含失败运行在内的全部运行能耗除以正确完成数，在单节点 vLLM 上对八个恢复选项做受控测量，并在三个模型族上做选定比较。对八个选项全部测试的那个模型：保留前缀缓存时，早期失败后“从头开始”的 EpG 比“继续”低 22%；同样保留前缀缓存时，晚期失败后“继续”比“从头开始”低 24%；八个选项中只重做被打断那一轮的 EpG 最低。固定恢复策略、上下文到 7,333 token 时，保留前缀缓存使需要重新计算的 prompt token 减少 86%，但恢复能耗只降低 8%——省下的 token 与省下的能量并不成比例。</p>
+<p><strong>对广域的启示</strong>：省 token 不等于省能量。广域重试、迁移与回滚策略应按“每成功任务成本”而不是按重算量算账；前缀缓存砍掉 86% 的 prompt token 却只换来 8% 的能耗改善，说明瓶颈已转移到别处。</p>
+<hr />
+<h2 id="-">三、安全、数值与训练-推理一致性</h2>
+<h3 id="8-mirage-provable-defense-against-llm-kv-cache-timing-side-channels-with-topology-aware-isolation">8. Mirage: Provable Defense Against LLM KV Cache Timing Side Channels with Topology-Aware Isolation</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.10756">https://arxiv.org/abs/2611.10756</a></li>
+<li><strong>时间</strong>：2026-11-07</li>
+<li><strong>方向</strong>：前缀共享 · 计时侧信道 · 发射混淆</li>
+</ul>
+<p><strong>摘要</strong>：LLM 越来越多以多租户共享服务的形式部署，KV 缓存与前缀共享是提吞吐、降延迟的关键优化，但也引入关键漏洞：缓存命中与未命中之间的首 token 延迟（TTFT）差异可被利用，攻击者通过前缀匹配侧信道逐 token 推断他人的敏感 prompt。现有防御一律限制跨租户缓存共享，性能代价过高，等于放弃 KV 缓存的基本收益。Mirage 提出拓扑感知的发射混淆：不阻塞 GPU、也不强制冗余重算，而是在网关侧延迟 token 发射，让攻击者观察到接近自然的缓存未命中分布，GPU 继续全速服务其他请求；它用 Privacy Odometer 持续跟踪前缀 fan-out 扩展的拓扑新颖度，区分激进探测与正常流量，前缀越过安全阈值后进入两阶段策略，用动态估计器把 TTFT 填充到校准过的缓存未命中基线。在 500 条公开语料、三个模型上把计时侧信道压到接近随机猜测的水平，同时 TTFT 显著低于防御基线，并能抵抗强自适应对手；同一原则也可迁移到语义缓存层。</p>
+<p><strong>对广域的启示</strong>：只要跨域或跨租户共享 KV，<strong>时序差异本身就是泄漏通道</strong>。可证明的隔离不必以禁用共享为代价，而应在发射层做整形——这为“共享缓存 + 合规”提供了一条可落地的路径。</p>
+<h3 id="9-reproducible-lora-inference-through-deterministic-split-k-reduction">9. Reproducible LoRA Inference Through Deterministic Split-K Reduction</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.10334">https://arxiv.org/abs/2611.10334</a></li>
+<li><strong>时间</strong>：2026-11-07</li>
+<li><strong>方向</strong>：LoRA 推理 · Split-K 归约 · 数值确定性</li>
+</ul>
+<p><strong>摘要</strong>：LoRA 适配模型被广泛用于重复评测、审计与决策，可复现性因此很重要；而为低秩 LoRA 乘法引入并行度的 Split-K 内核，在用浮点原子加合并部分结果时会产生意料之外的数值非确定性。论文在 vLLM 上跨 GSM8K 数学推理、MBPP 代码生成，以及 Civil Comments 上的 Jev 式结构化毒性判定考察这一现象，并提出确定性的 Triton Split-K 实现。相同输入重放下，Atomic Split-K=8 有 97.61% 的对比出现不同的 FP32 shrink 输出，确定性版本未观察到任何差异；重复做原子式推理会在 17.30% 的 GSM8K 与 14.96% 的 MBPP 对比中改变生成结果，有时会改变任务正确性，结构化判定概率在 81.47% 的对比中发生变化并出现决策翻转。受控追踪显示 shrink 输出的差异会传播进 KV 缓存，累积的缓存差异进而改变 token 决策与最终答案。确定性 Triton Split-K=8 保留并行度，相比不拆分归约快 16.8–21.1%，相比 Atomic Split-K=8 只多 1.02–2.62% 的延迟。</p>
+<p><strong>对广域的启示</strong>：并行归约的顺序差异会经 KV 缓存逐层放大成答案差异。广域多副本推理若要可审计、可对比，需把<strong>归约确定性</strong>当成缓存一致性的一部分来设计，而不是当作算子实现细节。</p>
+<h3 id="10-how-much-training-inference-mismatch-can-on-policy-distillation-tolerate">10. How Much Training-Inference Mismatch Can On-Policy Distillation Tolerate?</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.11450">https://arxiv.org/abs/2611.11450</a></li>
+<li><strong>时间</strong>：2026-11-08</li>
+<li><strong>方向</strong>：on-policy 蒸馏 · 训练推理不一致 · FP8 KV 容量</li>
+</ul>
+<p><strong>摘要</strong>：on-policy 蒸馏（OPD）让学生在自身回复上学习、由固定教师指导，而生成这些回复代价高昂，系统常用量化推理与异步 rollout 降本，两者都会在 rollout 引擎与被训练的模型之间引入训练-推理不一致；这种不一致会让 RL 失稳，但它对 OPD 的影响尚不清楚。论文把各类不一致来源放到同一尺度上度量，考察三个学生-教师对上的量化影响，并在其中一个对上补充权重陈旧与注入噪声实验：OPD 能容忍相当大的不一致而几乎不损失训练质量，超过某个经验预算后才退化，且质量代价与量化引入的不一致都随模型而异，少数层对降精度尤为敏感。受控比较中，OPD 在会让 RL 方法失稳的 rollout 配置下仍保持稳定；权重噪声还会移动生成阶段到达的前缀，产生逐 token 校正无法弥补的误差。为此论文给出轻量准入检查，用校准过的预算筛选 rollout 配置而无需为每个候选跑完整训练；模型专属 FP8 配方在保持训练质量的同时提供至少 1.93× 于 BF16 的 KV 缓存 token 容量，FP8 配合异步 rollout 比同步 BF16 提前 1.62× 达到同等训练质量。</p>
+<p><strong>对广域的启示</strong>：训练引擎与推理引擎的差异会直接改变 KV 容量与可达前缀，异构的广域部署尤甚。把“不一致预算”显式化、用准入检查筛配置，比事后调参更可运维；FP8 换来的 1.93× 容量正是可提前计入的预算项。</p>
+<hr />
+<h2 id="_4">今日观察</h2>
+<ol>
+<li><strong>压缩的评价标准从“留了多少”转向“能否验证取回”</strong>：PACE 在驻留率 0.996 时仍从 93% 掉到 64%，说明“在缓存里”与“可访问”是两件事；CVSA 与 VerKV 则把误差估计直接做进解码与回取循环，用可检验的容差替代经验阈值。</li>
+<li><strong>复用单元在持续扩大</strong>：从 KV 张量本身（Zora 的草稿-验证共享注意力），到跨阶段接口（SepLRM 把 encoder 末层导出为共享 KV），再到工作区状态（BunshinRL 的全工作区 fork 与 tool-prefix 缓存），复用对象正在离开“缓存”这一层。</li>
+<li><strong>共享的代价被量化成两条线</strong>：安全侧 Mirage 用网关发射整形把 TTFT 侧信道压到接近随机猜测，同时不放弃缓存共享；数值侧 Split-K 证明归约顺序差异会经 KV 累积，造成 17.30%/14.96% 的输出变化与决策翻转。</li>
+<li><strong>预算意识走向端到端账本</strong>：Repeating Work 指出前缀缓存减少 86% 的 prompt token 只换来 8% 的恢复能耗改善，OPD 则给出 1.93× KV 容量与 1.62× 时间的明确兑换率；广域方案同样应按“每成功任务成本”核算，而非按压缩比核算。</li>
+</ol>
+<blockquote>
+<p>注：本期为补录批次，摘要基于 arXiv 官方摘要页整理；具体实验设置与数字以 PDF 原文为准。</p>
+</blockquote>
+</main>
+<nav class="pager"><a class="pager-link" href="2026-11-07.html"><span class="dir">← 上一期</span><span class="d">11月7日</span></a><a class="pager-link next" href="2026-11-09.html"><span class="dir">下一期 →</span><span class="d">11月9日</span></a></nav>
+<footer class="footer"><span>KV Cache 日报</span><a href="../index.html">返回目录</a></footer>
+
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

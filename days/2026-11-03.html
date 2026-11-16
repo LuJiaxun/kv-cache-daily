@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KV Cache 日报 · 2026-11-03</title>
+<meta name="description" content="2026-11-03 的 KV Cache 论文摘要，10 篇。">
+<meta name="theme-color" content="#f6f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="day-page">
+
+<header class="topbar">
+  <a class="back" href="../index.html"><span aria-hidden="true">←</span> 全部日报</a>
+  <span class="top-date">2026年11月3日 · 周二</span>
+</header>
+<main class="report">
+<h1 id="kv-cache-2026-11-03">KV Cache 论文日报 · 2026-11-03</h1>
+<blockquote>
+<p><strong>今日 10 篇</strong>：KV 压缩 3 篇 · 服务系统与显存管理 4 篇 · 能耗与成本建模 1 篇 · 模型架构与上下文复用 2 篇</p>
+<p><strong>本期主线</strong>：KV cache 正从"占多少显存"的容量问题，变成"哪一份该留下、留在哪一层、搬多少字节、耗多少焦耳"的预算问题——压缩、分层、切分与建模都在为同一件事服务。</p>
+<p><strong>说明</strong>：本期为补录批次，收录 arXiv 公告日期集中在 2026-11-02 至 11-03 的论文；摘要依据 arXiv 官方摘要整理。</p>
+</blockquote>
+<h2 id="_1">速览</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>论文</th>
+<th>方向</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>FlagRot: Selective Rotation for Low-Bit KV Caches</td>
+<td>低比特量化 · 选择性旋转</td>
+<td>arXiv:2611.03992</td>
+</tr>
+<tr>
+<td>2</td>
+<td>LoopKV: Loop-Aware KV Cache Compression for Serving Looped Transformers</td>
+<td>循环模型 · 混合精度 · KV 复用</td>
+<td>arXiv:2611.04137</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Beyond Compression Ratio: High-Throughput KV Compression for Disaggregated LLM Serving</td>
+<td>压缩吞吐 · 分离式服务 · 通信量</td>
+<td>arXiv:2611.04382</td>
+</tr>
+<tr>
+<td>4</td>
+<td>LeanSparse: Memory-Efficient Serving for Native Sparse-Attention LLMs</td>
+<td>稀疏注意力 · KV offload · 解码并发</td>
+<td>arXiv:2611.04671</td>
+</tr>
+<tr>
+<td>5</td>
+<td>LiquidCP: Decoupling Attention Tasks from Communication and Kernel Boundaries in Context Parallelism</td>
+<td>上下文并行 · KV 切分 · 计算通信重叠</td>
+<td>arXiv:2611.04401</td>
+</tr>
+<tr>
+<td>6</td>
+<td>HyPAIC: Personal AI Computer with High Bandwidth Flash for High Performance Trillion-Parameter LLM Inference</td>
+<td>存储分层 · HBF · 显存容量</td>
+<td>arXiv:2611.04144</td>
+</tr>
+<tr>
+<td>7</td>
+<td>ROCm InferaSim: Cut LLM Serving Trial Costs and Deploy the Best Configuration</td>
+<td>配置搜索 · 性能仿真 · PD 分离</td>
+<td>arXiv:2611.04032</td>
+</tr>
+<tr>
+<td>8</td>
+<td>The SIMPLE Law for Energy Cost of LLM Inference</td>
+<td>能耗建模 · KV 成本 · 前缀缓存</td>
+<td>arXiv:2611.03330</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Dory1.0-4B: A Looped Normalized-GPT</td>
+<td>循环架构 · 弹性深度 · 末轮 KV 复用</td>
+<td>arXiv:2611.03998</td>
+</tr>
+<tr>
+<td>10</td>
+<td>What Remains in Sight? Autoregressive Video Decoding as Representation-Guided Context Rewriting</td>
+<td>上下文重写 · 可见性选择 · 视频自回归</td>
+<td>arXiv:2611.04164</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="kv">一、KV 压缩：比特分配与通路吞吐</h2>
+<h3 id="1-flagrot-selective-rotation-for-low-bit-kv-caches">1. FlagRot: Selective Rotation for Low-Bit KV Caches</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.03992">https://arxiv.org/abs/2611.03992</a></li>
+<li><strong>时间</strong>：2026-11-02</li>
+<li><strong>方向</strong>：低比特量化 · 选择性旋转 · 注意力误差校准</li>
+</ul>
+<p><strong>摘要</strong>：长上下文推理受 KV cache 制约，2-bit 编码原则上可把缓存压缩约六倍，前提是误差可控。常见做法是在量化前对 key 施加旋转，默认旋转总能改善数值分布；但作者观察到并非如此——旋转会把一段尖峰的 key 压平，也可能给原本平坦的片段制造新的尖峰，而同一个 key 内两种情况并存。FlagRot 因此以 32 通道为片段单位，逐段在"旋转"与"保持原样"之间选择校准后注意力误差更小的一种，读取时改为旋转 query 而非 key。决策粒度跟随量化轴：KIVI 这类 per-channel 缓存每个 head 只需一次决策、不产生写入开销；per-token 缓存则逐 key 决策，把选择位寄存于已有的符号位中。在 2.5 bit/值下，十二个模型上 KIVI 的 KL 散度从 18.7 降到 12.4×10⁻³，在 9/12 个模型上优于 RotateKV；作为 vLLM 插件部署后，128k 长度 RULER 提升 2.9 点，LongBench v1 均值提升 0.4–1.9 点（出现在 2-bit KIVI 掉精度的四个模型中的三个），同时也降低了 4-bit 整数与 FP4 缓存的误差。</p>
+<p><strong>对广域的启示</strong>：比特数直接决定跨域传输的字节数，而"并非所有片段都该旋转"说明统一的量化预处理会白白损失精度；跨域压缩链路应允许按层、按头、按 key 选择变换策略，并把 2-bit 级别的实际可部署性纳入带宽预算。</p>
+<h3 id="2-loopkv-loop-aware-kv-cache-compression-for-serving-looped-transformers">2. LoopKV: Loop-Aware KV Cache Compression for Serving Looped Transformers</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.04137">https://arxiv.org/abs/2611.04137</a></li>
+<li><strong>时间</strong>：2026-11-03</li>
+<li><strong>方向</strong>：循环 Transformer · 混合位宽 · 跨 loop KV 复用</li>
+</ul>
+<p><strong>摘要</strong>：循环 Transformer（如 Ouro）对每个 token 反复施加同一共享块，并为每个 loop 保留独立 KV cache，缓存内存因此限制了可摊薄权重读取的 batch 大小；均匀位宽量化与"按 loop 固定规则"无法按各层在不同 loop 中的敏感度分配精度。作者实测发现量化敏感度随 (loop, layer) 单元变化，各单元单独损伤之和可近似整体输出损伤；共享带来的损伤也因单元而异，越靠后的 loop 通常越能容忍共享，而直接跳过低注意力 value 来省读取会让误差跨 loop 累积。LoopKV 用一次离线 profile，为每个单元在 4-bit 存储、2-bit 存储、复用最后一个 loop 的 KV 三者中择一，规划器在预测损伤与存储预算约束下最小化读取量；解码时每个 loop 先读 4-bit 值的高 2 位，仅当自身注意力确实需要 4-bit 精度时才取低位，整套计划由 vLLM 中的单个融合 kernel 执行。在单张 RTX PRO 6000 上服务 Ouro-1.4B，内存优化版 LoopKV-M 比同 kernel、同 CUDA graph 下的均匀 4-bit（KIVI-4）少存 35% 的 KV，在 16K 最大长度与延迟 SLO 下取得 KIVI-4 的 1.7–2.2 倍有效吞吐，六个公开基准的平均分无一显著低于 BF16。</p>
+<p><strong>对广域的启示</strong>：循环结构天然提供"同一份 KV 被多次读取"的复用点，按 (loop, layer) 差异化精度等价于给 KV 打上"哪部分值得高保真"的标签；跨域传输可据此只搬运高敏感片段，其余留待复用或重算。</p>
+<h3 id="3-beyond-compression-ratio-high-throughput-kv-compression-for-disaggregated-llm-serving">3. Beyond Compression Ratio: High-Throughput KV Compression for Disaggregated LLM Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.04382">https://arxiv.org/abs/2611.04382</a></li>
+<li><strong>时间</strong>：2026-11-03</li>
+<li><strong>方向</strong>：压缩吞吐 · 分离式服务 · 通信量削减</li>
+</ul>
+<p><strong>摘要</strong>：在分离式（disaggregated）服务中，KV 压缩能削减通信量，但实际收益不只取决于压缩率与模型质量，还取决于压缩流水线自身的执行效率——在高带宽互连下，低效压缩可能吃掉相当一部分被节省的通信时间。FastKVComp 建立在 KVServe 之上，从两处改进执行：一是把分布变换与低比特量化融合进 KV 感知的 TileLang kernel，消除中间张量物化与冗余内存访问；二是用基于 LC 的开放、可扩展、可搜索后端替换原有的无损压缩后端，以支撑高性能压缩算子流水线。融合 kernel 最高带来 5.9 倍加速，新无损后端把压缩吞吐从不足 90 GB/s 提升到 500 GB/s 以上，端到端作业完成时间最多缩短 2.04 倍。作者据此指出，这些优化让 KV 压缩在现代高带宽网络下仍能保留有意义的通信收益。</p>
+<p><strong>对广域的启示</strong>：这是"压缩器本身够不够快"的直接提醒——广域链路带宽升级后，瓶颈会从"传得慢"转向"压得慢"；跨机房 KV 通路必须把压缩/解压 kernel 与传输流水线一起设计，否则省下的带宽会被变换开销抵消。</p>
+<hr />
+<h2 id="_2">二、服务系统：显存、并行与配置</h2>
+<h3 id="4-leansparse-memory-efficient-serving-for-native-sparse-attention-llms">4. LeanSparse: Memory-Efficient Serving for Native Sparse-Attention LLMs</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.04671">https://arxiv.org/abs/2611.04671</a></li>
+<li><strong>时间</strong>：2026-11-03</li>
+<li><strong>方向</strong>：稀疏注意力 · KV offload · 解码并发</li>
+</ul>
+<p><strong>摘要</strong>：稀疏注意力限制了每个 query 实际读取的历史，但长上下文服务仍需可观的 GPU 显存：现有 KV offload 系统把 indexer key 的完整历史常驻 GPU，压制了 decode 并发；而 prefill 的临时显存需求又会在显存足以支撑同一请求后续 decode 时仍推迟准入。LeanSparse 同时降低 decode 的常驻显存与 prefill 的临时需求，依据两点观察：prefill 逐层消费历史数据，decode 可以在比较原始 indexer 分数之前先筛出候选。prefill 阶段用两块可复用的 GPU 缓冲流式搬运各层历史，把下一层加载与当前计算重叠；decode 阶段做粗到细的索引检索，先搜紧凑表示，仅对候选回取原始 indexer key 精修；indexer key 与 KV cache 分开存放，以便在生成步之间复用数据。在 SGLang 中实现并于 DeepSeek-V4-Flash 上评测：950K 上下文时支持 2.95 倍并发请求数，decode 吞吐为 HiSparse 的 2.14 倍；多轮 Open-SWE 轨迹上中位首 token 时延从 21.6 秒降到 0.6 秒，中位会话完成时间相对 ECHO 缩短 17.7%。</p>
+<p><strong>对广域的启示</strong>：把"全量常驻"换成"按层流式加载"，本质是在存储层级之间做预取与重叠；广域 KV 复用可借同一思路——远端 KV 不必整体取回，可按层、按块流式拉取并与计算重叠，用带宽换容量。</p>
+<h3 id="5-liquidcp-decoupling-attention-tasks-from-communication-and-kernel-boundaries-in-context-parallelism">5. LiquidCP: Decoupling Attention Tasks from Communication and Kernel Boundaries in Context Parallelism</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.04401">https://arxiv.org/abs/2611.04401</a></li>
+<li><strong>时间</strong>：2026-11-03</li>
+<li><strong>方向</strong>：上下文并行 · KV 切分 · 计算通信重叠</li>
+</ul>
+<p><strong>摘要</strong>：上下文并行（CP）把长序列切到多卡上，同时服务训练与推理；但变长训练与完整 prefill 下，按注意力均衡做的放置会留下 token 负载不均，ring 执行又在每个计算/通信步重复开销；在阶段串行的 decode CP（DCP）中，长任务拖住依赖工作，GPU 大量空转。LiquidCP 用统一的 Transfer / Compute / Reduction 任务模型与 tile 级依赖，把注意力任务从通信与 kernel 边界中解耦：训练与完整 prefill 走 MegaRing，结合 BuddyRing 放置同时平衡注意力负载与 token 负载，并在前向注意力中合并已就绪的 KV 区域以摊薄开销；decode 与混合 batch 走 MegaDCP，通过联合建模注意力完成与其依赖的规约来选择 history-KV 切分；两者由同一个常驻 GPU 的持久化引擎执行。在八张 H100 上，MegaRing 的核心注意力几何平均加速为前向 1.23 倍、反向 1.18 倍，Transformer 层加速 1.08–1.16 倍；MegaDCP 在纯 decode 与混合 batch 上分别为 1.20 倍与 1.35 倍；在带 KV prefix cache 的 vLLM 服务中平均首 token 时延加速 1.22 倍。</p>
+<p><strong>对广域的启示</strong>：把"传输"提升为与计算同级的可调度任务、用 tile 级依赖做重叠，是跨卡 CP 的主要收益来源，同样适用于跨机房——广域 KV 传输应被拆成细粒度、可与其他工作重叠的任务，而不是一次阻塞式大拷贝。</p>
+<h3 id="6-hypaic-personal-ai-computer-with-high-bandwidth-flash-for-high-performance-trillion-parameter-llm-inference">6. HyPAIC: Personal AI Computer with High Bandwidth Flash for High Performance Trillion-Parameter LLM Inference</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.04144">https://arxiv.org/abs/2611.04144</a></li>
+<li><strong>时间</strong>：2026-11-03</li>
+<li><strong>方向</strong>：存储分层 · HBF 带宽闪存 · KV 容量</li>
+</ul>
+<p><strong>摘要</strong>：MoE 把前沿模型推到万亿参数，而成本与安全诉求推动本地部署；现有以 LPDDR 统一内存为基础的个人 AI 计算机（PAIC）容量受限——若大部分内存用于放权重，留给 KV cache 的就很有限，可支持的上下文长度随之下降。HyPAIC 在 PAIC 架构中引入 HBF：只读的模型权重放 HBF，可变的运行时数据（含 KV cache）留在 LPDDR；HBF 容量可达 HBM 的 10 倍以上，带宽处于同一 TB/s 量级。针对 HBF 的访问时延、写入寿命与页级访问粒度，论文分别用预取、只读权重放置与粗粒度权重访问来应对，并指出供电与散热仍是重要实现挑战（评估基于仿真）。仿真结果显示：单台 HyPAIC 在 1T 参数 MoE 推理下，端到端系统吞吐最高为八台无 HBF 基线系统总和的 1.04 倍，TDP 归一化吞吐最高为 3.59 倍；小模型推理时，每任务维持至少 50 decode TPS 的最大并发任务数最高提升 4 倍。</p>
+<p><strong>对广域的启示</strong>：KV cache 能放在哪一层，决定了它能存多长；把只读权重下沉到大容量介质、把可变 KV 留在快内存的分层做法可迁移到广域缓存分级——远端大容量层存冷 KV、近端快内存存热 KV，且搬运粒度要与介质页大小对齐。</p>
+<h3 id="7-rocm-inferasim-cut-llm-serving-trial-costs-and-deploy-the-best-configuration">7. ROCm InferaSim: Cut LLM Serving Trial Costs and Deploy the Best Configuration</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.04032">https://arxiv.org/abs/2611.04032</a></li>
+<li><strong>时间</strong>：2026-11-02</li>
+<li><strong>方向</strong>：配置搜索 · 性能仿真 · PD 分离</li>
+</ul>
+<p><strong>摘要</strong>：LLM 服务效率取决于引擎、模型切分方式、精度、调度器参数、投机解码、KV cache 管理与 prefill-decode 分离等诸多选择，最优配置又随模型、硬件、负载与目标变化，运维通常只能反复试错——论文指出把候选配置全部实测约需 25,000 GPU 小时。InferaSim 用少量短测量预测服务性能：batch 大小、prompt 长度、GPU 数量这类选择只改变每卡工作量而不改变 kernel，因此每种 kernel 组合只在至多一个节点上实测一次（称为 anchor），再用解析规律把 anchor 外推到运行相同 kernel 的其他部署；多节点部署则先归约为单节点等价形态、实测后再解析缩放。系统还包含回放多轮流量的模拟器与基于预测搜索配置的调优 agent。在 AMD Instinct MI355X 上配合 vLLM、SGLang、ATOM，11 个 anchor 用 9.1 GPU 小时覆盖了本需 204 GPU 小时实测的 226 个定长配置；172 个配置上每输出 token 时延中位误差 8.1%，多轮编码负载吞吐误差在 8% 以内，159 个未用作 anchor 的分离式部署吞吐误差在 5.5% 以内，五候选短名单中包含与最优"模型 + 时延目标"组合相差 12% 以内的部署。</p>
+<p><strong>对广域的启示</strong>：广域部署的组合空间（机房数、切分方式、是否 PD 分离）比单机更大、穷举更贵；用"少量锚点实测 + 解析外推"替代跨机房逐点压测，是把配置搜索成本压下来的可行路径。</p>
+<hr />
+<h2 id="_3">三、模型与成本：循环深度、上下文重写与能耗定律</h2>
+<h3 id="8-the-simple-law-for-energy-cost-of-llm-inference">8. The SIMPLE Law for Energy Cost of LLM Inference</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.03330">https://arxiv.org/abs/2611.03330</a></li>
+<li><strong>时间</strong>：2026-11-02</li>
+<li><strong>方向</strong>：能耗建模 · KV 成本拆分 · 前缀缓存</li>
+</ul>
+<p><strong>摘要</strong>：生成式 AI 按 token 计费，但 token 并不等价：每个 token 进入 KV cache 后会抬高后续 token 的开销，使能耗沿序列非线性增长，而目前缺少刻画"一个 token 值多少能量"的解析模型——最准的 SOTA 模型仍是拟合式，需要逐个 LLM 校准。作者从架构超参出发推导计算与访存复杂度的闭式表达（覆盖 MHA 与 GQA），比较一族粒度递增的解析模型，最终得到四参数定律 SIMPLE：把 prefill 与 decode 分开，并把 decode 拆成 KV cache 开销与下一 token 计算两部分。在 NVIDIA H100 上对六个家族 13 个稠密 LLM 的 trace 评测，它取得 R²=0.969、MAPE 11.97%，比 SOTA 低 3.1–3.5 倍且无需逐模型校准。该定律还解释了几件事：prefill 能耗随隐维度二次增长，故大模型最怕长输入；更激进的 GQA KV 分组相对标准 MHA 可把单 token 能耗降到最多 1/3；增大推理 token 预算会把输出长度推过解析导出的能耗最优点，能耗超线性增长，单位焦耳智能在中间预算处最高、在 4.0 倍推理预算区间内最多下降 3.14 倍；agentic 服务相对非 agentic 把每请求能耗抬高 13.0 倍，而前缀缓存可去掉约 93% 的 prefill 开销，但 KV cache 项不受影响，故即使命中缓存，agentic 请求仍贵 4.8 倍。</p>
+<p><strong>对广域的启示</strong>：前缀缓存几乎消掉了 prefill 能耗却动不了 KV 项，说明"复用 context"之后真正的成本重心落在 KV 的存放与搬运上，这正是广域缓存与传输要解决的问题；把 KV 字节数作为能耗与带宽的一等变量，可直接用于判断跨域复用是否划算。</p>
+<h3 id="9-dory10-4b-a-looped-normalized-gpt">9. Dory1.0-4B: A Looped Normalized-GPT</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.03998">https://arxiv.org/abs/2611.03998</a></li>
+<li><strong>时间</strong>：2026-11-02</li>
+<li><strong>方向</strong>：循环架构 · 弹性深度 · 末轮 KV 复用</li>
+</ul>
+<p><strong>摘要</strong>：Dory1.0-4B 是一个 4B 参数的循环（隐式递归）语言模型，具备弹性深度——同一份 checkpoint 可服务不同的推理算力预算。它基于归一化 Transformer（nGPT）主干，滑窗注意力与全注意力层交错，整体分为输入块、共享循环块与输出块；推理时循环块可被重复施加不同次数。模型在 6 万亿 token 上预训练，其中前 4.5 万亿以 NVFP4 训练，随后继续预训练把上下文扩到 256K，再用 SFT 与 RLVR 做后训练，并配合难度感知的循环课程把更难的 prompt 路由到更多循环：循环次数增加会提升精度，在编码、agentic 与长上下文基准上收益最大；循环两次以上时，Dory1.0-4B 在 12 个基准上的平均表现超过 Qwen3.5-9B、Gemma 4 12B、Gemma 4 26B-A4B，四次循环相比一次循环可少生成 1.3–2.5 倍的 token。为降低循环期间的显存，Dory1.0-4B 只缓存最后一个 loop 的 key 与 value，使任意循环次数下的 KV cache 占用都等同非循环模型，同时保留大部分精度收益。</p>
+<p><strong>对广域的启示</strong>：只留最后一个 loop 的 KV，等于用"重算"换"缓存字节"且几乎不损精度；这种以计算换 KV 足迹的取舍在跨域场景可反向使用——宁可远端重算或重放，也不必把多份中间 KV 跨机房搬运。</p>
+<h3 id="10-what-remains-in-sight-autoregressive-video-decoding-as-representation-guided-context-rewriting">10. What Remains in Sight? Autoregressive Video Decoding as Representation-Guided Context Rewriting</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.04164">https://arxiv.org/abs/2611.04164</a></li>
+<li><strong>时间</strong>：2026-11-03</li>
+<li><strong>方向</strong>：上下文重写 · 可见性选择 · 视频自回归</li>
+</ul>
+<p><strong>摘要</strong>：长时长视频生成正转向自回归 rollout，新生成的片段会成为后续预测的证据；因果解码器、长上下文训练与 KV cache 机制延长了可行时长，但多数推理管线仍以最近窗口、压缩缓存或外部记忆隐式地决定"过去哪些内容可见"。论文把这一选择显式化为测试期决策，提出免训练的 ReCR，把自回归视频解码表述为表示引导的上下文重写：每一步用解码器内部表示从已生成历史中挑选可见上下文单元，偏好与全局 rollout 状态匹配、与近期续写不冗余、覆盖时间边界、并能拓宽空间布局视野的单元，再把选中的单元映射到紧凑的因果轴上，然后解码下一个块。在长时长文生视频基准上，ReCR 在相同的可见 token 预算下稳定提升多种自回归主干；表示空间诊断与基于转移次数的 prompt 切换等分析进一步表明，"让该看见的东西留在视野里"是更稳定长视频解码的有效路径。</p>
+<p><strong>对广域的启示</strong>：ReCR 说明"缓存里放什么"可以是一个可评分的显式决策，而非被动截断；跨广域复用同样需要这种择优——不是把所有 KV 都留着传，而是按对当前全局状态的贡献挑选值得跨域保留的上下文单元。</p>
+<hr />
+<h2 id="_4">今日观察</h2>
+<ol>
+<li><strong>压缩的评价标准从"压得小"变成"压得准且压得快"</strong>：FlagRot 用分段选择性旋转换误差、LoopKV 按 (loop, layer) 单元分配精度、FastKVComp 把压缩吞吐做到 500 GB/s 以上并带来最高 2.04 倍的作业完成时间缩短，三者共同说明比特数、精度与流水线吞吐必须一起优化。</li>
+<li><strong>显存与 KV 足迹成为服务系统的第一约束</strong>：LeanSparse 用按层流式加载把常驻显存换成预取重叠，HyPAIC 用 HBF/LPDDR 分层扩容，LoopKV 与 Dory 则分别用"只留最终一轮"和"只留最后 loop"把多份 KV 压成一份——"全量常驻"正在被"分层 + 按需"取代。</li>
+<li><strong>建模与仿真开始接管配置决策</strong>：SIMPLE 用四参数定律在 13 个稠密 LLM 上取得 R²=0.969 的能耗预测，InferaSim 用 11 个 anchor、9.1 GPU 小时覆盖本需 204 GPU 小时的 226 个配置；KV 管理与 PD 分离这类高维选择，正从人工试错转向解析外推 + 少量实测。</li>
+<li><strong>复用的维度从"时间（前缀）"扩到"深度（loop）、空间（tile）与语义（可见性）"</strong>：Dory 在同一权重上循环复用并只保留末轮 KV，LiquidCP 把 history-KV 切成 tile 级任务与其他工作重叠，ReCR 则把"哪些历史可见"变成显式打分选择；广域 KV 复用的下一个增长点，很可能就在这些非前缀维度上。</li>
+</ol>
+<blockquote>
+<p>注：本期为补录批次，摘要基于 arXiv 官方摘要页整理；具体实验设置与数字以 PDF 原文为准。</p>
+</blockquote>
+</main>
+<nav class="pager"><a class="pager-link" href="2026-11-02.html"><span class="dir">← 上一期</span><span class="d">11月2日</span></a><a class="pager-link next" href="2026-11-04.html"><span class="dir">下一期 →</span><span class="d">11月4日</span></a></nav>
+<footer class="footer"><span>KV Cache 日报</span><a href="../index.html">返回目录</a></footer>
+
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

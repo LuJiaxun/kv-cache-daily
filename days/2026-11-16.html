@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KV Cache 日报 · 2026-11-16</title>
+<meta name="description" content="2026-11-16 的 KV Cache 论文摘要，10 篇。">
+<meta name="theme-color" content="#f6f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="day-page">
+
+<header class="topbar">
+  <a class="back" href="../index.html"><span aria-hidden="true">←</span> 全部日报</a>
+  <span class="top-date">2026年11月16日 · 周一</span>
+</header>
+<main class="report">
+<h1 id="kv-cache-2026-11-16">KV Cache 论文日报 · 2026-11-16</h1>
+<blockquote>
+<p><strong>今日 10 篇</strong>：跨广域/跨区域与边缘 3 篇 · 复用 3 篇 · 压缩 4 篇</p>
+<p><strong>本期主线</strong>：第一篇把 KV 直接当成“互联网内容”来做——计算与存储解耦、跨云跨地域放置，并用 CacheCost/PrefillCost 的比值决定“传还是算”；SkyWalker 则从负载均衡侧证明，跨区域聚合昼夜流量还能同时保住 KV 局部性。
+</p>
+</blockquote>
+<h2 id="_1">速览</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>论文</th>
+<th>方向</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>An Internet for the KV Cache: Rethinking Classical Infrastructure Boundaries in the LLM Inference Age</td>
+<td>广域 KV 基础设施</td>
+<td>arXiv:2608.01526</td>
+</tr>
+<tr>
+<td>2</td>
+<td>SkyWalker: A Locality-Aware Cross-Region Load Balancer for LLM Inference</td>
+<td>跨区域负载均衡</td>
+<td>arXiv:2505.24095</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Efficient and Privacy Aware Edge Cloud Collaborative Inference for Large Language Models</td>
+<td>边缘-云协作</td>
+<td>arXiv:2607.13093</td>
+</tr>
+<tr>
+<td>4</td>
+<td>To Cache or Not to Cache: Understanding and Mitigating Safety Incompatibility in Cross-Model KV Cache Reuse</td>
+<td>跨模型复用安全</td>
+<td>arXiv:2610.15721</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Dynamic Flow, Static Graph: KV Cache Reuse for Efficient LLM Serving on Mobile NPUs</td>
+<td>端侧 NPU 复用</td>
+<td>arXiv:2609.34727</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Shared-Prefix KV Reuse Across Standard LoRA Adapters: Quality and Serving Tradeoffs</td>
+<td>跨 LoRA 复用</td>
+<td>arXiv:2609.17109</td>
+</tr>
+<tr>
+<td>7</td>
+<td>TraceKV: Policy-Preserving Low-Rank KV Cache Compression for Reasoning Vision-Language Models</td>
+<td>低秩压缩</td>
+<td>arXiv:2611.15569</td>
+</tr>
+<tr>
+<td>8</td>
+<td>DepthWeave-KV: Token-Adaptive Cross-Layer Residual Factorization for Long-Context KV Cache Compression</td>
+<td>跨层分解</td>
+<td>arXiv:2607.06523</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Fast KVzip: Efficient and Accurate LLM Inference with Gated KV Eviction</td>
+<td>门控驱逐</td>
+<td>arXiv:2601.17668</td>
+</tr>
+<tr>
+<td>10</td>
+<td>KeepKV: Achieving Periodic Lossless KV Cache Compression for Efficient LLM Inference</td>
+<td>合并压缩</td>
+<td>arXiv:2504.09936</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_2">一、跨广域 / 跨区域与边缘</h2>
+<h3 id="1-an-internet-for-the-kv-cache-rethinking-classical-infrastructure-boundaries-in-the-llm-inference-age">1. An Internet for the KV Cache: Rethinking Classical Infrastructure Boundaries in the LLM Inference Age</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2608.01526">https://arxiv.org/abs/2608.01526</a></li>
+<li><strong>时间</strong>：2026-08-02</li>
+<li><strong>方向</strong>：广域 KV 基础设施 · 计算存储解耦 · 成本模型</li>
+</ul>
+<p><strong>摘要</strong>：论文指出，agent、RAG、工具调用、多轮对话会反复访问重叠上下文，KV 复用能省掉大量 prefill；但模型侧“把 KV 变小”和系统侧“把计算/存储/传输变便宜”这两条线，一直被锁在传统云边界内各自演进。作者主张未来的推理基础设施应<strong>允许计算与 KV 存储跨云、跨数据中心解耦</strong>，让网络成为主动的分发通道：带宽、时延和价格直接决定 KV 该如何管理。论文给出一个可操作的决策框架：比较缓存成本与重算成本的比值，而这两个成本又取决于模型指标（prefill FLOPs、KV 大小）、基础设施指标（GPU/存储成本、网络带宽）和应用指标（复用频率、工具调用时长、对话轮数）。按博客中的算例：约 10 万 token 的 DeepSeek-V4-Pro，压缩后 KV 约 1GB，在满载 10Gbps 链路上传约 0.8 秒、AWS egress 约 $0.09；而在 8×B200 上重算约 15 秒、$0.47。</p>
+<p><strong>对广域的启示</strong>：这是把 KV 当“CDN 内容”的完整世界观——<strong>先算 CacheCost vs PrefillCost，再决定传、存、还是重算</strong>；跨域方案的设计目标也从“降时延”扩展为“在价格、带宽、复用频率之间做全局放置”。</p>
+<h3 id="2-skywalker-a-locality-aware-cross-region-load-balancer-for-llm-inference">2. SkyWalker: A Locality-Aware Cross-Region Load Balancer for LLM Inference</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2505.24095">https://arxiv.org/abs/2505.24095</a></li>
+<li><strong>时间</strong>：2025-05-30（EuroSys 2026）</li>
+<li><strong>方向</strong>：跨区域负载均衡 · KV 局部性 · 昼夜流量</li>
+</ul>
+<p><strong>摘要</strong>：多区域部署 LLM 时，provider 通常用预留实例或自建集群，但区域本地流量处理＋昼夜波动会让资源利用率偏低。SkyWalker 用跨区域流量聚合来抹平各地区昼夜模式，使 provider 可以按<strong>全球期望需求</strong>而不是各地区峰值来预留容量；同时它要保住 KV cache 局部性与负载均衡。为此设计了两块：<strong>cache-aware 的跨区域流量处理器</strong>与<strong>selective pushing 的负载均衡机制</strong>。真实负载评估显示，相比现有负载均衡器吞吐提升 1.12–2.06×、时延降低 1.74–6.30×，总体服务成本降低 25%。</p>
+<p><strong>对广域的启示</strong>：跨区域调度不只是“把请求发到最近的地方”，而是<strong>在全局削峰、KV 命中、时延之间做联合权衡</strong>；“选择性推送”比全量重定向更能保住缓存局部性。</p>
+<h3 id="3-efficient-and-privacy-aware-edge-cloud-collaborative-inference-for-large-language-models">3. Efficient and Privacy Aware Edge Cloud Collaborative Inference for Large Language Models</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2607.13093">https://arxiv.org/abs/2607.13093</a></li>
+<li><strong>时间</strong>：2026-07-14</li>
+<li><strong>方向</strong>：边缘-云协作 · KV 认证 · 加密传输</li>
+</ul>
+<p><strong>摘要</strong>：端侧推理面临时延、有限硬件与隐私的三难：全云推理算力强但暴露 prompt 与对话数据，纯端侧又跑不动。论文提出以<strong>端点认证的 KV cache</strong> 为核心的隐私协同框架：本地端负责输入预处理、embedding、自适应特征优化、KV 认证、推测解码与低维 head 计算；云端负责认证后的 decoder 推理、KV 管理、token 验证与高维词表投影；端点融合部分输出并采样。所有传输数据与截断 logits 都量化并用 AES-GCM 加密，核心轻量模块、draft 参数与缓存访问策略留在本地。框架支持纯 CPU、GPU 与嵌入式设备；相比基线 split inference，每 token 时延最多降 46.1%，下行 payload 最多降 67.4%，性能接近全云。</p>
+<p><strong>对广域的启示</strong>：KV 跨边缘-云传输时，<strong>认证 + 加密 + 量化</strong>要一起设计；把“谁能读这份 KV”编码进缓存本身，比只加密链路更适合多租户/多设备场景。</p>
+<hr />
+<h2 id="_3">二、复用</h2>
+<h3 id="4-to-cache-or-not-to-cache-understanding-and-mitigating-safety-incompatibility-in-cross-model-kv-cache-reuse">4. To Cache or Not to Cache: Understanding and Mitigating Safety Incompatibility in Cross-Model KV Cache Reuse</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.15721">https://arxiv.org/abs/2610.15721</a></li>
+<li><strong>时间</strong>：2026-10-11</li>
+<li><strong>方向</strong>：跨模型复用 · 安全兼容性 · 值对齐</li>
+</ul>
+<p><strong>摘要</strong>：跨模型 KV 共享让接收模型复用相关发送模型生成的 prefix KV，从而省掉 prefill；现有方法只优化时延与生成质量，安全影响不清楚。论文系统评估多种 sender-receiver 对与复用配置，把偏离接收模型原生安全行为称为 <strong>safety incompatibility</strong>：偏差方向与幅度取决于模型对和复用配置，且<strong>value 复用造成的偏差显著大于 key 复用</strong>。作者提出 VReparo：离线学习逐层、逐 KV 头的仿射映射，把复用的 sender value 对齐到 receiver 原生 value，再解码。两个模型对、全量复用与 SOTA 选择性复用设置下，HarmBench 平均攻击成功率从 57.28% 降到 39.21%，StrongREJECT 从 0.4215 降到 0.2163，同时保留平均 85.62% 的 TTFT 降幅。</p>
+<p><strong>对广域的启示</strong>：跨模型/跨版本共享 KV 时，<strong>安全对齐是独立于性能的一等指标</strong>；value 比 key 更“危险”，需要专门的校正层。</p>
+<h3 id="5-dynamic-flow-static-graph-kv-cache-reuse-for-efficient-llm-serving-on-mobile-npus">5. Dynamic Flow, Static Graph: KV Cache Reuse for Efficient LLM Serving on Mobile NPUs</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2609.34727">https://arxiv.org/abs/2609.34727</a></li>
+<li><strong>时间</strong>：2026-09-28</li>
+<li><strong>方向</strong>：端侧 NPU · 前缀/非前缀复用 · 静态图</li>
+</ul>
+<p><strong>摘要</strong>：端侧 LLM 服务要求数据主权、隐私与低时延，但现有 KV 缓存设计主要面向云端 GPU 的动态执行与充足带宽；手机 NPU 的计算图必须静态编译，内存与 I/O 带宽都紧张。论文做计算-存储协同设计，同时支持 <strong>prefix 与非 prefix 复用</strong>：图内机制把选择性 KV 重算映射到静态 NPU 图上，调和算法动态性与 NPU 静态性；图间调度器用动态规划优化 chunk 合并、减少 padding；层次化 KV 管理器用 <strong>tree-hash-semantic 混合结构</strong>＋代价感知的预取/驱逐；再用二维流水线把 KV 加载、rerotation、存储与 NPU 执行重叠。代表性端侧负载上，TTFT 相比无复用/仅前缀缓存降低 40–60%。</p>
+<p><strong>对广域的启示</strong>：在算力与 I/O 都受限的边缘，<strong>复用必须和预取/流水线一起做</strong>；静态图约束下的“选择性重算”思路，也可迁移到跨域时“传一部分、算一部分”的取舍。</p>
+<h3 id="6-shared-prefix-kv-reuse-across-standard-lora-adapters-quality-and-serving-tradeoffs">6. Shared-Prefix KV Reuse Across Standard LoRA Adapters: Quality and Serving Tradeoffs</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2609.17109">https://arxiv.org/abs/2609.17109</a></li>
+<li><strong>时间</strong>：2026-09-15</li>
+<li><strong>方向</strong>：LoRA 多专家 · 前缀复用 · 实测权衡</li>
+</ul>
+<p><strong>摘要</strong>：常见的小模型部署是“一个共享 backbone + 多个 LoRA 专家”回答同一段上下文，朴素做法是每个专家都重新 prefill。论文研究一个很实际的问题：对<strong>已经训练好的标准 LoRA</strong>（不是为缓存兼容性重训的），如果 backbone 的 prefill KV 只算一次并跨专家复用，任务质量能保住多少、服务成本能省多少？在 Qwen3-1.7B + 两个 adapter（HotpotQA 抽取式 QA、GSM8K 算术）上扫描专家接管的边界：全前缀复用 prefill 成本最低，GSM8K 上有小幅质量差（160 token 预算 Δ=-4.6 EM，320 token Δ=-3.0，换种子 Δ=-0.8，均偏向原生，只有第一个排除 0）；部分重算没有显示出优势；闭式 ridge KV translator 也没有超过直接复用。服务收益体现在 warm-cache TTFT，随上下文增长（8K 时约 16×）；但两分支峰值内存只低 12%，因为实现复用了 KV 值却复制了存储，前缀并未真正共享。</p>
+<p><strong>对广域的启示</strong>：跨 LoRA 复用能显著省 prefill/时延，但<strong>不一定省内存</strong>；把“值复用”做成“存储共享”才是跨域缓存池真正需要的能力。</p>
+<hr />
+<h2 id="_4">三、压缩</h2>
+<h3 id="7-tracekv-policy-preserving-low-rank-kv-cache-compression-for-reasoning-vision-language-models">7. TraceKV: Policy-Preserving Low-Rank KV Cache Compression for Reasoning Vision-Language Models</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.15569">https://arxiv.org/abs/2611.15569</a></li>
+<li><strong>时间</strong>：2026-11-11</li>
+<li><strong>方向</strong>：低秩压缩 · 推理 VLM · 策略保持</li>
+</ul>
+<p><strong>摘要</strong>：推理型 VLM 的 KV 同时被多模态长上下文和增长的推理轨迹撑大；低秩压缩能存低维 latent 并可叠加量化，但现有方法在压缩推理 KV 时会产生逐渐增大的<strong>预测策略漂移</strong>，导致推理失败。论文定位两个原因：静态上下文与 on-policy 推理状态之间的<strong>校准状态错配</strong>，以及不同 KV 状态的<strong>误差敏感度不均</strong>。TraceKV 是训练免费框架，把 on-policy 校准、敏感度感知 SVD 与全局秩分配统一在“策略保持”原则下，显著降低推理过程中的 policy-KL 散度。多个 VLM 与视觉推理基准上取得更优的准确率-内存权衡，叠加量化后 5.64× 压缩仍接近无损，优化后的低秩 attention kernel 还带来最高 1.83× 端到端解码加速。</p>
+<p><strong>对广域的启示</strong>：压缩要<strong>按“对策略/输出的影响”分配秩</strong>，而不是统一秩；对跨域传输，这意味着同样的字节预算可以优先保住推理链关键状态。</p>
+<h3 id="8-depthweave-kv-token-adaptive-cross-layer-residual-factorization-for-long-context-kv-cache-compression">8. DepthWeave-KV: Token-Adaptive Cross-Layer Residual Factorization for Long-Context KV Cache Compression</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2607.06523">https://arxiv.org/abs/2607.06523</a></li>
+<li><strong>时间</strong>：2026-07-07</li>
+<li><strong>方向</strong>：跨层分解 · token 自适应 · 长上下文</li>
+</ul>
+<p><strong>摘要</strong>：长上下文推理受 KV 的带宽与容量限制，但现有压缩常在各层/各 token 上用统一预算，当词法线索与语义状态需要不同保留策略时会伤检索。DepthWeave-KV 在相邻 Transformer 层之间用<strong>共享低秩通道基</strong>分解 K/V，同时对注意力敏感的位置保留轻量 token 专属残差；一个 token 条件深度路由器把更高的重建秩分配给指令承载与检索关键的 token；并用来自 attention-output 探针的<strong>无校准在线误差跟踪</strong>在生成中自适应压缩，无需重训。融合 CUDA 实现把基查找、残差反量化与 attention 投影合并，降低 decode 访存。LongBench、Needle-in-a-Haystack、L-Eval 等基准上接近全缓存质量，平均分与检索准确率优于先前压缩缓存，实现 8.3× KV 内存缩减、64K 上下文下 72.8 tokens/s。</p>
+<p><strong>对广域的启示</strong>：<strong>跨层共享基 + token 级残差</strong>把“层间冗余”与“关键 token 保护”结合，适合在传输前做非均匀压缩；在线误差跟踪让压缩比可以随内容动态调整。</p>
+<h3 id="9-fast-kvzip-efficient-and-accurate-llm-inference-with-gated-kv-eviction">9. Fast KVzip: Efficient and Accurate LLM Inference with Gated KV Eviction</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2601.17668">https://arxiv.org/abs/2601.17668</a></li>
+<li><strong>时间</strong>：2026-01-25</li>
+<li><strong>方向</strong>：门控驱逐 · 低开销 · 长上下文</li>
+</ul>
+<p><strong>摘要</strong>：现有 KV 压缩常在“性能下降”和“计算开销”之间取舍。Fast KVzip 为冻结权重的 LLM 提出<strong>门控式驱逐</strong>：用轻量 sink-attention 门控模块识别并保留关键 KV 对，可无缝接入 prefill 与 decode 两个阶段；门控训练只依赖 LLM 的前向传播，避免昂贵的反向传播，并通过任务无关的重构目标获得较强泛化。Qwen2.5-1M、Qwen3、Gemma3 系列上，在驱逐最多 70% KV 的情况下保持近无损，覆盖长上下文理解、代码理解与数学推理。</p>
+<p><strong>对广域的启示</strong>：<strong>训练成本低、推理开销小</strong>的驱逐更适合在线服务；70% 的驱逐率意味着跨域传输字节可大幅下降，但需要按任务验证“证据链”是否还在。</p>
+<h3 id="10-keepkv-achieving-periodic-lossless-kv-cache-compression-for-efficient-llm-inference">10. KeepKV: Achieving Periodic Lossless KV Cache Compression for Efficient LLM Inference</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2504.09936">https://arxiv.org/abs/2504.09936</a></li>
+<li><strong>时间</strong>：2025-04-14（AAAI 2026）</li>
+<li><strong>方向</strong>：合并压缩 · 注意力补偿 · 误差界</li>
+</ul>
+<p><strong>摘要</strong>：传统驱逐会丢信息、引发幻觉；基于合并的方法保留更多信息，但合并前后注意力分布不一致，会损伤生成质量。KeepKV 提出自适应 KV 合并：用 <strong>Electoral Votes</strong> 机制记录合并历史并自适应调整注意力分数，再用 <strong>Zero Inference-Perturbation Merging</strong> 补偿合并造成的注意力损失；在严格内存约束下实现单步无损压缩，并给出多步压缩的误差界。多种基准与模型架构上显著降内存，仅 10% KV 预算仍保持较好生成质量，推理吞吐提升 2× 以上。</p>
+<p><strong>对广域的启示</strong>：合并比驱逐更能保住信息，但需要<strong>显式补偿注意力</strong>；对跨域缓存，合并后的 KV 仍是“可解码”的完整状态，适合长期存放与复用。</p>
+<hr />
+<h2 id="_5">今日观察</h2>
+<ol>
+<li><strong>KV 正在被当作“内容”而不是“中间张量”</strong>：Internet for KV 用 CacheCost/PrefillCost 做全局放置，SkyWalker 用跨区域流量聚合削峰，两者都把网络价格/时延放进了目标函数。</li>
+<li><strong>复用开始区分“省计算”和“省内存”</strong>：LoRA 复用的实测说明值复用可能仍在复制存储，跨域缓存池要的是真正的共享。</li>
+<li><strong>跨模型复用的安全代价被量化</strong>：value 复用比 key 复用更危险，VReparo 用逐头仿射校正把 ASR 从 57% 降到 39%。</li>
+<li><strong>压缩继续走向“结构化 + 自适应”</strong>：跨层共享基、token 条件秩、门控驱逐、合并补偿——单一固定压缩比的时代正在过去。</li>
+</ol>
+<blockquote>
+<p>注：本期摘要基于 arXiv 官方摘要页（标题、日期、摘要原文）整理；第 1 篇的成本算例引自作者博客对论文的改编说明。具体实验设置以 PDF 原文为准。</p>
+</blockquote>
+</main>
+<nav class="pager"><a class="pager-link" href="2026-11-15.html"><span class="dir">← 上一期</span><span class="d">11月15日</span></a></nav>
+<footer class="footer"><span>KV Cache 日报</span><a href="../index.html">返回目录</a></footer>
+
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

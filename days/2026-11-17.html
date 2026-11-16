@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KV Cache 日报 · 2026-11-17</title>
+<meta name="description" content="2026-11-17 的 KV Cache 论文摘要，10 篇。">
+<meta name="theme-color" content="#f6f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="day-page">
+
+<header class="topbar">
+  <a class="back" href="../index.html"><span aria-hidden="true">←</span> 全部日报</a>
+  <span class="top-date">2026年11月17日 · 周二</span>
+</header>
+<main class="report">
+<h1 id="kv-cache-2026-11-17">KV Cache 论文日报 · 2026-11-17</h1>
+<blockquote>
+<p><strong>今日 10 篇</strong>：互联与内存池 3 篇 · 调度与预取 4 篇 · 压缩 3 篇</p>
+<p><strong>本期主线</strong>：跨节点搬运 KV 的“介质”正在换代——从 RDMA 池化走向 <strong>CXL 共享内存 + 光子互联</strong>；同时“该搬多少”也在细化：稀疏注意力下只取 top-k、按 SLO 逐层决定驻留、用预测提前预取。
+</p>
+</blockquote>
+<h2 id="_1">速览</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>论文</th>
+<th>方向</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>A Photonic-CXL Memory Appliance for Scalable KV Cache Management in LLM Inference</td>
+<td>光子 CXL 内存池</td>
+<td>arXiv:2607.27187</td>
+</tr>
+<tr>
+<td>2</td>
+<td>A CXL Memory Rack for Multi-Turn LLM Serving</td>
+<td>CXL 机架级复用</td>
+<td>arXiv:2607.18141</td>
+</tr>
+<tr>
+<td>3</td>
+<td>SAC: Disaggregated KV Cache System for Sparse Attention LLMs with CXL</td>
+<td>稀疏注意力分离式</td>
+<td>arXiv:2606.19746</td>
+</tr>
+<tr>
+<td>4</td>
+<td>OrbitFlow: SLO-Aware Long-Context LLM Serving with Fine-Grained KV Cache Reconfiguration</td>
+<td>SLO 感知重配置</td>
+<td>arXiv:2601.10729</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Learning Agent Execution for KV-Cache Management in Agentic Serving</td>
+<td>Agent 感知缓存</td>
+<td>arXiv:2608.14624</td>
+</tr>
+<tr>
+<td>6</td>
+<td>DualDecoder: Accelerate Long Context LLM Inference by Predictive Prefetch</td>
+<td>预测预取</td>
+<td>arXiv:2607.26475</td>
+</tr>
+<tr>
+<td>7</td>
+<td>PrefillShare: A Shared Prefill Module for KV Reuse in Multi-LLM Disaggregated Serving</td>
+<td>多模型共享 prefill</td>
+<td>arXiv:2602.12029</td>
+</tr>
+<tr>
+<td>8</td>
+<td>OScaR: The Occam's Razor for Extreme KV Cache Quantization in LLMs and Beyond</td>
+<td>极端量化</td>
+<td>arXiv:2605.19660</td>
+</tr>
+<tr>
+<td>9</td>
+<td>ValueDiff: Value-Geometric KV Cache Eviction for Sink-Suppressed LLMs</td>
+<td>值几何驱逐</td>
+<td>arXiv:2609.23314</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Page-EntroKV: Hardware-Aligned, Entropy-Weighted KV-Cache Eviction under Grouped-Query Attention</td>
+<td>GQA 页对齐驱逐</td>
+<td>arXiv:2610.03135</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_2">一、互联与内存池</h2>
+<h3 id="1-a-photonic-cxl-memory-appliance-for-scalable-kv-cache-management-in-llm-inference">1. A Photonic-CXL Memory Appliance for Scalable KV Cache Management in LLM Inference</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2607.27187">https://arxiv.org/abs/2607.27187</a></li>
+<li><strong>时间</strong>：2026-07-29</li>
+<li><strong>方向</strong>：光子互联 · CXL 内存池 · 淘汰悬崖</li>
+</ul>
+<p><strong>摘要</strong>：规模化推理撞上内存墙：KV 需要几十 TB 容量、几百 GB/s 带宽，而现有内存层级无法同时提供。作者在多代 GPU、多种 LLaMA 模型上做刻画，发现从 host memory 取回 KV 相比重算最多快 100×，但只能支撑几十个并发长上下文用户；电交换 CXL 池化理论上能补上这个缺口，却受交换机 70–500ns 的每跳延迟、米级线缆距离和超线性功耗限制，做不到实用的 TB 级部署。论文提出 Marvell Photonic Fabric Memory Appliance：用<strong>无源光纤 shuffle 替代电交换机</strong>，以无交换的全交叉拓扑在 16 台主机间提供 32TB 共享内存。仿真显示相比电交换 CXL 池延迟降低 50% 以上，多轮对话场景下 TTFT 改善 6.6×，并消除了缓存淘汰悬崖。</p>
+<p><strong>对广域的启示</strong>：跨节点取 KV 的瓶颈正从“网络带宽”转向“互联介质”。把 KV 池做进 CXL + 光互联，等于把“跨机”变成“跨内存层级”；对广域而言，这提示<strong>近域用光互联池化、远域才走 WAN</strong>的分层思路。</p>
+<h3 id="2-a-cxl-memory-rack-for-multi-turn-llm-serving">2. A CXL Memory Rack for Multi-Turn LLM Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2607.18141">https://arxiv.org/abs/2607.18141</a></li>
+<li><strong>时间</strong>：2026-07-20</li>
+<li><strong>方向</strong>：CXL 混合内存 · 机架级 KV 复用 · 前缀预取</li>
+</ul>
+<p><strong>摘要</strong>：长上下文、多轮、agent 负载反复复用已处理上下文，KV 复用把瓶颈转移到“存储与服务可复用 KV 状态”的内存层；GPU HBM 与 host DRAM 都太贵，撑不起 TB 级共享上下文容量。HyMCache 用<strong>成本友好的 CXL-hybrid memory（CXL-HM）</strong>搭内存机架：设备内少量 DRAM + 大容量 SSD，两者都在 CXL 接口之后。它利用多轮 KV 访问“读为主、可预测、只追加”的特性重构 CXL-HM 内的 DRAM 管理，用<strong>请求级前缀预取</strong>和<strong>机会式写缓冲</strong>把延迟关键的读暂存到设备 DRAM，从而以 SSD 的成本获得接近 DRAM 的 KV 复用效率。真实 CXL-HM 原型上，同 DRAM 预算下比本地 LMCache 快 3.0×（单机）、1.45×（PD 分离）；与 1TB 分布式 DRAM 的 Mooncake 相比性能低约 30%，但 DRAM 用量少 16×。</p>
+<p><strong>对广域的启示</strong>：这是“<strong>用便宜介质换容量</strong>”的典型——广域 KV 缓存池同样需要分级（DRAM/SSD/远端），关键是识别出访问模式（只追加、可预测）来提前搬运，而不是被动命中。</p>
+<h3 id="3-sac-disaggregated-kv-cache-system-for-sparse-attention-llms-with-cxl">3. SAC: Disaggregated KV Cache System for Sparse Attention LLMs with CXL</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2606.19746">https://arxiv.org/abs/2606.19746</a></li>
+<li><strong>时间</strong>：2026-06-18</li>
+<li><strong>方向</strong>：稀疏注意力 · 分离式缓存 · 按需取 top-k</li>
+</ul>
+<p><strong>摘要</strong>：长上下文把瓶颈从算力转向内存容量；传统方案用 RDMA 分离式内存池，但它是<strong>粗粒度</strong>的：解码前要把整段 prefix KV 从远端取回本地。对新兴的稀疏注意力模型这非常不划算——解码时只有一小部分 KV 条目是活跃的，却仍然全量搬运，造成严重传输瓶颈与本地内存浪费。SAC 是首个为稀疏注意力优化的分离式 KV 系统：利用 CXL 的<strong>低延迟、cache-line 粒度 load/store 语义</strong>，在推理过程中按需只取 top-k 所需 KV 条目。DeepSeek-V3.2 + SGLang 上相比 RDMA 基线吞吐 2.1×、TTFT 低 9.7×、TBT 低 1.8×。</p>
+<p><strong>对广域的启示</strong>：<strong>取数粒度决定传输成本</strong>。当模型本身稀疏时，“按需取 cache line”比“预取整段前缀”更省；跨广域时如果无法做到 cache-line 粒度，至少应把粒度对齐到活跃 token 集合。</p>
+<hr />
+<h2 id="_3">二、调度与预取</h2>
+<h3 id="4-orbitflow-slo-aware-long-context-llm-serving-with-fine-grained-kv-cache-reconfiguration">4. OrbitFlow: SLO-Aware Long-Context LLM Serving with Fine-Grained KV Cache Reconfiguration</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2601.10729">https://arxiv.org/abs/2601.10729</a></li>
+<li><strong>时间</strong>：2026-01-05</li>
+<li><strong>方向</strong>：SLO 保障 · 逐层驻留 · 动态重配置</li>
+</ul>
+<p><strong>摘要</strong>：长上下文服务中请求长度与 batch 组成在生成过程中不断变化，显存占用随之剧烈波动；把 KV 卸载到 host memory 能限制有效内存占用，但现有静态/预定的卸载策略无法跟上这种快速变化，导致过多的 CPU→GPU KV 搬运，表现为延迟尖峰与频繁的 SLO 违约。OrbitFlow 是细粒度自适应 KV 管理：用<strong>轻量 ILP 求解器</strong>在内存约束下决定每个请求哪些层的 KV 留在 GPU，并在生成过程中依据运行时反馈持续修正放置；重载时启用回退机制，临时推迟占用大的在飞请求，保住整体 SLO 达成率。实验显示 TPOT 与 TBT 的 SLO 达成率分别提升最多 66% 和 48%，p95 延迟降低 38%，吞吐相比现有卸载方法最高 3.3×。</p>
+<p><strong>对广域的启示</strong>：<strong>“留哪些层在本地”是一等决策变量</strong>。跨域场景同理：不必全量拉回，可以按 SLO 逐层决定哪些层必须本地、哪些层可按需远端取。</p>
+<h3 id="5-learning-agent-execution-for-kv-cache-management-in-agentic-serving">5. Learning Agent Execution for KV-Cache Management in Agentic Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2608.14624">https://arxiv.org/abs/2608.14624</a></li>
+<li><strong>时间</strong>：2026-07-16</li>
+<li><strong>方向</strong>：Agent 语义 · 在线学习 · 主动预取</li>
+</ul>
+<p><strong>摘要</strong>：多 agent 系统把用户请求拆成一系列专用 agent，每个 agent 反复执行固定上下文（system prompt、工具定义、few-shot），复用机会很大；但现有系统用前缀缓存 + 最近使用替换这类<strong>反应式</strong>策略，可复用的 agent 上下文常在下次调用前就被驱逐，被迫重算。CacheScout 的核心洞察是：<strong>未来的 KV 复用由 agent 执行语义决定，而不只是缓存新近度</strong>；它在线学习 agent 之间的执行转移（不需要预定义工作流图，也不需要离线训练），用学到的执行模型同时指导淘汰与主动预取，且不改变服务关键路径。在 vLLM 上，真实多 agent 负载的 KV 命中率提升 10–18 个百分点，平均 TTFT 降 18–45%，每轮延迟降 29–38%，峰值吞吐最高 +57%；换更大模型仍能把 TTFT 降最多 54%、吞吐 +37%。</p>
+<p><strong>对广域的启示</strong>：<strong>预测“下一个 agent 要用什么”比缓存最近用过的更有价值</strong>；广域预取若能拿到工作流语义，就能把 WAN 传输提前到空闲窗口。</p>
+<h3 id="6-dualdecoder-accelerate-long-context-llm-inference-by-predictive-prefetch">6. DualDecoder: Accelerate Long Context LLM Inference by Predictive Prefetch</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2607.26475">https://arxiv.org/abs/2607.26475</a></li>
+<li><strong>时间</strong>：2026-07-29</li>
+<li><strong>方向</strong>：推测预取 · 辅助状态开销 · 高并发</li>
+</ul>
+<p><strong>摘要</strong>：长上下文推理面临内存墙：KV 随上下文与并发线性增长。现有稀疏 KV 方法把大部分条目卸载到 host memory、每步只取关键条目，但它们在 GPU 里引入了大量<strong>用于检索管理的辅助状态</strong>；实测表明这些常被忽视的辅助状态带来显著内存开销，在高并发下反而成为新瓶颈。DualDecoder 的洞察是：下一个 token 解码所需的关键 KV 条目可以<strong>由前一个推测 token 准确预测</strong>，因此取数可以提前预取并与解码计算重叠，从而消除辅助状态带来的 GPU 内存开销。它用双 token 解码流水线以极小开销识别关键 KV，配合层感知传输调度与层作用域内存管理，解码吞吐相比 SOTA 最高 2.62×，同时保持延迟与模型质量。</p>
+<p><strong>对广域的启示</strong>：<strong>预取精度本身就是一种压缩</strong>——预测得准，就不需要为“可能的命中”预留大量元数据；跨域场景里，元数据开销往往被忽视，却会决定预取是否划算。</p>
+<h3 id="7-prefillshare-a-shared-prefill-module-for-kv-reuse-in-multi-llm-disaggregated-serving">7. PrefillShare: A Shared Prefill Module for KV Reuse in Multi-LLM Disaggregated Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2602.12029">https://arxiv.org/abs/2602.12029</a></li>
+<li><strong>时间</strong>：2026-02-12</li>
+<li><strong>方向</strong>：多模型共享 · prefill 解耦 · PD 分离</li>
+</ul>
+<p><strong>摘要</strong>：多 agent 系统常用多个专用模型处理同一段共享上下文，每个模型都重复执行 prefill 并各自维护 KV，推高聚合 prefill 负载，并通过加剧 prefill-decode 干扰恶化尾延迟；PD 分离能缓解干扰，但<strong>并不能消除模型间的计算与 KV 存储冗余</strong>。PrefillShare 把模型分解为 prefill 模块与 decode 模块，<strong>冻结 prefill 模块、只微调 decode 模块</strong>，于是多个任务专用模型可以共享同一个 prefill 模块，以及为同一 prompt 生成的同一份 KV cache；同时在 vLLM 分离式系统上引入路由机制，让 prefill 共享真正生效。多种任务与模型上匹配全量微调精度，多模型 agent 负载下 p95 延迟低 4.5×、吞吐高 2.0×。</p>
+<p><strong>对广域的启示</strong>：<strong>共享 prefill 等于共享传输</strong>——同一份 KV 只生成一次、只搬一次，多模型分头 decode。这比“每个模型各传一份”在广域链路上省下的带宽是线性的。</p>
+<hr />
+<h2 id="_4">三、压缩</h2>
+<h3 id="8-oscar-the-occams-razor-for-extreme-kv-cache-quantization-in-llms-and-beyond">8. OScaR: The Occam's Razor for Extreme KV Cache Quantization in LLMs and Beyond</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2605.19660">https://arxiv.org/abs/2605.19660</a></li>
+<li><strong>时间</strong>：2026-05-19</li>
+<li><strong>方向</strong>：INT2 量化 · token 范数失衡 · 旋转+缩放</li>
+</ul>
+<p><strong>摘要</strong>：长上下文与多模态让 KV 成为部署的主要内存瓶颈。逐通道量化能处理 Key 张量固有的通道级离群值，但在极端压缩下效果明显下降。论文从经验与理论两侧重新审视逐通道范式，指出 <strong>Token Norm Imbalance（TNI）</strong> 是量化保真度的主要瓶颈：当共享量化参数需要覆盖范数差异巨大的 token 组时，TNI 会系统性放大误差。于是提出 OScaR（Omni-Scaled Canalized Rotation）：在逐通道范式基础上，用<strong>通道化旋转（Canalized Rotation）</strong> 加 <strong>全 token 缩放（Omni-Token Scaling）</strong> 高效抑制 TNI 引起的序列维方差，并配套优化系统设计与 CUDA kernel。在文本、多模态、全模态 X-LLM 上一致优于现有方法，INT2 下接近无损；相比 BF16 FlashDecoding-v2，解码最高 3.0× 加速、内存降低 5.3×、吞吐 4.1×。</p>
+<p><strong>对广域的启示</strong>：INT2 近无损意味着<strong>传输字节可以再降一个量级</strong>；TNI 这个诊断也提醒：量化误差的来源是 token 间范数差异，而这在长上下文跨域传输里更普遍。</p>
+<h3 id="9-valuediff-value-geometric-kv-cache-eviction-for-sink-suppressed-llms">9. ValueDiff: Value-Geometric KV Cache Eviction for Sink-Suppressed LLMs</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2609.23314">https://arxiv.org/abs/2609.23314</a></li>
+<li><strong>时间</strong>：2026-09-20</li>
+<li><strong>方向</strong>：值几何 · 驱逐信号 · 无 sink 模型</li>
+</ul>
+<p><strong>摘要</strong>：采用 QK-normalization、门控注意力、可学习 attention sink 或 logit softcapping 的现代 LLM，持久注意力 sink 更弱，而现有 KV 驱逐方法主要依赖 sink。论文观察到：在这些模型上，<strong>sink 越弱，value 向量相对 key 向量的离散度越大</strong>。ValueDiff 据此提出值几何驱逐——按 token 的 value 向量相对缓存均值的 L2 偏离排序；在“未来注意力最大熵”假设下，同一分数恰好是最小扰动驱逐的解。它在 prefill 的每个 block 边界与 decode 的每一步都执行驱逐：RULER 2k 预算下七个 sink-suppressed 模型保留 88–99% 稠密性能（6/7 最优）；LongBench 4k 预算下平均保留 92%（最强基线 83%）；MATH-500 的 25% 预算下在每个 sink-suppressed 模型上都是最强非稠密方法，门控注意力模型上最多领先约 20 分。</p>
+<p><strong>对广域的启示</strong>：<strong>驱逐信号要跟着架构走</strong>——当 key 侧信号变弱时，value 几何更可靠。对跨域缓存，这意味着同一套驱逐策略不能跨模型族通用，需要按架构校准。</p>
+<h3 id="10-page-entrokv-hardware-aligned-entropy-weighted-kv-cache-eviction-under-grouped-query-attention">10. Page-EntroKV: Hardware-Aligned, Entropy-Weighted KV-Cache Eviction under Grouped-Query Attention</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.03135">https://arxiv.org/abs/2610.03135</a></li>
+<li><strong>时间</strong>：2026-10-02</li>
+<li><strong>方向</strong>：GQA 组粒度 · 熵加权 · 页对齐</li>
+</ul>
+<p><strong>摘要</strong>：多数动态驱逐方法按查询头打分、独立选 token，这与 GQA 的实际分配方式不符：多个查询头共享一份物理 KV 缓冲，各自独立的选择会迫使引擎保留它们选择的<strong>并集</strong>，最多把缓存膨胀到组比 r 倍；而算术平均池化又会稀释承载事实召回的专用检索头。Page-EntroKV 在 GQA 真正分配的粒度上做驱逐：组内头用<strong>sink 隔离的碰撞熵（Rényi-2）</strong> 导出权重（每个头一次内积，prefill 时算一次，无需校准），使 sink 头无法伪装成检索头；池化分数投影到 PagedAttention 的页框，驱逐在（层、组、页）的硬件元组上执行。论文形式化了<strong>并集开销比（UOR）</strong> 与组内分歧，证明两者在双头组上的恒等关系及任意组比下的双侧界，证明严格预算保持与有限上下文 needle 保留界（算术平均池化可证违反）。Qwen2.5-1.5B（r=6）上，2% 预算时头独立回放的并集开销高达 4.75×，而 Page-EntroKV 保持 UOR 恰为 1.000；sink 隔离消除了 13× 的 sink 伪装；20% 预算下 needle 召回 100%，均值池化为 0%。</p>
+<p><strong>对广域的启示</strong>：<strong>压缩必须对齐硬件的实际存储粒度</strong>。GQA 下按头独立驱逐会造成“并集膨胀”，跨域传输时这部分是纯粹浪费的字节；页对齐的驱逐能保证预算与字节数真实可控。</p>
+<hr />
+<h2 id="_5">今日观察</h2>
+<ol>
+<li><strong>互联介质在换代</strong>：光子 CXL（32TB/16 主机、延迟 -50%、TTFT 6.6×）与 CXL-HM 机架（DRAM 用量 -16×）说明，“池化 KV”的物理基础正在从 RDMA 网络转向内存语义互联。</li>
+<li><strong>取数粒度比取数量更重要</strong>：SAC 只取 top-k、OrbitFlow 逐层决定驻留、DualDecoder 预测下一步所需——三者都在减少<strong>无效搬运</strong>。</li>
+<li><strong>共享是最高效的复用</strong>：PrefillShare 让多个模型共用一份 prefill 与 KV，等于把跨域带宽需求按模型数摊薄。</li>
+<li><strong>压缩在向两个极端走</strong>：INT2 近无损（OScaR）与更聪明的驱逐（ValueDiff/Page-EntroKV）同时推进，但都强调“按架构与硬件校准”。</li>
+</ol>
+<blockquote>
+<p>注：本期摘要基于 arXiv 官方摘要页（标题、日期、摘要原文）整理；具体实验设置与数字以 PDF 原文为准。</p>
+</blockquote>
+</main>
+<nav class="pager"><a class="pager-link" href="2026-11-16.html"><span class="dir">← 上一期</span><span class="d">11月16日</span></a></nav>
+<footer class="footer"><span>KV Cache 日报</span><a href="../index.html">返回目录</a></footer>
+
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

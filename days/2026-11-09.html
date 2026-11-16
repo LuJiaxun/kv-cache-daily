@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KV Cache 日报 · 2026-11-09</title>
+<meta name="description" content="2026-11-09 的 KV Cache 论文摘要，10 篇。">
+<meta name="theme-color" content="#f6f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="day-page">
+
+<header class="topbar">
+  <a class="back" href="../index.html"><span aria-hidden="true">←</span> 全部日报</a>
+  <span class="top-date">2026年11月9日 · 周一</span>
+</header>
+<main class="report">
+<h1 id="kv-cache-2026-11-09">KV Cache 论文日报 · 2026-11-09</h1>
+<blockquote>
+<p><strong>今日 10 篇方向分布</strong>：KV 压缩与结构复用 2 篇 · 跨模型 KV 翻译与嫁接 2 篇 · 服务系统与调度 4 篇 · 内存分层与表放置 1 篇 · 智能体基础设施评测 1 篇</p>
+<p><strong>本期主线</strong>：KV 的“可迁移性”正在取代“可压缩性”成为核心议题——从大模型向小模型翻译缓存、在 MLA/线性注意力/稀疏注意力等异构缓存对象之间搬运状态，到让循环深度的每一轮共享同一份 KV；系统侧则围绕 agent 会话的上下文复用，重新安排预热、驱逐与内存分层。</p>
+<p><strong>说明</strong>：本期为补录批次，收录 arXiv 公告日期集中在 2026-11-08 至 11-10 的论文；摘要依据 arXiv 官方摘要整理。</p>
+</blockquote>
+<h2 id="_1">速览</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>论文</th>
+<th>方向</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Semantically Aligned KV Cache Compression for Efficient Agentic Autoregressive Video Generation</td>
+<td>语义对齐压缩</td>
+<td>arXiv:2611.11452</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Looping Deeper Without Growing the KV Cache: Recurrent Depth for Causal Encoder-Decoders</td>
+<td>循环深度共享</td>
+<td>arXiv:2611.13378</td>
+</tr>
+<tr>
+<td>3</td>
+<td>BridgeKV: Large-Model Prefill and Small-Model Decoding for LLM Inference via KV Cache Translation</td>
+<td>跨模型 KV 嫁接</td>
+<td>arXiv:2611.11761</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Translating KV Caches Between Hybrid-Attention Language Models: MLA Latents, Linear-Attention States and Sparse-Attention Indexers</td>
+<td>异构缓存翻译</td>
+<td>arXiv:2611.12062</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Evolving Infra: Agent-Adaptive LLM Serving at Scale</td>
+<td>agent 自适应服务</td>
+<td>arXiv:2611.12304</td>
+</tr>
+<tr>
+<td>6</td>
+<td>SHADOWPREFILL: Keeping Your Next Model Warm for Per-Step Model Routing in Agentic LLM Serving</td>
+<td>前缀缓存预热</td>
+<td>arXiv:2611.13176</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Decode Token Parallelism: Memory-Efficient Distributed Attention Parallelism for Scalable LLM Decoding</td>
+<td>解码并行架构</td>
+<td>arXiv:2611.13293</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Bursts That Outlast Themselves: Persistent Degradation in Prefix-Cached Agent Serving</td>
+<td>前缀缓存稳定性</td>
+<td>arXiv:2611.13412</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Placing LLM Lookup Tables by Per-Layer Prefetch Deadlines</td>
+<td>内存分层放置</td>
+<td>arXiv:2611.13413</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Infrathon: Benchmarking Language Agents for Real-World, Long-Horizon AI Infra Optimization</td>
+<td>基础设施评测</td>
+<td>arXiv:2611.11995</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_2">一、压缩、结构复用与跨模型嫁接</h2>
+<h3 id="1-semantically-aligned-kv-cache-compression-for-efficient-agentic-autoregressive-video-generation">1. Semantically Aligned KV Cache Compression for Efficient Agentic Autoregressive Video Generation</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.11452">https://arxiv.org/abs/2611.11452</a></li>
+<li><strong>时间</strong>：2026-11-08</li>
+<li><strong>方向</strong>：语义约束保留 · 视频生成 KV · 免训练压缩</li>
+</ul>
+<p><strong>摘要</strong>：agentic 自回归视频生成把语义规划、序列生成与视觉校验串在一起，不断增长的视觉历史使 KV cache 与注意力开销在多次候选 rollout 中持续膨胀；现有压缩方法只优化单个生成器，不理会 planner 给出的语义约束，容易把支撑指定属性或动作的状态判为低优先级。SemanticKV 是免训练方法，用文本交叉注意力定位与约束相关的视频位置，把这些位置的 self-attention query 分组成独立集合，组内平均注意力权重、组间取最大，使任一被表示约束强使用的缓存条目都得高分，再在内存预算下做一次 top-k 选择，保留条目的 key、value 与位置原样不动。该方法在每个候选内独立运行，无需重训或额外生成视频。四个自回归视频骨干、三个基准、5/30/60 秒生成上，Causal Forcing 压缩比 0.7 时 VBench Total 为 84.10（最强压缩基线 84.05、全 KV 83.99），相对全 KV 加速 1.22 倍，KV 显存从 6.04 GB 降到 1.81 GB，缩减 3.35 倍。</p>
+<p><strong>对广域的启示</strong>：压缩预算应按“上级规划显式要求的语义”分配，而不是只看注意力幅值；这类由外部约束驱动的打分方式，同样适用于多智能体流水线中下游阶段对上游缓存的裁剪。</p>
+<h3 id="2-looping-deeper-without-growing-the-kv-cache-recurrent-depth-for-causal-encoder-decoders">2. Looping Deeper Without Growing the KV Cache: Recurrent Depth for Causal Encoder-Decoders</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.13378">https://arxiv.org/abs/2611.13378</a></li>
+<li><strong>时间</strong>：2026-11-09</li>
+<li><strong>方向</strong>：循环深度 · 跨轮 KV 共享 · 编解码架构</li>
+</ul>
+<p><strong>摘要</strong>：循环语言模型不增加参数就能加深计算，但跨层、跨轮缓存全上下文 KV 状态会严重限制服务时的批大小。作者设计循环式因果编码器-解码器（CED），回答在非对称堆栈中“在哪循环、如何循环”：循环必须放在编码器侧以迭代精炼全局 KV 表示，而不是反复读取静态的解码器投影，这样既能带来语言建模收益，又保住长上下文扩展性；在随机循环深度下训练编码器循环，会诱导出不动点均衡，使每一轮都无损共享上一轮的 KV cache。叠加跨层与跨轮共享后，Looped CED 与不循环 CED 的最小显存占用持平，并用 1/6 的全局 KV 收回循环 Transformer 收益的 86–93%。为测生产级服务，把 552B 参数的 DeepSeek-V4.1-Flash 在单台 4xGB200 节点上循环 8 轮：逐层逐轮缓存 KV 时连单个 128K token 请求都放不下，而 Looped CED 每 token KV 少 36.8 倍，可容纳 38 个此类请求（与不循环模型相同），8K token prompt 上吞吐高 3.6 倍。</p>
+<p><strong>对广域的启示</strong>：把“多轮计算”折叠进同一份可复用状态，是比事后压缩更根本的省 KV 路径；跨轮共享不动点的思路也可用于多步推理/多轮 agent 中避免为每轮重建历史缓存。</p>
+<h3 id="3-bridgekv-large-model-prefill-and-small-model-decoding-for-llm-inference-via-kv-cache-translation">3. BridgeKV: Large-Model Prefill and Small-Model Decoding for LLM Inference via KV Cache Translation</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.11761">https://arxiv.org/abs/2611.11761</a></li>
+<li><strong>时间</strong>：2026-11-09</li>
+<li><strong>方向</strong>：大小模型协作 · KV 翻译 · 异构推理</li>
+</ul>
+<p><strong>摘要</strong>：LLM 推理的两个阶段瓶颈不同——prefill 每请求只跑一次但计算密集，decode 每输出一个 token 都要重复且受内存带宽限制，而已有方案两个阶段都用同一个模型。BridgeKV 改用同族的大模型做 prefill、小模型做 decode，用一个轻量 KV-stitching 模块把大模型的 prompt cache 翻译成小模型的 cache 布局；面对 cache 形状与表示的差异，它采用可学习的局部层混合以及 key、value 各自的非线性映射，两个模型都冻结、只训练该模块，使其对齐双方缓存并让小模型跟随大模型的下一个 token 预测，需要进一步任务适配时再加低秩适配器。六个模型对、五个数据集、30 个设置上全部胜过可训练参数预算相当的微调小模型基线，最多弥合到大模型两阶段方案质量差距的 80%；单张 A40 上 Llama-3.1-Instruct-8B → Llama-3.2-Instruct-1B 比单用大模型请求快 3.0 倍，时延接近单用小模型。服务仿真进一步预测 70B → 1B 场景可快 33.86 倍、能耗低 27.5 倍。</p>
+<p><strong>对广域的启示</strong>：缓存一旦可翻译，模型选择就能按阶段解耦，“贵模型算 prompt、便宜模型出 token”成为可落地路线；跨域部署时可据此把 prefill 放在算力中心、把 decode 放在近端节点。</p>
+<h3 id="4-translating-kv-caches-between-hybrid-attention-language-models-mla-latents-linear-attention-states-and-sparse-attention-indexers">4. Translating KV Caches Between Hybrid-Attention Language Models: MLA Latents, Linear-Attention States and Sparse-Attention Indexers</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.12062">https://arxiv.org/abs/2611.12062</a></li>
+<li><strong>时间</strong>：2026-11-09</li>
+<li><strong>方向</strong>：混合注意力 · 缓存翻译 · 长程召回</li>
+</ul>
+<p><strong>摘要</strong>：接管另一个模型的对话通常要重读全部历史，文本交接只能靠丢弃内容来缩短重读，而 KV 翻译把源模型缓存映射进目标模型自己的格式，使其在不重读的前提下从完整上下文继续。该方法此前只在分组查询注意力（GQA）上成立，而当前开源前沿模型缓存的是压缩 latent（MLA）、稀疏注意力 indexer key 与定长线性注意力状态。论文先复现 GQA 模型对上的 KV-Lingo，再对每类对象给出捕获与注入位置及达到原生质量的机制：MLA latent 用逐 token 线性映射翻译，循环状态用闭式修正复制或重放目标自身 recurrence 合成，精确长程召回还需要 token 身份——从源模型第 0 层 MLA latent 解码 token id，把 needle 召回从 0.09 提到 2–32K 上的 0.99、64K 上的 0.83–1.00，是训练 prompt 最长长度的八倍。两个 16–48B 混合对双向验证：全 MLA 方向在每个任务指标上都落在原生质量的配对置信区间内，同形 GDN 混合对双向达到原生水平（除继承自源的 6% 拒答），64K token 下首 token 时延比重读短 18.7 与 46.8 倍；分段多轮传输仍停在 re-prefill 水平，朴素重译会崩塌，稀疏注意力目标上预测的 indexer key 召回与目标自身 key 相当（单种子）。</p>
+<p><strong>对广域的启示</strong>：缓存翻译需要按“缓存对象的物理形态”分别设计算子，token 身份这类元信息是长程保真的关键；跨模型/跨版本迁移会话时，异构缓存格式将成为主要工程成本。</p>
+<hr />
+<h2 id="_3">二、服务系统与调度</h2>
+<h3 id="5-evolving-infra-agent-adaptive-llm-serving-at-scale">5. Evolving Infra: Agent-Adaptive LLM Serving at Scale</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.12304">https://arxiv.org/abs/2611.12304</a></li>
+<li><strong>时间</strong>：2026-11-09</li>
+<li><strong>方向</strong>：PD 分离 · agent 感知调度 · 分布式 KV</li>
+</ul>
+<p><strong>摘要</strong>：agentic 负载已是 LLM 推理需求的主要来源，而现有 prefill–decode（PD）分离服务对运行时调整算力分配与 KV 管理灵活性有限，且依赖只部分反映 agent 负载多样性与动态性的粗粒度信号，导致 prefill 与 decode 节点间负载不均、agent 之后还会复用的 KV 被驱逐。Evolving Infra 把算力分配与 KV 管理解耦，使节点可在 prefill 与 decode 之间高效切换；在此基础上，在线 planner 按负载构成匹配 PD 切分比例，agent-aware 的分布式 KV 管理器则借助 agent 上下文管理信号指导缓存驱逐与迁移。在 coding、math、computer-use 任务上，用 GLM-5.2 与 Kimi K2.6、最多 256 张 GB300，相比 NVIDIA 生产框架 Dynamo，平均端到端请求时延与 P95 TTFT 最多降低 4.1 倍与 14 倍。</p>
+<p><strong>对广域的启示</strong>：把“算力放哪”与“KV 放哪”拆成两层分别在线决策，才能跟上 agent 会话的相位变化；上下文管理信号（会话是否续用）比通用的 LRU 类信号更适合指导跨节点缓存迁移。</p>
+<h3 id="6-shadowprefill-keeping-your-next-model-warm-for-per-step-model-routing-in-agentic-llm-serving">6. SHADOWPREFILL: Keeping Your Next Model Warm for Per-Step Model Routing in Agentic LLM Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.13176">https://arxiv.org/abs/2611.13176</a></li>
+<li><strong>时间</strong>：2026-11-09</li>
+<li><strong>方向</strong>：逐步路由 · 影子预热 · 前缀复用</li>
+</ul>
+<p><strong>摘要</strong>：per-step 模型路由会在会话内把每次 LLM 调用动态分给成本最优的模型，但每次切换都丢弃前缀缓存——KV 按模型各自持有，新模型必须先 prefill 相关上下文才能输出。在代表性 agentic 负载（含平均上下文 63K token 的生产 coding-agent trace）上，前缀命中率从同模型调用的 80–89% 掉到切换后的 44–65%，一次切换调用耗时是原来的 1.5–3.2 倍。SHADOWPREFILL 在路由未选中模型上、利用实例服务正常流量时闲置的容量预先 prefill 会话上下文，使下次切换时前缀已缓存；它收割在飞请求每轮迭代的 SLO 余量、保护被路由的调用、把影子 KV 溢出到 host memory，并在影子不完整时回退到冷切换。以 LLMRouter 路由 24 个模型对、五个 agentic 基准套件，切换调用时延降低 8.5–21.4%，LLM 调用时延降低 3.7–17.7%，被路由 token 成本降低 22.5–46.1%，正常流量仍保住 SLO，每请求能耗仅升 0.4%。</p>
+<p><strong>对广域的启示</strong>：多模型服务里“缓存预热”要提前到路由决策的另一侧去做，用空闲容量换命中率；影子缓存本质上是为可能的迁移预付 KV，跨域场景同样适用。</p>
+<h3 id="7-decode-token-parallelism-memory-efficient-distributed-attention-parallelism-for-scalable-llm-decoding">7. Decode Token Parallelism: Memory-Efficient Distributed Attention Parallelism for Scalable LLM Decoding</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.13293">https://arxiv.org/abs/2611.13293</a></li>
+<li><strong>时间</strong>：2026-11-09</li>
+<li><strong>方向</strong>：解码并行 · KV 容量扩展 · attention 归属</li>
+</ul>
+<p><strong>摘要</strong>：高并发长上下文服务要求 KV 容量与注意力带宽随 decode 池增长，而现有并行策略顾此失彼：数据并行复制权重、限制 KV 容量；张量并行受模型 KV head 数约束无法继续扩展注意力，还要跨节点做密集集合通信；decode 上下文并行（DCP）靠切分序列找回容量，却要跨节点聚合部分注意力结果。作者观察到 decode 期间 dense 层与注意力的扩展方式不同：dense 层可按批摊薄权重读取，在单个 NVLink 域内高效运行，而注意力成本随每个活跃请求的 KV 增长。TKNP 因而把权重放置与注意力归属解耦：单份模型以均衡层块分布到各节点，持有某块的活跃节点用节点内张量并行对整个 batch 执行该块的投影与 MLP，而每个节点用本地常驻的 KV 为自己的请求计算注意力，只有当前 token 的激活跨网络传输，dense all-reduce 留在 NVLink 内，注意力无需跨节点合并部分结果。在 vLLM 中实现并在 Llama 3.1 405B 与 Nemotron-4 340B、最多 64 张 H100 上评估，长上下文高并发负载的完成吞吐相对 DCP 最高提升 1.7 倍、相对数据并行在同等 GPU 数下最高提升 2.06 倍。</p>
+<p><strong>对广域的启示</strong>：KV 容量与权重的解耦是扩展长上下文解码的关键一步，让“缓存跟着请求走、权重跟着层走”；这为跨节点甚至跨域的缓存本地化提供了架构基础。</p>
+<h3 id="8-bursts-that-outlast-themselves-persistent-degradation-in-prefix-cached-agent-serving">8. Bursts That Outlast Themselves: Persistent Degradation in Prefix-Cached Agent Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.13412">https://arxiv.org/abs/2611.13412</a></li>
+<li><strong>时间</strong>：2026-11-10</li>
+<li><strong>方向</strong>：前缀缓存 · 服务亚稳态 · 过载恢复</li>
+</ul>
+<p><strong>摘要</strong>：LLM agent 以闭环会话驱动推理引擎，上下文每轮增长，经济性依赖前缀缓存：命中只需约一千 token 的增量 prefill，未命中则要重算 10–40K token 的上下文。论文指出这使前缀缓存式 agent 服务具有亚稳态：相同基础负载下，几分钟的额外到达就会让 vLLM 服务器停在退化区——命中率约 10%、吞吐约一半、积压在随后 70 分钟内持续增长，而无突发的对照保持健康（12 对中 9 对出现，反向 0 次）。该状态出现在缓存已热的服务器本可承受的负载下，去掉前缀缓存便不出现，在 Qwen3-32B 的 SWE-bench agent trace 形态上以及 SGLang 上同样出现（SGLang 的触发阈值更大）。机制是服务变慢使更多会话滞留、其工作集超出 KV 池、于是每轮都变成重算，一个可独立标定的一阶负载平衡条件界定了何时能自行恢复；恢复路径上，限流新请求只救回 7 个匹配崩溃中的 1 个，而按容量上限挂起已接纳会话能在数分钟内全部恢复，CPU offload 层只延迟崩溃，把活跃会话常驻 KV 需求限制在池容量内的 budgeter（阈值无需按负载调参）在所有测试运行中都避免了故障。</p>
+<p><strong>对广域的启示</strong>：agent 负载下的缓存系统存在“负载—命中率”正反馈，容量治理必须显式约束常驻 KV 需求而非只调节准入；跨域缓存池同样需要这类前馈预算控制，否则一次流量尖峰会留下长期降级。</p>
+<h3 id="9-placing-llm-lookup-tables-by-per-layer-prefetch-deadlines">9. Placing LLM Lookup Tables by Per-Layer Prefetch Deadlines</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.13413">https://arxiv.org/abs/2611.13413</a></li>
+<li><strong>时间</strong>：2026-11-10</li>
+<li><strong>方向</strong>：内存分层 · 预取截止期 · 显存回收</li>
+</ul>
+<p><strong>摘要</strong>：DeepSeek-V4.1 的 203 GB Engram n-gram 表目前放在 host DRAM，占 4 卡服务进程 223 GiB 中的 190 GiB；由于行索引只依赖输入 token，这些读取可以在每步开始时发起并与更早的层重叠，而两个 Engram 层的可用窗口相差 30 倍（0.3 与 9.3 ms）。论文说明正是这一截止期、加上会话复用与共享设备上的争用，共同决定每张表能落在哪一层、哪些层需要缓存，并给出从实测读取时间预测减速的模型；据此构建用于 SGLang 的 SlackTier，在步开始时发出全部查找，先读短窗口层，并把一小块 GPU 行缓存拆到多层，该路径跑在 decode 的 CUDA graph 内且与原 gather 位精确一致。结果第 14 层的表放到 NVMe 且不缓存也没有可测的 decode 开销；两张表放到四块 NVMe 上，agent 与 chat 回放的每输出 token 平均时间相比未改动的 SGLang 最多只升 1.4%，host 内存从 212 GiB 降到 34 GiB；若经 RDMA 从另一节点内存读取则两张表都无需缓存，一份副本可服务两个实例；在 KV 受限的 agent 负载上把释放出的内存用作 host KV cache，同内存预算下中位吞吐提升 36%，中位 p90 TTFT 从 38 秒降到 24 秒。</p>
+<p><strong>对广域的启示</strong>：显存与主存的分配应按“每层预取截止期”而非统一热度来定，被腾出的主机内存可直接转成 KV 池换取吞吐；一次性查表与 KV 缓存争抢内存时，把表推到远端内存或 NVMe 是可行解。</p>
+<hr />
+<h2 id="_4">三、智能体基础设施的评测</h2>
+<h3 id="10-infrathon-benchmarking-language-agents-for-real-world-long-horizon-ai-infra-optimization">10. Infrathon: Benchmarking Language Agents for Real-World, Long-Horizon AI Infra Optimization</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.11995">https://arxiv.org/abs/2611.11995</a></li>
+<li><strong>时间</strong>：2026-11-09</li>
+<li><strong>方向</strong>：长时程基准 · 基础设施优化 · 智能体评测</li>
+</ul>
+<p><strong>摘要</strong>：论文研究前沿智能体能否在长时程上持续改进真实 AI 基础设施，并提出 Infrathon——一组覆盖不同层级、多样化的长时程 AI 基础设施优化任务基准。评估六个模型、150 次运行、每次 24 小时预算，总计超过 10,000 GPU-hours：模型排名会随评估时程变化，且 150 次运行中有 135 次在预算后半段仍在继续改进，说明短时评估会同时低估优化收益与模型间的相对表现变化。智能体还能发现优于人工设计基线的方案——Claude Opus 5.5 把平均 KV-cache 压缩率从人工设计 Quant-VideoGen 编解码器的 6.82% 提到 19.86%。轨迹分析指出任务违规、测试不可靠与过早收工是持续改进的障碍。</p>
+<p><strong>对广域的启示</strong>：KV 压缩这类工程性指标已经可以由长时程智能体自主搜索超越人工 codec，评估协议本身需要拉长到小时级；同时要防住“过早收工”，否则测出的压缩率并不可信。</p>
+<hr />
+<h2 id="_5">今日观察</h2>
+<ol>
+<li><strong>缓存的价值衡量从“能压多少”转向“能搬多远”</strong>：SemanticKV 用外部语义约束决定保留谁，BridgeKV 让大模型的 prompt cache 直接供小模型 decode，KV-Lingo 系工作进一步把 MLA latent、线性注意力状态、稀疏 indexer key 纳入可翻译对象——“缓存格式是否可翻译”正在成为模型选型的新维度。</li>
+<li><strong>结构层面的省 KV 开始挑战压缩范式</strong>：Looped CED 让循环的每一轮共享同一份 KV，用 1/6 的全局 KV 收回 86–93% 的收益，并在 552B 模型上把单请求 128K 从“放不下”变成可容纳 38 个；这说明改写计算图比事后裁剪更能解决容量问题。</li>
+<li><strong>agent 会话把服务系统推到亚稳态边缘</strong>：Bursts 证明相同负载下前缀缓存服务可能长期停在约 10% 命中率、一半吞吐，且限流几乎无效、只有按容量挂起会话或约束常驻 KV 需求才救得回来；SHADOWPREFILL 与 Evolving Infra 则分别用影子预热与上下文管理信号，把“KV 该在哪个模型/节点上”变成可主动经营的对象。</li>
+<li><strong>分层内存被认真经营，KV 是最终受益者</strong>：SlackTier 用每层预取截止期把 203 GB 查表推到 NVMe 或远端内存，host 内存从 212 GiB 降到 34 GiB，再把省下的内存变成 host KV cache，换来中位吞吐 36% 提升与 p90 TTFT 从 38 秒到 24 秒；TKNP 则从并行维度把权重放置与注意力归属解耦以扩展 KV 容量——两条路线都在为同一件事腾空间。</li>
+</ol>
+<blockquote>
+<p>注：本期为补录批次，摘要基于 arXiv 官方摘要页整理；具体实验设置与数字以 PDF 原文为准。</p>
+</blockquote>
+</main>
+<nav class="pager"><a class="pager-link" href="2026-11-08.html"><span class="dir">← 上一期</span><span class="d">11月8日</span></a><a class="pager-link next" href="2026-11-10.html"><span class="dir">下一期 →</span><span class="d">11月10日</span></a></nav>
+<footer class="footer"><span>KV Cache 日报</span><a href="../index.html">返回目录</a></footer>
+
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

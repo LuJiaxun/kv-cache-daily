@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KV Cache 日报 · 2026-11-05</title>
+<meta name="description" content="2026-11-05 的 KV Cache 论文摘要，10 篇。">
+<meta name="theme-color" content="#f6f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="day-page">
+
+<header class="topbar">
+  <a class="back" href="../index.html"><span aria-hidden="true">←</span> 全部日报</a>
+  <span class="top-date">2026年11月5日 · 周四</span>
+</header>
+<main class="report">
+<h1 id="kv-cache-2026-11-05">KV Cache 论文日报 · 2026-11-05</h1>
+<blockquote>
+<p>今日 10 篇：压缩与稀疏化 3 篇 · 复用与传递 4 篇 · 服务系统与容量调度 3 篇</p>
+<p><strong>本期主线</strong>：今天的十篇把「字节花在哪里」重新算了一遍——压缩侧按 KV 的下游用途分配聚类、精度与树形摘要，复用侧把修复预算集中投向真正受损的目标块，系统侧则把显存卸载、算子级异构划分与专家剪枝都换算成「能装多少上下文、能跑多高并发」。</p>
+<p><strong>说明</strong>：本期为补录批次，收录 arXiv 公告日期集中在 2026-11-04 至 11-05 的论文；摘要依据 arXiv 官方摘要整理。</p>
+</blockquote>
+<h2 id="_1">速览</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>论文</th>
+<th>方向</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>NanoKV: High-Ratio KV Cache Compression for Autoregressive Video Generation</td>
+<td>视频生成压缩</td>
+<td>arXiv:2611.06377</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Recursive Sparse Attention: Million-Token Length Extrapolation at Logarithmic Cost</td>
+<td>层级稀疏注意力</td>
+<td>arXiv:2611.07232</td>
+</tr>
+<tr>
+<td>3</td>
+<td>TriAttention: Unified Sparse Mixed-Precision Attention for Long-Context LLM Inference</td>
+<td>稀疏混合精度</td>
+<td>arXiv:2611.07256</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Where Should a KV-Cache Repair Budget Go? Distractor Structure and Contextual Compatibility in Non-Prefix Reuse</td>
+<td>非前缀复用修复</td>
+<td>arXiv:2611.06397</td>
+</tr>
+<tr>
+<td>5</td>
+<td>CRESiST: Self-Enhancing Explorative Policy Learning for Simultaneous Speech Translation</td>
+<td>流式全量复用</td>
+<td>arXiv:2611.06501</td>
+</tr>
+<tr>
+<td>6</td>
+<td>HyFlash: A Prefix-Memory Prior for On-Device Speculative Decoding</td>
+<td>端侧定长记忆</td>
+<td>arXiv:2611.07263</td>
+</tr>
+<tr>
+<td>7</td>
+<td>CacheGraft: Enhancing Retrieval-Augmented Generation via Latent-Space Document Enrichment</td>
+<td>隐空间缓存注入</td>
+<td>arXiv:2611.07393</td>
+</tr>
+<tr>
+<td>8</td>
+<td>HELIX: HEterogeneous LLM Inference with FleXible and Fine-Grained Partitioning</td>
+<td>异构算子划分</td>
+<td>arXiv:2611.06513</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Rules, Traces and Routing Statistics: Training and Calibration Data for Open Models on ARC-AGI-2</td>
+<td>容量与专家剪枝</td>
+<td>arXiv:2611.06827</td>
+</tr>
+<tr>
+<td>10</td>
+<td>FlashOffloading: Low-Latency KV Cache Offloading for Long-Context LLM Serving</td>
+<td>主机内存卸载</td>
+<td>arXiv:2611.07542</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_2">一、压缩与稀疏化：先问这份缓存下游要用来做什么</h2>
+<h3 id="1-nanokv-high-ratio-kv-cache-compression-for-autoregressive-video-generation">1. NanoKV: High-Ratio KV Cache Compression for Autoregressive Video Generation</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.06377">https://arxiv.org/abs/2611.06377</a></li>
+<li><strong>时间</strong>：2026-11-04</li>
+<li><strong>方向</strong>：视频生成压缩 · 头-通道耦合 · 低比特残差</li>
+</ul>
+<p><strong>摘要</strong>：自回归视频生成靠历史 KV 缓存维持长序列续写的场景一致性，于是 KV 存储与对历史的重复注意力成为持续增长的内存与算力瓶颈；但过于激进的压缩会伤生成质量，而只重建全维 KV 又几乎不减少注意力计算。NanoKV 用冻结骨干做生成感知的高倍率压缩：利用 token 之间与注意力头之间的冗余，把共享内容存进聚类中心、把联合的头-通道残差编码成低比特系数，并按 K 与 V 在注意力中的不同角色设定不同拟合目标——Key 解码器以保留下游块输出为目标，Value 编解码器则以沿部署量化路径的忠实重建为目标。在同一条压缩表示上还能开启 NanoKV-Fast，用已存系数做混合维度注意力，在不改视频骨干的前提下省下计算。三个自回归视频骨干上都改善了质量-存储权衡：HY-WorldPlay 上达到 26.09× 有效压缩、约为 KVTC 的两倍，PSNR 还提升 1.0 dB；Fast 变体保持 20.53× 压缩，端到端加速约 1.15×。</p>
+<p><strong>对广域的启示</strong>：压缩比不再靠「更狠地丢」，而是靠「按 K/V 分工重设重建目标」——跨域传输前也该先确定缓存下游要做什么，再决定压到什么程度；同一份低比特表示同时供压缩与加速使用，正是传输侧最想要的形态。</p>
+<h3 id="2-recursive-sparse-attention-million-token-length-extrapolation-at-logarithmic-cost">2. Recursive Sparse Attention: Million-Token Length Extrapolation at Logarithmic Cost</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.07232">https://arxiv.org/abs/2611.07232</a></li>
+<li><strong>时间</strong>：2026-11-04</li>
+<li><strong>方向</strong>：层级稀疏注意力 · 对数选择成本 · 长度外推</li>
+</ul>
+<p><strong>摘要</strong>：上下文到百万 token 量级时，稠密注意力在预填充与解码上都很昂贵，而可用于训练的长文档随目标长度增加越来越稀缺；多数稀疏注意力要对全部前序块或 token 打分，单个查询的选择成本是 O(L) 量级。RecSA 直接在 KV 缓存上建树，每个节点用一个 key 与该子树均值池化的 value 概括，key 由每层一个池化器产生并从稠密注意力蒸馏；token 以上每层最多选 k 个候选，于是每个查询的选择成本与读取条目数都降到 O(log L)，未入选候选的摘要与精确 token 共享同一次 softmax。实现上每个条目的 RoPE 位置取它在所在层候选中的序号，因此任意长度下的相对距离都落在训练见过的范围内，这是它能外推到训练长度之外的关键。从 Qwen3-4B 初始化、在原模型 32K 训练长度上仅训 0.62B token，它在 RULER 的 131K 至 2M 每个长度上都优于全部基线；1M 时得分 60.5，最好的基线 Dense + DCA 为 40.0。配合优化 kernel，它在 64K 至 2M 的端到端预填充与解码上都快于稠密注意力，单张 H200、524K 处预填充加速 3.2×、解码加速 3.8×。</p>
+<p><strong>对广域的启示</strong>：把 KV 缓存本身做成层级索引，选择成本只按对数增长，这是长上下文压缩与复用共同的底座；同一棵树也可以直接当作传输结构——先送摘要、按查询取块，而不必整段搬运。</p>
+<h3 id="3-triattention-unified-sparse-mixed-precision-attention-for-long-context-llm-inference">3. TriAttention: Unified Sparse Mixed-Precision Attention for Long-Context LLM Inference</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.07256">https://arxiv.org/abs/2611.07256</a></li>
+<li><strong>时间</strong>：2026-11-05</li>
+<li><strong>方向</strong>：稀疏混合精度 · 逐头边界 · 缓存复用</li>
+</ul>
+<p><strong>摘要</strong>：稀疏化与量化分别通过跳过交互、降低保留交互的精度来削减注意力开销，但有用交互对精度的需求并不一致：有些能容忍低精度的分数，却对「被移除」很敏感。TriAttention 因此把每个查询-键 tile 分派到跳过、4-bit 与 8-bit 三档计算，用 4-bit 以更低成本保留那些量化容忍的交互；为了让策略本身紧凑，它用两条对角距离边界刻画每个头的计算区域，使策略存储与上下文长度无关。离线校准以归一化投影输出误差与整 tile 执行成本评估候选边界对，再由模型级分配器在共享计算预算下为每个头选定边界；预填充阶段按边界生成按精度分组的遍历，交给一个融合 kernel 跳过被省略的 tile，并把两种精度的贡献合并成一次归一化注意力输出。预填充阶段准备好的量化 K/V 还会被复用到压缩 KV 缓存里供解码，减少对提示数据的重复读取。端到端生成相对 Torch attention 最高加速 7.88×、相对 BF16 基线 2.65×，且在通用与长上下文任务上质量与原模型相当。</p>
+<p><strong>对广域的启示</strong>：精度本身也是一种预算，同一个头里不同 tile 该给几位可以由「输出误差对执行成本」直接标定，比整层统一量化更省；压缩与计算优化共享同一份低位表示，意味着缓存写一次就能同时服务传输与解码两侧。</p>
+<hr />
+<h2 id="_3">二、复用与传递：从「重算」走向「选对块、搬到对的地方」</h2>
+<h3 id="4-where-should-a-kv-cache-repair-budget-go-distractor-structure-and-contextual-compatibility-in-non-prefix-reuse">4. Where Should a KV-Cache Repair Budget Go? Distractor Structure and Contextual Compatibility in Non-Prefix Reuse</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.06397">https://arxiv.org/abs/2611.06397</a></li>
+<li><strong>时间</strong>：2026-11-04</li>
+<li><strong>方向</strong>：非前缀复用 · 修复预算分配 · 上下文兼容性</li>
+</ul>
+<p><strong>摘要</strong>：非前缀复用把检索到的块各自独立编码、再把缓存拼接起来使用，省掉了全量预填充，但会丢失依赖上下文的那些信息。论文把答案所在块（目标块）周围的其他块当作变量，在三个 7B–8B 模型、四个对话记忆/开放域问答/API 文档数据集上系统变化，发现复用会丢掉全量预填充能答的 19%–100% 的上下文依赖问题，且当其他块与目标块同类时丢得更多。由于可恢复的损伤分散在这些其他块上，只修复少数块收益很小，预算更该花在目标块上：把目标块对着复用缓存重算，在全部七个测试设置中都优于插入它的全量预填充 KV，尽管重算出的 KV 与全量预填充 KV 仍相距很远。这条路径靠的是上下文兼容性——问题在这份缓存上的注意力最多只在 18.8% 的开发问题上选中目标块，而检索器能更常找对；把检索器给出的首位块挪到问题旁边再重算，在 5% 预算下于九个开放域问答与 API 文档设置中的六个显著优于 InfoFlow 式重排。不过对话记忆场景里，重算整块从未显著优于各设置专门挑选的 token 级选择器。</p>
+<p><strong>对广域的启示</strong>：修复预算应按「受益者」而不是「受损范围」分配，而受益者要靠检索而非注意力统计来定位——复用系统的瓶颈正从缓存格式转向「选哪块、以及把它放在哪个位置」；跨域复用时配套的块选择器往往比多修几块更值钱。</p>
+<h3 id="5-cresist-self-enhancing-explorative-policy-learning-for-simultaneous-speech-translation">5. CRESiST: Self-Enhancing Explorative Policy Learning for Simultaneous Speech Translation</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.06501">https://arxiv.org/abs/2611.06501</a></li>
+<li><strong>时间</strong>：2026-11-04</li>
+<li><strong>方向</strong>：流式全量复用 · 读写交错 · 策略自增强</li>
+</ul>
+<p><strong>摘要</strong>：同声传译要在翻译质量与延迟之间取舍；基于大模型的同传系统多用前缀增量生成，这种范式一方面重复计算 KV 缓存，另一方面必须依赖外部语音活动检测才能处理无界音频流。CRESiST 以全模态大模型为底座，把语音块与文本 token 交错排布成端到端的读写交替框架，从而做到 KV 缓存的完全复用，并原生支持无切分、无限长的推理。为了让流式策略摆脱刚性的离线对齐，作者设计了演员-评论家式自增强流程：RNN-T 演员动态采样读写轨迹，基于大模型的评论家以内在语义与延迟奖励评估这些路径，再把最优策略蒸馏回演员。在句子级（FLEURS、CoVoST2）与篇章级（MuST-C、ACL 60/60）基准上，该模型建立了新的质量-延迟帕累托前沿，明显优于级联与静态对齐基线。</p>
+<p><strong>对广域的启示</strong>：把「读写节奏」交给模型自己学，KV 复用才能从「省一次预填充」升级成流式场景的默认前提；这条证据说明缓存复用度很大程度上取决于接口设计——怎么切块、怎么交错——而不只取决于压缩算法。</p>
+<h3 id="6-hyflash-a-prefix-memory-prior-for-on-device-speculative-decoding">6. HyFlash: A Prefix-Memory Prior for On-Device Speculative Decoding</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.07263">https://arxiv.org/abs/2611.07263</a></li>
+<li><strong>时间</strong>：2026-11-05</li>
+<li><strong>方向</strong>：端侧草稿模型 · 定长前缀记忆 · 投机解码</li>
+</ul>
+<p><strong>摘要</strong>：并行块起草能在一次骨干前向里预测多个未来位置，从而加速投机解码，但端侧部署同时压缩了草稿模型的容量与上下文存储：内存紧张时，草稿模型既要建模长程依赖、又要处理细粒度的草稿位置交互，却不能承担全上下文注意力那样随长度增长的 KV 开销。HyFlash 用一个前缀记忆先验把这两件事拆开——局部注意力负责近期上下文与草稿位置交互，循环记忆把历史目标特征压缩成定长状态。这种归纳偏置让它在有界的草稿侧内存下同时获得局部与长程建模能力；实验显示其接受率高于全上下文注意力，KV 存储却大幅更少，并且对浅层草稿模型与长上下文收益更大。</p>
+<p><strong>对广域的启示</strong>：在端侧，「用定长状态替代增长的 KV」是比压缩更彻底的解法；对广域缓存同理，凡是能压成定长摘要的历史，就不必按 token 付存储与传输成本。</p>
+<h3 id="7-cachegraft-enhancing-retrieval-augmented-generation-via-latent-space-document-enrichment">7. CacheGraft: Enhancing Retrieval-Augmented Generation via Latent-Space Document Enrichment</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.07393">https://arxiv.org/abs/2611.07393</a></li>
+<li><strong>时间</strong>：2026-11-05</li>
+<li><strong>方向</strong>：隐空间文档增强 · 缓存到缓存 · 零样本注入</li>
+</ul>
+<p><strong>摘要</strong>：已有工作表明，基于 Transformer 的语言模型智能体不只能靠文本、也能通过 KV 缓存直接在隐空间通信；本文主张这种缓存到缓存的翻译不必局限于实时智能体通信，还可以用于检索增强生成。CacheGraft 基于缓存到缓存融合框架，把每个语料段落离线编码成 40 亿参数分享模型与 6 亿参数接收模型之间的融合 KV 表示，查询时直接注入接收模型，无需大模型在场。在五个问答基准、两个独立本地评审下，它在 30 组比较中的 29 组优于纯文本接收模型基线，其中 17 组具有统计显著性；这些增益对融合器还是零样本的，因为它从未在检索数据上训练过。结果说明，在只能在推理端部署小模型的算力受限场景中，隐空间文档增强是一条有前景的路线。</p>
+<p><strong>对广域的启示</strong>：缓存可以成为比文本更密的跨模型传输载体——一次离线编码、多次零样本注入，恰好匹配「大模型在中心、小模型在边缘」的部署形态，也把预填充成本从查询时前移到了建库时。</p>
+<hr />
+<h2 id="_4">三、服务系统与容量：把缓存放到对的硬件、换成能装的上下文</h2>
+<h3 id="8-helix-heterogeneous-llm-inference-with-flexible-and-fine-grained-partitioning">8. HELIX: HEterogeneous LLM Inference with FleXible and Fine-Grained Partitioning</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.06513">https://arxiv.org/abs/2611.06513</a></li>
+<li><strong>时间</strong>：2026-11-04</li>
+<li><strong>方向</strong>：异构算子划分 · 动态规划放置 · 混合加速器</li>
+</ul>
+<p><strong>摘要</strong>：大模型推理本身是异构的，瓶颈会随推理阶段一路下沉到单个算子；因此出现了把执行拆分到专用加速器上的异构服务系统，但这类系统通常预先固定划分方式（如预填充/解码、注意力/前馈），既难以适配不同负载与模型结构，也把新加速器钉死在预设角色上。HELIX 是基于 vLLM 的软件栈，在算子粒度上发现、编译并派发负载感知的划分：引擎初始化时依据剖析得到的执行成本、通信开销、设备能力与内存约束自动决定与硬件相关的算子放置，再把动态规划、分段编译与异构子图派发结合起来。这样，只覆盖部分算子的加速器也能参与推理而不必预先定义模型划分；系统同时作为开源统一框架，把这些加速器以子图执行器的方式暴露出来，降低新硬件的接入门槛。在 H100、B200 与新加速器混部的系统上，相比标准的注意力-前馈解耦，它把稠密与稀疏 Transformer 的多查询解码延迟最多降低 3×，混合状态空间模型最多降低 3.5×。</p>
+<p><strong>对广域的启示</strong>：当注意力与 KV 访问可以按算子切分到不同芯片上，「预填充集群 + 解码集群」就不再是唯一答案；对广域部署而言，这为按地域与硬件异构做细粒度调度提供了抓手。</p>
+<h3 id="9-rules-traces-and-routing-statistics-training-and-calibration-data-for-open-models-on-arc-agi-2">9. Rules, Traces and Routing Statistics: Training and Calibration Data for Open Models on ARC-AGI-2</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.06827">https://arxiv.org/abs/2611.06827</a></li>
+<li><strong>时间</strong>：2026-11-04</li>
+<li><strong>方向</strong>：容量约束 · 专家剪枝 · 键值缓存规模</li>
+</ul>
+<p><strong>摘要</strong>：论文研究在离线、四张 L4、最多 12 小时的约束下，哪些训练与校准数据能帮三个开放模型解出 ARC-AGI-2 任务；数据比较在公开任务上离线完成，并在 120 个隐藏半私有任务上跑了 189 次。对 NVARC 的 Qwen3-4B 网格模型，作者构建了类型化语言中的 12,000 条可执行规则与 95,993 个任务，规则须在固定探针集上与一切已收录规则行为不同，任务须能反驳最近的竞争规则并击败 12 个捷径求解器；用 1,920 条真实任务记录继续微调并改进四卡调度后，半私有分数从 28.96 提到 33.06（五次运行均值，最好 34.86），而纯合成任务训练的检查点即便用上全部 95,993 个任务也没能超过真实任务模型。对 Qwen3.8-27B 推理模型，用自身 1,036 条答案正确的推理轨迹微调，并配合围绕模型搭建的推理流程（服务引擎里的思考上限、每次作答后用 Python 程序在示例上校验、每个输入给一次长首答），分数从 26.81 升到 44.03，其中大部分增益来自推理流程本身。对 1250 亿参数、60 亿激活的混合专家模型，显存限制了并发：按路由加权激活显著性把每层专家从 512 剪到 384，把键值缓存容量从 0.55M 扩到 1.39M token；再用按 ARC 路由统计适配的 296 专家列表（为程序 token 保留专家）加 FP8 索引器缓存，达到 1.96M，配合程序校验工具取得 56.67 的最好成绩。</p>
+<p><strong>对广域的启示</strong>：这篇的 KV 视角很直接——缓存容量是专家数与索引精度的函数，「省显存」可以被重新表述为「买上下文」；广域调度同样应把显存预算换算成可服务的 token 数来评估，而不是只看压缩比。</p>
+<h3 id="10-flashoffloading-low-latency-kv-cache-offloading-for-long-context-llm-serving">10. FlashOffloading: Low-Latency KV Cache Offloading for Long-Context LLM Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.07542">https://arxiv.org/abs/2611.07542</a></li>
+<li><strong>时间</strong>：2026-11-05</li>
+<li><strong>方向</strong>：主机内存卸载 · 计算加载重叠 · 稀疏索引</li>
+</ul>
+<p><strong>摘要</strong>：大模型服务里 KV 缓存随序列长度与并发线性增长，长上下文推理很容易撞上高带宽显存的容量墙，并发因此被压得很低。把 KV 卸载到主机动态随机存储器可以释放显存、提高并发，但随之增加的缓存管理与主机到设备加载开销会抬高推理时延，使更高的并发无法转化为有效吞吐。FlashOffloading 是以主机内存为中心的推理架构，在预填充与解码两个阶段都把 KV 全量卸载：它构建预填充用的滚动显存缓存、解码用的热缓存、零额外缺失查找开销的反向稀疏索引，以及计算与加载重叠的 kernel，从而在全流程上压低卸载时延并在每输出 token 时延的服务目标下拿到吞吐收益。在 Ascend910C 预填充-解码解耦平台上部署 GLM-5.2 与 MTP3 投机解码时，30 ms 的每输出 token 时延约束下，预填充吞吐最高提升 1.38×、解码吞吐最高提升 1.91×。</p>
+<p><strong>对广域的启示</strong>：卸载的成败不在「搬了多少」，而在「搬的时候能否同时算」——重叠 kernel 与反向稀疏索引把额外带宽开销藏进了计算；对跨域缓存而言，这与「传输与重算重叠」是同一类设计。</p>
+<hr />
+<h2 id="_5">今日观察</h2>
+<ol>
+<li><strong>压缩正在从「统一降维」转向「按用途分配字节」</strong>：NanoKV 给 Key 与 Value 分别设重建目标，TriAttention 按 tile 逐块定精度与取舍，RecSA 用池化器蒸馏出的树摘要重排读取顺序——三者共同的判断是，这份缓存的用途决定压缩目标，而不是反过来。</li>
+<li><strong>复用侧的结论更尖锐：修复预算该给「受益者」</strong>：非前缀复用的修复预算实验表明，可恢复损伤一旦分散，修几块其他块几乎没用，预算应压到目标块上，且目标块要靠检索器而不是问题注意力来定位；复用系统的瓶颈正从缓存格式转向「选哪块、放在哪」。</li>
+<li><strong>隐空间传输开始离开智能体通信的原始场景</strong>：CacheGraft 把 40 亿与 6 亿参数模型之间的融合缓存当作检索增强的载体，离线编码、查询时零样本注入，30 组比较中 29 组有效——这为「大模型在中心、小模型在边缘」的广域形态提供了低成本嫁接方式。</li>
+<li><strong>系统侧把「位置」与「容量」当成一等变量</strong>：HELIX 在算子粒度重新划分异构硬件，FlashOffloading 用主机内存换并发，ARC-AGI-2 的混合专家实验则把专家剪枝直接换算成 0.55M 到 1.96M 的键值缓存 token 容量——「能装多少上下文」正在成为比「压缩比多少」更实用的指标。</li>
+</ol>
+<blockquote>
+<p>注：本期为补录批次，摘要基于 arXiv 官方摘要页整理；具体实验设置与数字以 PDF 原文为准。</p>
+</blockquote>
+</main>
+<nav class="pager"><a class="pager-link" href="2026-11-04.html"><span class="dir">← 上一期</span><span class="d">11月4日</span></a><a class="pager-link next" href="2026-11-06.html"><span class="dir">下一期 →</span><span class="d">11月6日</span></a></nav>
+<footer class="footer"><span>KV Cache 日报</span><a href="../index.html">返回目录</a></footer>
+
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

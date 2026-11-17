@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KV Cache 日报 · 2026-11-18</title>
+<meta name="description" content="2026-11-18 的 KV Cache 论文摘要，10 篇。">
+<meta name="theme-color" content="#f6f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="day-page">
+
+<header class="topbar">
+  <a class="back" href="../index.html"><span aria-hidden="true">←</span> 全部日报</a>
+  <span class="top-date">2026年11月18日 · 周三</span>
+</header>
+<main class="report">
+<h1 id="kv-cache-2026-11-18">KV Cache 论文日报 · 2026-11-18</h1>
+<blockquote>
+<p><strong>今日 10 篇</strong>：传输与互联 4 篇 · 压缩与量化 4 篇 · 复用与状态管理 2 篇</p>
+<p><strong>本期主线</strong>：KV 的搬运正在被推到两种极端——一头是<strong>把粒度做到 576B 级</strong>（SURMA 专用通信引擎）甚至<strong>不出内存、用光学就地重生成</strong>（OptiDecode）；另一头是把推理搬到<strong>太空星座</strong>，重新算一遍 PD 分离在光链路下的可行性。</p>
+<p><strong>说明</strong>：本期收录 arXiv 公告日期集中在 2026-11-13 至 11-16 的论文；摘要依据 arXiv 官方摘要整理。</p>
+</blockquote>
+<h2 id="_1">速览</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>论文</th>
+<th>方向</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>SURMA: Efficient Fine-Grained Communication Offload for SuperPOD</td>
+<td>细粒度通信卸载</td>
+<td>arXiv:2611.21274</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Disaggregated LLM Inference in Space: A Communication Feasibility Study</td>
+<td>星地 PD/AFD 可行性</td>
+<td>arXiv:2611.20893</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Callo: Serving Cache-Miss Requests with Speculative Decoding on Invalidated KV under Prefill-Decode Disaggregation</td>
+<td>失效 KV 再利用</td>
+<td>arXiv:2611.18459</td>
+</tr>
+<tr>
+<td>4</td>
+<td>KVMARK: Fragile Watermarking for KV-Cache Integrity in Latent Multi-Agent Systems</td>
+<td>KV 传输完整性</td>
+<td>arXiv:2611.20454</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Rethinking KV Caching for LLM Decode: Free-Space Optical KV Regeneration for Reduction of Memory Traffic</td>
+<td>光学 KV 重生成</td>
+<td>arXiv:2611.19279</td>
+</tr>
+<tr>
+<td>6</td>
+<td>MiSTiQ: MicroScaling Trellis Quantization for Extreme KV Cache Compression</td>
+<td>极端格量化</td>
+<td>arXiv:2611.21216</td>
+</tr>
+<tr>
+<td>7</td>
+<td>NVFP4-MLA: Unified FP4 KV-Cache Storage and Attention Computation for Multi-Head Latent Attention</td>
+<td>FP4 MLA 缓存</td>
+<td>arXiv:2611.18972</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Memory-Efficient Speculative Decoding with Quantized Draft KV Cache</td>
+<td>草稿 KV 量化</td>
+<td>arXiv:2611.20565</td>
+</tr>
+<tr>
+<td>9</td>
+<td>KaleidoKV: Rearranging Evidence for Efficient KV Cache Reuse in Offline RAG Inference</td>
+<td>证据重排复用</td>
+<td>arXiv:2611.19253</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Architectures and KV Replay for Depth-Recurrent Language Models</td>
+<td>循环深度 KV 重放</td>
+<td>arXiv:2611.19446</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="_2">一、传输与互联</h2>
+<h3 id="1-surma-efficient-fine-grained-communication-offload-for-superpod">1. SURMA: Efficient Fine-Grained Communication Offload for SuperPOD</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.21274">https://arxiv.org/abs/2611.21274</a></li>
+<li><strong>时间</strong>：2026-11-16</li>
+<li><strong>方向</strong>：通信卸载 · 细粒度传输 · RDMA 适配</li>
+</ul>
+<p><strong>摘要</strong>：GPU SuperPOD 支撑大规模 LLM 服务，但带宽与往返时间的增长让 GPU 间通信占用越来越多的计算资源：SM 驱动的远端内存访问会把在飞数据放在共享内存或寄存器里，并争抢 SM 到 NoC 的带宽。专用引擎能释放这些资源，但必须处理细粒度传输——小到 <strong>576 B 的 KV cache 条目</strong>；而 NVIDIA 的 CopyEngine 在 7 KB 粒度下只用到不到 1% 的 NVLink 带宽。SURMA 是一个片上 Scale-Up 远端内存访问引擎，要让 RDMA 适配这一场景需克服四个障碍：门铃提交慢、每应用连接状态过多、共享连接上完成通知的队头阻塞、以及多路径传输的排序代价。它用<strong>信用式共享发送队列</strong>把提交延迟从 1.2μs 降到 400ns，并用融合的 write-with-atomic 语义在保持独立性的同时共享连接。</p>
+<p><strong>对广域的启示</strong>：KV 的传输粒度天然是“几百字节到几 KB”，通用网络栈在这个尺度上效率极低。<strong>为 KV 条目尺寸专门设计的通信引擎</strong>，可能是跨节点（进一步跨域）取数把物理带宽转成有效吞吐的关键一环。</p>
+<h3 id="2-disaggregated-llm-inference-in-space-a-communication-feasibility-study">2. Disaggregated LLM Inference in Space: A Communication Feasibility Study</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.20893">https://arxiv.org/abs/2611.20893</a></li>
+<li><strong>时间</strong>：2026-11-16</li>
+<li><strong>方向</strong>：轨道数据中心 · PD/AFD 对比 · 链路约束</li>
+</ul>
+<p><strong>摘要</strong>：轨道数据中心有望支撑大规模 AI 推理，但要把前沿模型高效地服务给大量用户，可能需要多颗计算卫星通过光链路协作。分离式推理在地面数据中心已成熟，但其在轨道部署的独特约束下是否可行仍是开放问题。论文研究链路容量与卫星间距如何影响两类分离式服务：<strong>PD 分离（PDD）</strong> 每个请求迁移一次大 KV cache，<strong>Attention-FFN 分离（AFD）</strong> 则在每个 MoE 层、每个生成 token 上交换小激活。两者对距离的反应不同：PDD 主要受链路容量限制，链路足够快时可容忍<strong>上千公里</strong>的间距；AFD 则不然。</p>
+<p><strong>对广域的启示</strong>：这是“把 KV 传输推到极限”的思想实验，但结论对地面广域同样成立——<strong>PD 分离的可行性由单次大块传输的容量决定，AFD 则由高频小块交换的时延决定</strong>；选架构前先看网络是容量受限还是时延受限。</p>
+<h3 id="3-callo-serving-cache-miss-requests-with-speculative-decoding-on-invalidated-kv-under-prefill-decode-disaggregation">3. Callo: Serving Cache-Miss Requests with Speculative Decoding on Invalidated KV under Prefill-Decode Disaggregation</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.18459">https://arxiv.org/abs/2611.18459</a></li>
+<li><strong>时间</strong>：2026-11-13</li>
+<li><strong>方向</strong>：失效缓存 · 推测解码 · PD 分离</li>
+</ul>
+<p><strong>摘要</strong>：agent 会话常有频繁的上下文编辑，这会<strong>使已缓存的 KV 失效</strong>，请求被迫等一次 re-prefill 才能开始解码。Callo 是一个分离式服务系统，把失效的 KV 用来做<strong>推测草稿</strong>以降低这段延迟，同时在 prefill 之后用精确 KV 验证草稿再提交 token。它通过把推测调度到解码资源空闲期、并在草稿大概率不被接受时抢占推测，来提高资源利用率。在两卡测试床、三个模型族的 SWE-agent 会话上，中等负载下全请求加速 1.05–1.19×（相对 vLLM），并用真实 trace 驱动的集群级仿真证明该收益可扩展。</p>
+<p><strong>对广域的启示</strong>：失效的 KV 不是垃圾——<strong>它仍能提供“差不多的”前缀信息用于草稿</strong>，只要最终用精确 KV 校验。跨域场景中，先到达的旧版本 KV 可以立刻开始工作，等新 KV 到了再纠正。</p>
+<h3 id="4-kvmark-fragile-watermarking-for-kv-cache-integrity-in-latent-multi-agent-systems">4. KVMARK: Fragile Watermarking for KV-Cache Integrity in Latent Multi-Agent Systems</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.20454">https://arxiv.org/abs/2611.20454</a></li>
+<li><strong>时间</strong>：2026-11-16</li>
+<li><strong>方向</strong>：KV 水印 · 传输完整性 · 潜在通信</li>
+</ul>
+<p><strong>摘要</strong>：潜在多 agent 通信直接传输 transformer agent 之间的 KV 张量，绕过文本序列化；这既高效又准确，但通道不透明，容易遭到<strong>中间人篡改</strong>——这是现有基于文本或行为的 watermark 完全无法覆盖的攻击面，因为它们无法作用于连续内部表示。论文提出 KVMark：一个无需训练、<strong>零比特</strong>的 KV 缓存水印框架，用于验证 agent 交接的完整性。它包含四项设计：位置相关的符号模式（保证一阶统计不可见、同时保留下游注意力可用性）、按头符号模式并对齐检测（抵御头平均攻击）、三层深度感知的强度调度（让不同层的检测灵敏度均衡且保持不可见）等。</p>
+<p><strong>对广域的启示</strong>：KV 一旦离开本机，就同时面对<strong>窃听与篡改</strong>两类风险。零比特水印不占带宽却能做完整性校验，是跨域 KV 传输值得内置的一层保护。</p>
+<hr />
+<h2 id="_3">二、压缩与量化</h2>
+<h3 id="5-rethinking-kv-caching-for-llm-decode-free-space-optical-kv-regeneration-for-reduction-of-memory-traffic">5. Rethinking KV Caching for LLM Decode: Free-Space Optical KV Regeneration for Reduction of Memory Traffic</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.19279">https://arxiv.org/abs/2611.19279</a></li>
+<li><strong>时间</strong>：2026-11-14</li>
+<li><strong>方向</strong>：光学重生成 · 访存瓶颈 · 架构协同</li>
+</ul>
+<p><strong>摘要</strong>：长上下文解码反复读取历史 KV，使 MHA 受限于内存带宽。若改为缓存<strong>层输入激活</strong>，历史缓存存储与流量都能减半，但需要从每个缓存激活重生成 KV；在 GPU 这类数字加速器上，重生成比从 HBM 取激活慢得多，省下的流量被重生成开销吃掉，瓶颈从访存变成算力。论文提出 OptiDecode：一个<strong>光电混合</strong>的解码注意力加速器，用自由空间光学重生成历史 KV、用数字电路做注意力。投影权重常驻光学 tile，利用其跨历史 token 的复用实现高吞吐光学重生成；扩展到更大模型时还要解决权重分散到多 tile 后同一激活需要重复发送等问题。</p>
+<p><strong>对广域的启示</strong>：这是“<strong>别搬 KV，搬更小的东西再算回来</strong>”的硬件级版本。对跨域场景的启示是：把带宽压力换成算力，在算力富余、链路昂贵时是划算的——前提是重生成足够便宜。</p>
+<h3 id="6-mistiq-microscaling-trellis-quantization-for-extreme-kv-cache-compression">6. MiSTiQ: MicroScaling Trellis Quantization for Extreme KV Cache Compression</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.21216">https://arxiv.org/abs/2611.21216</a></li>
+<li><strong>时间</strong>：2026-11-16</li>
+<li><strong>方向</strong>：格量化 · MX 格式 · 低精度计算</li>
+</ul>
+<p><strong>摘要</strong>：更长上下文与更大并发同时推高 KV 体积与访存流量。KV 量化能降成本，近期用码本向量量化达到极低位宽，但受硬件限制：码本不能太大，且多数方法要先把缓存<strong>还原成高精度浮点</strong>再做注意力，量化带来的计算收益被抹掉。MiSTiQ 是码本向量量化器的直接替代：把<strong>格编码存储</strong>与 microscaling（MX）格式结合以支持低精度计算，用格量化 + beam search 在大的重建空间上编码 KV，从而不需要大码本；为支持 MX 计算还推导了 MX-Hash 函数来生成重建值。</p>
+<p><strong>对广域的启示</strong>：量化只有在<strong>接收端也能低精度消费</strong>时才真正省——否则解压回 BF16 会把收益吃回去。跨域传输应约定“压缩态一路走到注意力”。</p>
+<h3 id="7-nvfp4-mla-unified-fp4-kv-cache-storage-and-attention-computation-for-multi-head-latent-attention">7. NVFP4-MLA: Unified FP4 KV-Cache Storage and Attention Computation for Multi-Head Latent Attention</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.18972">https://arxiv.org/abs/2611.18972</a></li>
+<li><strong>时间</strong>：2026-11-13</li>
+<li><strong>方向</strong>：MLA · FP4 存储与计算 · kernel 协同</li>
+</ul>
+<p><strong>摘要</strong>：长上下文推理与 agent 负载让 KV 容量与注意力计算成为前沿模型服务的主要成本。NVFP4-MLA 首次把 MLA 的 <strong>KV 存储与注意力计算同时推到 FP4</strong>：量化算法与注意力 kernel、缓存系统协同设计。选择性残差补偿只给量化敏感通道加 NVFP4 残差以保精度；二维量化块让共享 latent 缓存同时兼容两个注意力 BMM 的不同归约方向，省掉二者之间的重量化。在 DeepSeek-R1 与 Kimi-K3 上，九个基准的平均精度与 BF16 MLA 持平，MLA KV 缓存相对 BF16 压缩 3.20× 与 3.05×；在 NVIDIA Rubin GPU 上，注意力 kernel 相对 FP8 MLA 有明显加速。</p>
+<p><strong>对广域的启示</strong>：MLA 已是主流前沿模型的缓存形态，<strong>FP4 让 3× 字节缩减几乎无损</strong>；跨域传输若面向 DeepSeek/Kimi 类模型，FP4 应作为默认选项评估。</p>
+<h3 id="8-memory-efficient-speculative-decoding-with-quantized-draft-kv-cache">8. Memory-Efficient Speculative Decoding with Quantized Draft KV Cache</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.20565">https://arxiv.org/abs/2611.20565</a></li>
+<li><strong>时间</strong>：2026-11-16</li>
+<li><strong>方向</strong>：推测解码 · 草稿缓存量化 · 精度分配</li>
+</ul>
+<p><strong>摘要</strong>：推测解码降低生成成本，但要同时存目标模型与草稿模型两份 KV。论文只量化<strong>草稿缓存</strong>，目标缓存与验证器保持 BF16，从而保证压缩不会改变目标模型的纠正规则。它先研究 K/V 之间如何分精度：朴素的逐 token 量化器让 key 显得敏感得多——12 bit 预算下 K8V4 比 K4V8 的接受率高 10.87 个百分点；但换成<strong>分组逐通道的 key</strong> 后，差距变成 -0.25 个百分点。受控实验证实只改 key 量化器就能抹平甚至反转偏好位宽切分。据此提出 K4V4（逐通道 key + 逐 token value）：六组模型对上草稿缓存降 66.20%，两份缓存合计降 23.95%，平均接受率从 57.93% 降到 57.14%（相对仅降 1.36%）。</p>
+<p><strong>对广域的启示</strong>：<strong>不是所有 KV 都同等重要</strong>——草稿模型的 KV 可以激进压缩，因为它只影响“提议”而非“最终裁决”。跨域时按“谁有权纠正”来分配压缩预算，是很有用的原则。</p>
+<hr />
+<h2 id="_4">三、复用与状态管理</h2>
+<h3 id="9-kaleidokv-rearranging-evidence-for-efficient-kv-cache-reuse-in-offline-rag-inference">9. KaleidoKV: Rearranging Evidence for Efficient KV Cache Reuse in Offline RAG Inference</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.19253">https://arxiv.org/abs/2611.19253</a></li>
+<li><strong>时间</strong>：2026-11-14</li>
+<li><strong>方向</strong>：RAG 复用 · 证据重排 · 批量规划</li>
+</ul>
+<p><strong>摘要</strong>：离线 RAG 批量问答中，相关问题常检索到<strong>重叠的证据</strong>，但前缀缓存只能复用完全相同的 token 前缀，复用程度取决于证据排列顺序。虽然所有问题与证据在执行前已知，现有重排方法却过早锁定分组决策，会错过需要多个请求协同移动才能形成的共享机会；而评估候选布局的规划成本又可能抵消推理节省，并发请求也可能在共享前缀的 KV 就绪前就重复计算。KaleidoKV 在批量层面规划证据顺序，并控制请求进入引擎的时机，同时保持每个请求的证据集合不变。</p>
+<p><strong>对广域的启示</strong>：<strong>重排就是压缩</strong>——把共享前缀对齐，等价于把“要传的字节”和“要算的 prefill”同时减少。跨域批量推理时，调度器应把“顺序”当作可优化的自由度。</p>
+<h3 id="10-architectures-and-kv-replay-for-depth-recurrent-language-models">10. Architectures and KV Replay for Depth-Recurrent Language Models</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.19446">https://arxiv.org/abs/2611.19446</a></li>
+<li><strong>时间</strong>：2026-11-14</li>
+<li><strong>方向</strong>：深度循环 · KV 重放 · 架构协同</li>
+</ul>
+<p><strong>摘要</strong>：深度循环通过反复应用固定计算块来增加有效深度，但<strong>共享注意力参数并不共享不同循环轮次生成的 KV 状态</strong>，导致自回归解码时显存随循环深度增长。论文在统一框架内研究如何通过架构与缓存共享降低这部分成本：先研究循环混合架构（重复一组 Transformer 层，用循环 mLSTM 或 Gated DeltaNet 块替代大部分注意力层，并周期性保留 Transformer 注意力锚点）；再把循环限制在专门的循环工作区（Parcae 风格）并测试其稳定化 adapter；最后训练一个<strong>带循环 KV 重放</strong>的循环 Transformer——只让选定的循环轮次写 KV 状态，供后续轮次复用。</p>
+<p><strong>对广域的启示</strong>：模型架构层面的“少写 KV”能直接减少需要存储与传输的状态量；<strong>让少数轮次写入、其余复用</strong>，等价于把每层 KV 数按循环深度除以一个系数。</p>
+<hr />
+<h2 id="_5">今日观察</h2>
+<ol>
+<li><strong>传输粒度正在成为专门工程</strong>：SURMA 为 576B 的 KV 条目改造远端内存访问引擎，说明通用网络栈在小对象上效率极低——跨域取数同样要先解决“按对象计费”的问题。</li>
+<li><strong>“重生成”与“传输”在硬件层面重新分工</strong>：OptiDecode 用光学就地重生成历史 KV，把带宽瓶颈换成算力瓶颈；这与 AnchorKV 的“传锚点、算回来”是同一思路的两个层次。</li>
+<li><strong>极端量化已进入 FP4 时代</strong>：NVFP4-MLA 在 MLA 上做到 3× 压缩且精度持平，MiSTiQ 用格量化绕开码本限制，草稿 KV 甚至可以用 K4V4。</li>
+<li><strong>KV 离开本机后要同时防窃听与防篡改</strong>：KVMark 的零比特水印提供了一个不占带宽的完整性方案。</li>
+</ol>
+<blockquote>
+<p>注：本期摘要基于 arXiv 官方摘要页整理；具体实验设置与数字以 PDF 原文为准。</p>
+</blockquote>
+</main>
+<nav class="pager"><a class="pager-link" href="2026-11-17.html"><span class="dir">← 上一期</span><span class="d">11月17日</span></a></nav>
+<footer class="footer"><span>KV Cache 日报</span><a href="../index.html">返回目录</a></footer>
+
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

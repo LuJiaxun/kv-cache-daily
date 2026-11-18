@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KV Cache 日报 · 2026-11-19</title>
+<meta name="description" content="2026-11-19 的 KV Cache 论文摘要，10 篇。">
+<meta name="theme-color" content="#f6f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="day-page">
+
+<header class="topbar">
+  <a class="back" href="../index.html"><span aria-hidden="true">←</span> 全部日报</a>
+  <span class="top-date">2026年11月19日 · 周四</span>
+</header>
+<main class="report">
+<h1 id="kv-cache-2026-11-19">KV Cache 论文日报 · 2026-11-19</h1>
+<blockquote>
+<p><strong>今日 10 篇</strong>：混合注意力下的非前缀复用 5 篇（重点方向）· 传输与内存池 3 篇 · 评估与状态通信 2 篇</p>
+<p><strong>本期主线</strong>：非前缀复用终于开始正面处理“<strong>复用会污染语义</strong>”这件事——直接搬别人的 KV，冲突任务下准确率能掉 90%，所以这一批论文都在做“<strong>少传一点、补一点</strong>”：用少量 latent token 做任务条件化的补救，或训练一个块选择器决定重算哪几块。</p>
+<p><strong>说明</strong>：本期按重点方向优先检索，「混合注意力非前缀复用」分册为保持脉络完整，收录了 2026-10-13 至 11-17 的连续性工作；其余为 2026-11-16 至 11-17 的新论文。摘要依据 arXiv 官方摘要整理。</p>
+</blockquote>
+<h2 id="_1">速览</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>论文</th>
+<th>方向</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>LatentRemedy: Efficient Remedy For Non-Prefix KV Cache Reuse in Multi-Agent Systems</td>
+<td>非前缀复用污染修复</td>
+<td>arXiv:2610.18014</td>
+</tr>
+<tr>
+<td>2</td>
+<td>CacheWeave: Learning to Recompute for Efficient Position-Independent KV Caching</td>
+<td>位置无关缓存 + 学习式重算</td>
+<td>arXiv:2611.01735</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Selective and Hybrid-State Communication for Latent Multi-Agent Systems</td>
+<td>混合模型状态通信</td>
+<td>arXiv:2610.37779</td>
+</tr>
+<tr>
+<td>4</td>
+<td>GaugeRoPE: RoPE-Compatible Executable Latent Attention</td>
+<td>RoPE 兼容 latent 复现</td>
+<td>arXiv:2611.20524</td>
+</tr>
+<tr>
+<td>5</td>
+<td>The State Is Not the Bottleneck: A Paged-State Gated-DeltaNet Tile</td>
+<td>递归状态分页成本</td>
+<td>arXiv:2611.18422</td>
+</tr>
+<tr>
+<td>6</td>
+<td>HyCoInfer: Cloud-Edge Collaborative Inference on Heterogeneous GPU-FPGA</td>
+<td>云边广域传 KV</td>
+<td>arXiv:2611.22086</td>
+</tr>
+<tr>
+<td>7</td>
+<td>XM-Sparse: High-Throughput Sparse-Attention LLM Serving over Scale-up Memory Pools</td>
+<td>内存池稀疏卸载</td>
+<td>arXiv:2611.22280</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Storing the Gemma 4 K=V Cache Once</td>
+<td>精确共享 KV 存储</td>
+<td>arXiv:2611.23035</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Cross-Modal StateKV Injection for Communication in Multi-LLM Systems</td>
+<td>跨模型 KV 状态注入</td>
+<td>arXiv:2611.22304</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Re-Reading Is Not Free: Token Traces and Cache-Aware Energy Estimation</td>
+<td>缓存读取能耗核算</td>
+<td>arXiv:2611.20873</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="5">一、重点方向：混合注意力下的非前缀复用（5 篇）</h2>
+<h3 id="1-latentremedy-efficient-remedy-for-non-prefix-kv-cache-reuse-in-multi-agent-systems">1. LatentRemedy: Efficient Remedy For Non-Prefix KV Cache Reuse in Multi-Agent Systems</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.18014">https://arxiv.org/abs/2610.18014</a></li>
+<li><strong>时间</strong>：2026-10-13</li>
+<li><strong>方向</strong>：非前缀复用 · 语义污染 · 任务条件化补救</li>
+</ul>
+<p><strong>摘要</strong>：多 agent 系统共享同一批上下文块，非前缀复用能显著提效；但当 agent 任务相互冲突时，直接复用别处的非前缀 KV 会让性能<strong>最多掉 90%</strong>。现有补救（选择性重算、基于偏移的校准）只能挽回一小部分损失。论文指出问题不只在于 KV 表示被“污染”，还在于<strong>目标 agent 难以在自己的指令下解读被复用的上下文</strong>。LatentRemedy 因此用少量<strong>任务条件化的 latent token</strong> 来帮目标 agent 使用共享上下文而不必重算整块：用一个 MLP 把目标前缀的最后隐状态映射成几个 latent token，插在被复用的 KV 块之后与共享上下文交互，并通过 full-prefill 蒸馏训练该 MLP。在冲突任务上一致优于现有复用基线，且随着缓存变大 TTFT 仍接近“直接复用”。</p>
+<p><strong>对广域的启示</strong>：这是对“<strong>跨域复用不是免费的</strong>”最直接的量化。跨域搬来的 KV 若来自不同任务/不同 agent，语义会漂移；此时<strong>传几个 latent token 让接收端自行校准</strong>，比多传几 MB 的 KV 或整段重算都便宜。这份补救信息只有几个 token 的大小，跨网成本几乎可以忽略。</p>
+<h3 id="2-cacheweave-learning-to-recompute-for-efficient-position-independent-kv-caching">2. CacheWeave: Learning to Recompute for Efficient Position-Independent KV Caching</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.01735">https://arxiv.org/abs/2611.01735</a></li>
+<li><strong>时间</strong>：2026-11-01</li>
+<li><strong>方向</strong>：位置无关缓存 · 学习式块选择 · 混合注意力</li>
+</ul>
+<p><strong>摘要</strong>：位置无关缓存（PIC）跨位置、跨请求复用 chunk KV，但独立编码会丢掉 chunk 之间的交互，精度下降。论文实测发现：<strong>PIC 训练与基于规则的重算，单独或组合都不能稳定恢复到全量 prefill 的精度</strong>；而在 PIC 训练过的模型上做“oracle 指导的重算”，同样预算下精度有明显提升——说明关键在<strong>选对要重算的块</strong>。CacheWeave 先把整个 backbone 适配到 PIC，再冻结它，用适配模型的 oracle 训练一个<strong>模型原生的块选择器</strong>；选择器只用紧凑的 chunk 特征与 question 隐状态，不需要抽取 backbone 的注意力分数，且选择的是与 KV 块对齐的连续 token 块，从而既高效又限制 copy-on-write 放大。运行时 CacheWeave-Serve 支持私有与共享 KV 缓存，选择与重算都在 GPU 上，并为<strong>混合注意力模型的滑动窗口 KV 做 staging</strong>。三个模型四个任务上，5% 重算预算下比 CacheBlend、ProphetKV 平均高 7.2 与 3.5 个百分点，相对全量 prefill 平均精度损失 1.6%；32-token 块下单请求 TTFT 最高快 16.1×（相对全量 prefill）、1.7×（相对 ProphetKV），负载下 SLO goodput 最高 7.8×。</p>
+<p><strong>对广域的启示</strong>：<strong>“传片段 + 端点选择性重算”是跨域复用的正解形态</strong>。选择器在本地运行、只依赖已缓存的紧凑特征，意味着接收端不必回传任何东西就能决定重算哪几块；重算量被压到 5% 预算，跨域带宽与本地算力的配比因此可调。</p>
+<h3 id="3-selective-and-hybrid-state-communication-for-latent-multi-agent-systems">3. Selective and Hybrid-State Communication for Latent Multi-Agent Systems</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.37779">https://arxiv.org/abs/2610.37779</a></li>
+<li><strong>时间</strong>：2026-10-27</li>
+<li><strong>方向</strong>：混合线性注意力 · KV+状态通信 · 多 agent</li>
+</ul>
+<p><strong>摘要</strong>：多 agent 系统的通信是主要瓶颈；潜在通信通过传内部状态减少自然语言往返，但这些传输仍然昂贵，且通常围绕传统 KV 表示设计。论文从两个角度切入：<strong>SelectKV</strong> 是边界感知的方法，有选择地传 KV 状态同时保护继承来的上下文；<strong>HyLaMAS</strong> 把潜在协作扩展到<strong>混合线性注意力模型</strong>，通过共享工作区同时通信 <strong>KV 缓存与循环状态</strong>。六个基准确认下，SelectKV 把通信的 KV 位置与逻辑 KV 负载减少 9.7–9.9%，两个基准精度不变、三个在一个百分点内、HumanEval+ 低 6 分；在 Qwen3.5 各规模上，HyLaMAS 相对文本式多 agent 通信把解码输出 token 减少 53–80%，取得 1.16–2.78× 加速。</p>
+<p><strong>对广域的启示</strong>：这是本专题里<strong>唯一明确回答“状态怎么跨 agent 传”的论文</strong>——混合模型必须同时传 KV 与循环状态，二者缺一不可。对跨域的直接含义是：<strong>传输协议要按模型架构分叉</strong>，纯 KV 的通道在混合模型上是不完整的。</p>
+<h3 id="4-gaugerope-rope-compatible-executable-latent-attention">4. GaugeRoPE: RoPE-Compatible Executable Latent Attention</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.20524">https://arxiv.org/abs/2611.20524</a></li>
+<li><strong>时间</strong>：2026-11-16</li>
+<li><strong>方向</strong>：latent 压缩 · RoPE 兼容 · 可直接执行</li>
+</ul>
+<p><strong>摘要</strong>：latent KV 压缩把历史 K/V 映射到紧凑表示以减少内存，但通用压缩后的 key 状态<strong>必须还原到原始维度</strong>才能施加 RoPE 并算注意力分数，这给解码路径加上随序列增长的开销。论文刻画了“latent KV 表示何时可以直接作为预训练 RoPE 的执行状态”：对基于 RoPE 的 transformer，旋转 key 路径的<strong>精确静态线性执行</strong>要求 latent-to-native 映射通过一个 intertwining 关系保持预训练的 RoPE 作用，这把精确混合限制在共享同一 RoPE 频率的坐标上。据此构造的 GaugeRoPE 是训练免的：一个保持旋转作用的 RoPE 兼容载体，加上一个<strong>近似位置无关的残差 key-value（RKV）修正</strong>来补充 key 与 value 的信息，两者都不需要逐 token 重建稠密历史 K/V。Mistral-7B 上实现 <strong>5.85×</strong> KV 压缩且质量接近全缓存，解码吞吐最高达未压缩基线的 <strong>2.48×</strong>。</p>
+<p><strong>对广域的启示</strong>：<strong>“压缩态一路走到计算”有了理论基础</strong>——只要满足 RoPE 的 intertwining 条件，接收端不必先解压就能直接跑注意力。这对跨域尤其关键：省下的不只是带宽，还有接收端的解压开销。</p>
+<h3 id="5-the-state-is-not-the-bottleneck-a-paged-state-gated-deltanet-tile-on-a-tri-mode-multicast-mesh">5. The State Is Not the Bottleneck: A Paged-State Gated-DeltaNet Tile on a Tri-Mode Multicast Mesh</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.18422">https://arxiv.org/abs/2611.18422</a></li>
+<li><strong>时间</strong>：2026-11-13</li>
+<li><strong>方向</strong>：递归状态分页 · 状态体积 · 硬件实测</li>
+</ul>
+<p><strong>摘要</strong>：线性注意力模型用固定大小的递归状态替代增长的 KV。在边缘 FPGA 上这个状态可能超出片上内存、必须分页到外部存储。论文问的是：这种分页会不会主导解码成本？作者做了一个硬件 tile，在 Agilex 5 FPGA 上计算一个自研 3.69 亿参数混合 Gated DeltaNet 模型的<strong>完整一层</strong>并对递归状态分页。模型状态需要 <strong>6.2 MiB</strong>，而器件只有 0.87 MiB 块内存；分页每个解码 token 增加 <strong>26.0 MB</strong> 访存流量，但<strong>最多只占计算总量的 11.2%</strong>。75 MHz 下（合成权重）这一层一个 token 耗时 11.15 ms，其中权重矩阵向量乘约占 62%，状态阶段（含分页）占 13%。论文还对比了定点与浮点误差，并验证硬件与定点参考逐位一致。</p>
+<p><strong>对广域的启示</strong>：这是<strong>最硬的“状态有多大、搬它多贵”的实测数据</strong>：6.2 MiB 的状态、每 token 26 MB 分页流量，只占 11.2%——说明<strong>循环状态的搬运成本相对算力是可接受的</strong>。把“分页到外部存储”换成“跨网传到对端”，量级上完全可行；这也从硬件侧支持了本期主线：跨域传状态比传整段 KV 划算得多。</p>
+<hr />
+<h2 id="_2">二、传输与内存池</h2>
+<h3 id="6-hycoinfer-cloud-edge-collaborative-inference-for-large-language-models-on-heterogeneous-gpu-fpga-architectures">6. HyCoInfer: Cloud-Edge Collaborative Inference for Large Language Models on Heterogeneous GPU-FPGA Architectures</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.22086">https://arxiv.org/abs/2611.22086</a></li>
+<li><strong>时间</strong>：2026-11-17</li>
+<li><strong>方向</strong>：云边协作 · 广域 KV 传输 · 带宽自适应压缩</li>
+</ul>
+<p><strong>摘要</strong>：LLM 服务主要依赖云 GPU，但自回归解码受限于访存、算术单元常被闲置；边缘 FPGA 解码效率好，却撑不起高并发。HyCoInfer 把 <strong>prefill 放在云 GPU、decode 分散到云 GPU 与边缘 FPGA</strong>，正面处理三个障碍：异构加速器之间的容量平衡、<strong>大 KV cache 跨越受限广域链路</strong>、以及异构执行带来的额外时延。它把 FPGA 解码容量纳入 GPU 的 prefill/decode 角色划分，并按队列负载、prompt 长度与网络状态放置请求；技术上组合了<strong>逐层流水线传输、解码端预计算、以及基于残差向量量化的带宽自适应 KV 压缩</strong>。用两张 V100 与一块 Alveo U280、在 100–1000 Mbps 链路上实测：500 Mbps 时请求 goodput 最高为纯云 vLLM 的 <strong>4.11×</strong>，平均端到端时延降低最多 <strong>61.1%</strong>；通信密集任务增益最大，且每请求能耗下降。</p>
+<p><strong>对广域的启示</strong>：这篇几乎就是“跨广域 KV 传输”的标准答案模板——<strong>逐层流水线（边传边算）+ 带宽自适应量化（RVQ）+ 网络状态感知的放置</strong>。值得注意的是它在 100–1000 Mbps 这个真实广域/边缘带宽区间做的评估，比动辄 100 Gbps 的集群内论文更有参考价值。</p>
+<h3 id="7-xm-sparse-high-throughput-sparse-attention-llm-serving-over-scale-up-memory-pools">7. XM-Sparse: High-Throughput Sparse-Attention LLM Serving over Scale-up Memory Pools</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.22280">https://arxiv.org/abs/2611.22280</a></li>
+<li><strong>时间</strong>：2026-11-17</li>
+<li><strong>方向</strong>：稀疏注意力 · scale-up 内存池 · 双缓存卸载</li>
+</ul>
+<p><strong>摘要</strong>：生产模型越来越多用稀疏注意力做长上下文，但服务系统仍要保留完整 KV 历史，GPU HBM 容量因此成为并发上限。现有系统把 KV 卸载到主机内存，受限于 PCIe 带宽与主机内存容量；新兴的 <strong>scale-up 内存池（如 X-Mem）</strong>同时缓解两个限制。论文先做深入分析，发现即使有 scale-up 内存池，解码吞吐仍受 <strong>HBM 容量</strong>约束——因为热 KV 缓冲与<strong>常驻的 indexer key（K-index）缓存</strong>占用了大量 HBM，且两者访问模式不同。XM-Sparse 是首个面向 scale-up 内存扩展的稀疏注意力卸载系统：把两种缓存都积极卸载，并为各自匹配定制 I/O——动态选取的 KV 条目用 <strong>TMA 检索与注意力在 tile 级流水线中融合</strong>来隐藏按需检索延迟；可预测的 K-index 访问用 SM 高效的 GPU 发起 DMA 预取页，并与延迟关键操作协调以免干扰解码。在 SGLang 上实现，DeepSeek-V3.2 与 GLM-5.3、16K–1M 上下文下，解码吞吐最高为 PCIe 方案 ECHO 的 <strong>4.98×</strong>、HiSparse 的 <strong>4.52×</strong>，比同平台朴素集成高 <strong>1.34×</strong>。</p>
+<p><strong>对广域的启示</strong>：<strong>热数据与冷数据要用不同的搬运机制</strong>——这是跨域设计常被忽视的一点。KV 条目是“按需、难预测”，indexer key 是“可预测、可批量预取”；跨域时前者适合小步快取，后者适合提前批量同步。</p>
+<h3 id="8-storing-the-gemma-4-kv-cache-once-exact-global-kv-memory-savings-in-a-paged-serving-engine-with-unchanged-attention-kernels">8. Storing the Gemma 4 K=V Cache Once: Exact Global-KV Memory Savings in a Paged Serving Engine with Unchanged Attention Kernels</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.23035">https://arxiv.org/abs/2611.23035</a></li>
+<li><strong>时间</strong>：2026-11-17</li>
+<li><strong>方向</strong>：架构感知存储 · 精确共享 · 传输/卸载</li>
+</ul>
+<p><strong>摘要</strong>：Gemma 4 31B 的全局注意力层里，<strong>value 就是归一化后的 key 投影，key 则是 value 乘一个固定权重</strong>，并只对四分之一维度做 RoPE。Gemma 4 报告称该设计能把全局 KV 缓存减少最多 37.5%，但作者检查的开源服务引擎<strong>仍在存一份完整 key 和一份完整 value</strong>（每 KV 头每 token 1024 个 value）。论文改成只存一行 <strong>640 个 value</strong>，在实数算术下精确，且<strong>不修改 paged attention kernel</strong>——让 kernel 通过两个重叠的 strided view 把它分别读作 key 缓存与 value 缓存。vLLM 原型（16-bit 31B）上输出与在标准缓存上模拟同一算术的结果逐位一致，432 个最终答案中 2 个与标准引擎不同（在其运行波动内），稳态解码每请求 KV 内存降 <strong>1.34–1.40×</strong>（32K–64K token）；在两块 A100 的 prefill/decode 组合、<strong>NIXL 传输 + CPU offload</strong> 下，15 GiB 池的解码引擎每步 token 数是标准引擎的 <strong>1.38×</strong>（16K prompt）、<strong>1.24×</strong>（8K prompt），block pool 模型预测误差在 1% 内。代价是等 batch 下 eager step 慢 4%–9%，且暂不能与 8-bit KV 缓存默认叠加。</p>
+<p><strong>对广域的启示</strong>：<strong>架构自带的冗余是免费午餐</strong>——不需要任何近似，就能把跨域传输的 KV 字节降 1.34–1.40×。这类“按模型结构精确去重”应当排在量化之前：它不引入误差，也不会和解压路径打架。</p>
+<hr />
+<h2 id="_3">三、评估与状态通信</h2>
+<h3 id="9-cross-modal-statekv-injection-for-communication-in-multi-llm-systems-across-temporal-segments">9. Cross-Modal StateKV Injection for Communication in Multi-LLM Systems across Temporal Segments</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.22304">https://arxiv.org/abs/2611.22304</a></li>
+<li><strong>时间</strong>：2026-11-17</li>
+<li><strong>方向</strong>：跨模型状态注入 · 视觉 KV · 多 LLM 通信</li>
+</ul>
+<p><strong>摘要</strong>：多模态多模型视频理解需要一个能传递互补视觉观察的通信接口。文本通信可解释，但引入中间生成阶段并可能丢失后续推理所需信息。论文研究 <strong>Cross-Modal StateKV Injection</strong>：一个 provider–carrier 框架，在视觉 token 位置通过 KV 状态通信。provider 模型观察互补的视频帧，其视觉 KV 状态被对齐并投影到 carrier 的表示空间，通过<strong>门控残差更新</strong>整合进 carrier。注入保持 carrier 的 KV 缓存序列长度不变，但保留 provider 与通信模块所需的额外计算。在 MLVU 与 Video-MME 上，用两种 provider 架构比较 carrier-only 推理、文本通信与 StateKV：结果显示<strong>温和且依赖任务的精度增益</strong>，以及比文本通信基线更低的报告延迟，部分类别无变化。</p>
+<p><strong>对广域的启示</strong>：这是一次诚实的“负结果倾向”报告——<strong>直接注入别人的 KV 状态收益有限</strong>，且强依赖任务类别。它从侧面印证了本期主线：跨模型/跨域的状态复用不是“插进去就行”，需要任务条件化的适配层（如 LatentRemedy 的做法）。</p>
+<h3 id="10-re-reading-is-not-free-token-traces-and-cache-aware-energy-estimation-for-llm-agents-in-software-engineering">10. Re-Reading Is Not Free: Token Traces and Cache-Aware Energy Estimation for LLM Agents in Software Engineering</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.20873">https://arxiv.org/abs/2611.20873</a></li>
+<li><strong>时间</strong>：2026-11-16</li>
+<li><strong>方向</strong>：能耗核算 · 缓存读取占比 · Agent 负载</li>
+</ul>
+<p><strong>摘要</strong>：LLM 从对话助手变成嵌入软件开发流程的自主 agent 后，估算其环境足迹不能再用传统 token 统计。现有能耗估算器只看孤立的请求-响应交互，忽略了累积上下文的重复处理、<strong>缓存复用</strong>与委派给子 agent 的工作。论文分析了十周真实 AI 辅助软件开发中 <strong>42 个会话、752 个任务片段、近十亿 token</strong>：<strong>缓存上下文读取占所有 API 上报 token 的 94.8%</strong>，而未缓存输入只占 0.017%；每生成一个 token 约读取 260 个缓存 token。上下文在一个会话内增长 5.3 倍（单个任务内 1.4 倍）。作者把分析式推理能耗模型扩展到能计入缓存上下文处理，得到 cache-aware 混合估算器：该负载约 <strong>250 kWh</strong>，而输出导向的 EcoLogits 只估约 <strong>10 kWh</strong>，<strong>25 倍差距</strong>主要来自缓存读取。从全新上下文开始每个任务可把估算降低约 60%；父会话日志只记录子 agent 最后一次内部调用，使委派 token 被少算 10 倍。</p>
+<p><strong>对广域的启示</strong>：<strong>缓存读取已经是推理的主导开销（94.8%）</strong>——这彻底改变了跨域系统的优化目标：与其纠结“传 KV 还是重算”，不如问“<strong>这份缓存到底被读了多少次</strong>”。读取次数高的前缀值得跨域复制多份，只读一次的完全不值得传。</p>
+<hr />
+<h2 id="_4">今日观察</h2>
+<ol>
+<li><strong>非前缀复用的核心矛盾被正面命名</strong>：LatentRemedy 给出量化——冲突任务下直接复用掉 90%，说明“搬过来的 KV”并不等于“可用的 KV”，这与之前收录的 <em>Close Enough is Nowhere Near</em> 完全一致。</li>
+<li><strong>补救信息可以极小</strong>：LatentRemedy 用几个 latent token、CacheWeave 用 5% 重算预算——<strong>跨域复用的最优形态可能是“传主体 + 传少量校准信号”</strong>，而不是全量搬运。</li>
+<li><strong>状态搬运的成本有了实测数字</strong>：Paged-State GDN 给出 6.2 MiB 状态、每 token 26 MB 分页流量、只占 11.2%——从硬件侧支持“传状态比传 KV 划算”。</li>
+<li><strong>压缩正在从“近似”走向“精确 + 可执行”</strong>：Gemma 4 的 K=V 单份存储是零误差的 1.34–1.40×，GaugeRoPE 让压缩态可直接执行（5.85×）。这两条路线对跨域最有价值，因为它们不牺牲质量也不增加接收端解压成本。</li>
+</ol>
+<blockquote>
+<p>注：本期摘要基于 arXiv 官方摘要页整理；具体实验设置与数字以 PDF 原文为准。</p>
+</blockquote>
+</main>
+<nav class="pager"><a class="pager-link" href="2026-11-18.html"><span class="dir">← 上一期</span><span class="d">11月18日</span></a></nav>
+<footer class="footer"><span>KV Cache 日报</span><a href="../index.html">返回目录</a></footer>
+
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

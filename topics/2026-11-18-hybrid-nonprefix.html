@@ -77,6 +77,27 @@
 <td>跨模型迁移循环状态而非 KV</td>
 <td>arXiv:2609.25053</td>
 </tr>
+<tr>
+<td>7</td>
+<td>Beyond K/V Caches: Cross-Model State Handoff in Hybrid Linear-Attention LLMs</td>
+<td>学术界</td>
+<td>KV + 循环状态 + 卷积历史三种状态一起迁移</td>
+<td>arXiv:2611.08133</td>
+</tr>
+<tr>
+<td>8</td>
+<td>SinkState: On-the-Fly SVD of Recurrent States for Efficient Hybrid LLM Serving</td>
+<td>学术界</td>
+<td>循环状态存成自适应低秩形式</td>
+<td>arXiv:2611.14246</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Request-Adaptive Execution for Efficient Hybrid LLM Inference（Morph）</td>
+<td>学术界</td>
+<td>混合感知上下文缓存 + 选择性批处理</td>
+<td>arXiv:2610.37432</td>
+</tr>
 </tbody>
 </table></div>
 <hr />
@@ -133,6 +154,31 @@
 </ul>
 <p><strong>摘要</strong>：混合线性注意力模型的<strong>原地循环状态更新</strong>让缓存管理复杂化：前缀复用需要与全注意力 KV 并存的<strong>状态检查点</strong>，而把检查点全量存下会加剧内存压力、导致更多驱逐与重复 prefill。作者分析 Gated DeltaNet（GDN）与 Kimi Delta Attention（KDA）的衰减结构，发现<strong>不同头与通道保留前缀信息的时间尺度差异极大</strong>（称为 retention horizon），这意味着持久状态检查点有可观的压缩空间。DASC 从模型权重推导保留时域，选出长时域状态单元，打包成 ragged 检查点布局，并在张量并行下均衡到各 rank；复用时要么对省略单元零填充，要么用有界后缀计算刷新。Kimi-Linear 上保守配置已接近全量缓存，把 KDA 循环状态检查点压缩 <strong>2.63×</strong>；在固定状态检查点内存预算下，容量增益使平均 TTFT 降 <strong>42.6%</strong>、输入吞吐提升 <strong>68.4%</strong>；更大压缩比下后缀刷新能挽回大部分精度损失。Qwen + GDN 呈现相似趋势，说明方法可从 KDA 的通道维推广到 GDN 的头维。</p>
 <p><strong>对广域的启示</strong>：<strong>状态检查点本身也是可压缩对象</strong>，2.63× 意味着跨域传输的状态包还能再小一半以上；更关键的是“保留时域”给出了<strong>按重要性分配字节</strong>的物理依据——长时域单元才值得花带宽。</p>
+<hr />
+<h3 id="7-beyond-kv-caches-cross-model-state-handoff-in-hybrid-linear-attention-llms">7. Beyond K/V Caches: Cross-Model State Handoff in Hybrid Linear-Attention LLMs</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.08133">https://arxiv.org/abs/2611.08133</a></li>
+<li><strong>时间</strong>：2026-11-05</li>
+<li><strong>方向</strong>：跨模型交接 · 三类状态迁移 · 级联服务</li>
+</ul>
+<p><strong>摘要</strong>：生产部署常用模型级联、路由与切换来平衡成本与质量，上下文随轮次累积，每次切换都要目标模型重跑 prefill。现有方法只迁移全注意力的 K/V；而混合线性注意力模型还有<strong>循环状态（REC）与卷积历史（Conv）</strong>，且二者互相纠缠——卷积扰动会改变循环层的 key/value 并影响 REC 更新，卷积历史会被覆盖、但 REC 的变化仍影响后续输出，因此<strong>更精确的 REC 重建并不必然带来更好的续写</strong>。论文提出 Hybrid State Transfer（HST）同时处理三类状态：用结构化 REC 映射、在卷积对齐时保持历史顺序，并用冻结目标模型的续写输出校准 adapter，FA cache 的映射则离线合并。五个基准上，Qwen3.5 4B→27B 与 9B→27B 的平均任务保持率为 <strong>89.88%</strong> 与 <strong>94.11%</strong>；源缓存已就绪时，16K 合成输入上的交接体加速达 <strong>21.66×/21.91×</strong>。</p>
+<p><strong>对广域的启示</strong>：跨域切换模型时，<strong>要迁的不是一份 KV，而是三类异构状态</strong>；而且“重建得更准”不等于“用得更好”，校准必须以下游续写为准。这是把“KV 传输”升级成“推理状态迁移”的最完整论述。</p>
+<h3 id="8-sinkstate-on-the-fly-svd-of-recurrent-states-for-efficient-hybrid-llm-serving">8. SinkState: On-the-Fly SVD of Recurrent States for Efficient Hybrid LLM Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.14246">https://arxiv.org/abs/2611.14246</a></li>
+<li><strong>时间</strong>：2026-11-10</li>
+<li><strong>方向</strong>：循环状态低秩化 · 在线 SVD · 访存优化</li>
+</ul>
+<p><strong>摘要</strong>：论文发现线性层的 query/key/value 集中在<strong>稳定低维子空间</strong>（称为 linear attention sink），因此每个循环状态实际上是低秩的、且秩随状态而变；但现有服务系统仍以稠密形式保存这些状态、每步解码全量读写，访存随 batch 增长并主导解码成本。SinkState 在推理全程用<strong>自适应低秩形式</strong>存储循环状态，配合缓冲更新与只作用于顶部子空间的局部 SVD，剩余分量异步在 CPU 上合并。四个混合模型（Mamba-2 与 GDN 层，4B–120B）上，循环状态峰值内存最多降 <strong>2.6×</strong>（平均 1.9×），解码最高加速 <strong>1.58×</strong>（平均 1.25×），精度保持不变。</p>
+<p><strong>对广域的启示</strong>：循环状态本身也高度冗余，<strong>低秩存储后可传输的体积再降一半以上</strong>；如果跨域只同步“顶部子空间 + 少量残差”，延迟和带宽都会显著改善。</p>
+<h3 id="9-request-adaptive-execution-for-efficient-hybrid-llm-inferencemorph">9. Request-Adaptive Execution for Efficient Hybrid LLM Inference（Morph）</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.37432">https://arxiv.org/abs/2610.37432</a></li>
+<li><strong>时间</strong>：2026-10-27</li>
+<li><strong>方向</strong>：请求自适应布局 · 混合感知缓存 · 选择性批处理</li>
+</ul>
+<p><strong>摘要</strong>：多数混合模型沿用静态设计：Attention-to-SSM 布局一旦选定，所有请求走同一套混合执行；但真实负载中不同请求对上下文信息的依赖方式不同，一套布局并不普适。Morph 在模型与运行时两侧协同：每个 block 内配对 Attention 与 SSM 层，用<strong>prefill 阶段的 gating 为每个请求选出专属布局</strong>（解码期间固定）；运行时用 selective batching 在层选择分歧时保住批处理效率，并用<strong>混合感知上下文缓存</strong>保证前缀复用仍然正确——传统上下文缓存要求匹配前缀的所有层缓存都可复用，任何一层 KV 或 SSM 缓存不兼容就整体算 miss，而混合感知缓存按层索引，即使后续层分叉也能复用兼容部分。六个数据集上质量-效率权衡优于静态混合基线，系统吞吐最高 <strong>3.87×</strong>。</p>
+<p><strong>对广域的启示</strong>：这是“<strong>按层复用</strong>”的明确主张——不必整个前缀一致，只要逐层缓存兼容就能复用。跨域场景中，这允许把“部分命中的前缀”也利用起来，而不是非黑即白。</p>
 <hr />
 <h2 id="_5">横向对比：这个方向的四条技术路线</h2>
 <div class="table-wrap"><table>

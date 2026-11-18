@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>混合注意力下的非前缀复用 · 专题</title>
+<meta name="description" content="KV Cache 专题：混合注意力下的非前缀复用">
+<meta name="theme-color" content="#f6f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="day-page">
+
+<header class="topbar">
+  <a class="back" href="../index.html"><span aria-hidden="true">←</span> 全部日报</a>
+  <span class="top-date">专题 · 11月18日</span>
+</header>
+<main class="report">
+<h1 id="_1">专题 · 混合注意力下的非前缀复用</h1>
+<blockquote>
+<p><strong>为什么单列一个专题</strong>：主流开源模型（Qwen3.5、Kimi-Linear、MiniMax-M1、Ring-2.5 等）已把 75% 以上的层线性化，只保留少量全注意力层。这带来一个结构性矛盾——<strong>全注意力的 KV 是逐 token 可寻址的，线性注意力层只暴露一个 per-request 循环状态，没有逐 token 的抓手</strong>。于是业界成熟的「splice（沿 token 轴拼接）+ correction（重算少量 token 恢复跨段上下文）」在混合模型上直接失效：能复用的只剩严格前缀，而且只能在存过 checkpoint 的离散边界上命中。</p>
+<p>本专题收录 6 篇直接解这道题的论文，覆盖系统（HYPIC/Tandem）、机制（Tail-Replay/SparseX）、状态压缩（DASC）与跨模型迁移（LatentPort）。<strong>HYPIC 是其中最具代表性的工作</strong>（小红书大模型推理团队 + 北京大学 + 上海交通大学）。</p>
+<p><strong>说明</strong>：摘要依据 arXiv 官方摘要与论文正文整理；具体实验设置与数字以原文为准。</p>
+</blockquote>
+<h2 id="_2">速览</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>论文</th>
+<th>单位/场景</th>
+<th>核心手法</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>HYPIC: Position-Independent Caching for Hybrid-Attention LLM Serving</td>
+<td>小红书 + 北大 + 上交</td>
+<td>cached transitions 做常数时间状态合成</td>
+<td>arXiv:2607.01299</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Tail-Replay: Escaping the Curse of Linear Attention in Prefix Caching for Hybrid LLMs</td>
+<td>学术界</td>
+<td>重放短尾部重建循环状态</td>
+<td>arXiv:2608.30310</td>
+</tr>
+<tr>
+<td>3</td>
+<td>SparseX: Efficient Segment-Level KV Cache Sharing for Interleaved LLM Serving</td>
+<td>学术界/工业</td>
+<td>片段为复用单元 + Sparse-Q 定位修正 token</td>
+<td>arXiv:2606.01751</td>
+</tr>
+<tr>
+<td>4</td>
+<td>DASC: Decay-Aware State Compression for Hybrid Linear-Attention Serving</td>
+<td>学术界</td>
+<td>按保留时域压缩状态检查点</td>
+<td>arXiv:2608.30386</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Tandem: Serving Hybrid Linear-Attention GUI Agents on Mobile NPUs</td>
+<td>端侧 GUI agent</td>
+<td>在 prompt 分叉处保存状态</td>
+<td>arXiv:2610.26660</td>
+</tr>
+<tr>
+<td>6</td>
+<td>LatentPort: Beyond KV Cache — Cross-Model Transfer of Recurrent Memory in Hybrid LMs</td>
+<td>学术界</td>
+<td>跨模型迁移循环状态而非 KV</td>
+<td>arXiv:2609.25053</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="splice">一、系统路线：让 splice 在混合模型上重新成立</h2>
+<h3 id="1-hypic-position-independent-caching-for-hybrid-attention-llm-serving">1. HYPIC: Position-Independent Caching for Hybrid-Attention LLM Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2607.01299">https://arxiv.org/abs/2607.01299</a></li>
+<li><strong>时间</strong>：2026-07-01（v3: 2026-11-04）</li>
+<li><strong>方向</strong>：位置无关缓存 · 循环状态合成 · RAG/Agent 服务</li>
+</ul>
+<p><strong>摘要</strong>：RAG 与 agent 场景的 prompt 由几十到上百个语义独立片段拼成，prefill 主导成本，而一旦未命中，尾 TTFT 能冲到数十秒。位置无关缓存（PIC）放开严格前缀约束、让每个片段只缓存一次并可拼接到任意前缀之后，其本质是两个原语：沿 token 轴的 <strong>splice</strong> 与重算少量 token 的 <strong>correction</strong>。但这两个原语都作用在逐 token KV 上，而混合模型的线性注意力层只有 per-request 循环状态，没有 per-token 抓手，于是<strong>混合模型里大多数层落在现有 PIC 能力范围之外</strong>。HYPIC 是首个为混合注意力模型提供 PIC 的服务系统，其关键贡献之一是<strong>基于 cached transitions 的近精确、常数时间状态合成</strong>：把片段状态与拼接前缀的状态组合成新状态，而不必重放整段上下文。四个混合模型、五个负载上，TTFT 平均降低 <strong>3.25×</strong>、QPS 提升 <strong>1.66×</strong>，任务质量距全量重算仅 <strong>1.71 分</strong>。</p>
+<p><strong>对广域的启示</strong>：这是本专题最有广域价值的一篇。<strong>“状态合成”意味着跨域只需传片段状态、不必传整段上下文</strong>，接收端用常数时间合成即可；而且片段状态（循环状态）通常只有 MB 级，比整段 KV 小一到两个数量级——<strong>跨广域复用的最优传输单元可能是循环状态而非 KV</strong>。</p>
+<h3 id="2-tandem-serving-hybrid-linear-attention-gui-agents-on-mobile-npus">2. Tandem: Serving Hybrid Linear-Attention GUI Agents on Mobile NPUs</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2610.26660">https://arxiv.org/abs/2610.26660</a></li>
+<li><strong>时间</strong>：2026-10-19</li>
+<li><strong>方向</strong>：端侧 NPU · 检查点策略 · GUI agent</li>
+</ul>
+<p><strong>摘要</strong>：手机 GUI agent 反复读屏并请求下一步动作，混合线性注意力模型能降内存，但复用循环状态需要在合适的输入位置有 checkpoint。<strong>agent 请求保留指令、重写近期历史</strong>，因此为聊天续写设计的 checkpoint 策略会错过真正可复用的前缀；为推测解码保留 rollback 状态还可能把 prompt 处理挤下 NPU 的矩阵单元，在短动作输出上得不偿失。Tandem 的做法是<strong>在相邻两次 prompt 开始分叉的位置保存循环状态</strong>，让后续请求复用已处理上下文；同时把大部分 prefill 留在矩阵单元，用短的逐 token 尾部生成 rollback 状态，验证 kernel 对所有权重块只读一次。llama.cpp 实现、两代骁龙实测：Snapdragon 8 Elite 上文本屏描述每步延迟降 <strong>30%</strong>、截图降 <strong>16%</strong>，文本步能耗降 <strong>33%</strong>，加载模型待机功耗从 0.76W 降到 0.22W。</p>
+<p><strong>对广域的启示</strong>：<strong>“在哪里存状态”应按复用模式决定</strong>——agent 的分叉点比固定间隔更合理。跨域缓存池同理：应当按工作流的分叉/汇合点布置状态快照，而不是按 token 数等距切分。</p>
+<hr />
+<h2 id="_3">二、机制路线：重建状态而不是存状态</h2>
+<h3 id="3-tail-replay-escaping-the-curse-of-linear-attention-in-prefix-caching-for-hybrid-llms">3. Tail-Replay: Escaping the Curse of Linear Attention in Prefix Caching for Hybrid LLMs</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2608.30310">https://arxiv.org/abs/2608.30310</a></li>
+<li><strong>时间</strong>：2026-08-31</li>
+<li><strong>方向</strong>：前缀缓存 · 状态重放 · 边界约束</li>
+</ul>
+<p><strong>摘要</strong>：混合模型里全注意力的 KV 可 token 寻址，线性注意力层维护的循环状态却<strong>无法回滚到任意前缀边界</strong>。现有混合前缀缓存的做法是存循环状态检查点，于是 token 级匹配只在<strong>与已存检查点对齐的位置</strong>可用，复用被限制在一组离散边界上。Tail-Replay 的洞察是：门控循环更新会逐步衰减早期输入的贡献，因此<strong>匹配前缀的循环状态可以被“只重放该前缀的一小段近期尾部”很好地近似</strong>。命中时它用短尾重放重建线性注意力状态，从而解除离散边界的约束，实现不受限的 token 级匹配。</p>
+<p><strong>对广域的启示</strong>：<strong>“传 checkpoint”与“到端重放短尾”是一组可互换的代价</strong>：前者花带宽、后者花算力。跨域时可根据链路价格与 GPU 空闲率动态选边——这正是把带宽换成算力的典型场景。</p>
+<h3 id="4-sparsex-efficient-segment-level-kv-cache-sharing-for-interleaved-llm-serving">4. SparseX: Efficient Segment-Level KV Cache Sharing for Interleaved LLM Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2606.01751">https://arxiv.org/abs/2606.01751</a></li>
+<li><strong>时间</strong>：2026-06-01</li>
+<li><strong>方向</strong>：片段级复用 · 稀疏重算 · 交错 prompt</li>
+</ul>
+<p><strong>摘要</strong>：长上下文服务中 prefill 主导 TTFT 与算力成本。vLLM/PagedAttention 的前缀缓存只复用完全相同的 prompt 前缀，但真实应用中重复内容常以<strong>非前缀、跨请求、跨轮次、跨 agent 的片段</strong>形式出现，常规缓存机制不够用。SparseX 以<strong>连续 token 片段</strong>为复用单元，利用 KV 复用与复杂 prompt 拼接下自然出现的 <strong>Sparse-Q 索引</strong>来估计哪些复用 token 对当前请求最重要，从而把任意位置复用转化为<strong>稀疏重算问题</strong>：只对必要的 token 做 Sparse-KV 重算，从而在复杂的交错复用模式下保住精度。</p>
+<p><strong>对广域的启示</strong>：片段级复用 + 局部修正，等价于<strong>把“整段搬运”换成“搬片段 + 端点少量重算”</strong>；跨域链路上这直接减少需要过网的数据量，重算部分留在本地。</p>
+<h3 id="5-latentport-beyond-kv-cache-cross-model-transfer-of-recurrent-memory-in-hybrid-language-models">5. LatentPort: Beyond KV Cache — Cross-Model Transfer of Recurrent Memory in Hybrid Language Models</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2609.25053">https://arxiv.org/abs/2609.25053</a></li>
+<li><strong>时间</strong>：2026-09-07</li>
+<li><strong>方向</strong>：跨模型迁移 · 循环状态 · 免前缀重放</li>
+</ul>
+<p><strong>摘要</strong>：论文问的是：一个语言模型能否把自己的“活的记忆”交给另一个模型，而<strong>不需要接收方重读上下文</strong>？作者在一个架构匹配的 Qwen3.5 4B→9B 兄弟模型对上，展示了有用的持续混合状态迁移——据其所述是<strong>首次在混合语言模型之间、跨不同参数量、不重放目标前缀地迁移持续循环推理状态</strong>。只迁移注意力 KV 会留下很大差距；加上 Gated DeltaNet（GDN）持续状态包后，teacher-forcing 下的 NLL 降低 <strong>0.747 nats/token</strong>，64 篇 PG19 文档全部改善。</p>
+<p><strong>对广域的启示</strong>：如果记忆可以在模型之间迁移，那么<strong>“跨域迁移”不必绑定同一模型同一版本</strong>——迁移的单位从 KV 变成“状态包”。这与之前收录的 <em>Close Enough is Nowhere Near</em>（指出零训练跨模型 KV 替换不成立）形成有趣对照：<strong>KV 不能直接换，但状态包可能可以</strong>。</p>
+<hr />
+<h2 id="_4">三、表示路线：把状态压小</h2>
+<h3 id="6-dasc-decay-aware-state-compression-for-hybrid-linear-attention-serving">6. DASC: Decay-Aware State Compression for Hybrid Linear-Attention Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2608.30386">https://arxiv.org/abs/2608.30386</a></li>
+<li><strong>时间</strong>：2026-08-31</li>
+<li><strong>方向</strong>：状态压缩 · 衰减结构 · 检查点布局</li>
+</ul>
+<p><strong>摘要</strong>：混合线性注意力模型的<strong>原地循环状态更新</strong>让缓存管理复杂化：前缀复用需要与全注意力 KV 并存的<strong>状态检查点</strong>，而把检查点全量存下会加剧内存压力、导致更多驱逐与重复 prefill。作者分析 Gated DeltaNet（GDN）与 Kimi Delta Attention（KDA）的衰减结构，发现<strong>不同头与通道保留前缀信息的时间尺度差异极大</strong>（称为 retention horizon），这意味着持久状态检查点有可观的压缩空间。DASC 从模型权重推导保留时域，选出长时域状态单元，打包成 ragged 检查点布局，并在张量并行下均衡到各 rank；复用时要么对省略单元零填充，要么用有界后缀计算刷新。Kimi-Linear 上保守配置已接近全量缓存，把 KDA 循环状态检查点压缩 <strong>2.63×</strong>；在固定状态检查点内存预算下，容量增益使平均 TTFT 降 <strong>42.6%</strong>、输入吞吐提升 <strong>68.4%</strong>；更大压缩比下后缀刷新能挽回大部分精度损失。Qwen + GDN 呈现相似趋势，说明方法可从 KDA 的通道维推广到 GDN 的头维。</p>
+<p><strong>对广域的启示</strong>：<strong>状态检查点本身也是可压缩对象</strong>，2.63× 意味着跨域传输的状态包还能再小一半以上；更关键的是“保留时域”给出了<strong>按重要性分配字节</strong>的物理依据——长时域单元才值得花带宽。</p>
+<hr />
+<h2 id="_5">横向对比：这个方向的四条技术路线</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>路线</th>
+<th>代表</th>
+<th>做法</th>
+<th>代价</th>
+<th>跨域适用性</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>状态合成</strong></td>
+<td>HYPIC</td>
+<td>用 cached transitions 常数时间组合片段状态</td>
+<td>需维护转移矩阵</td>
+<td>★★★ 最省带宽，片段可独立缓存</td>
+</tr>
+<tr>
+<td><strong>短尾重放</strong></td>
+<td>Tail-Replay</td>
+<td>命中时重放近期尾部重建状态</td>
+<td>花算力</td>
+<td>★★★ 可用算力换带宽</td>
+</tr>
+<tr>
+<td><strong>片段 + 稀疏修正</strong></td>
+<td>SparseX</td>
+<td>片段级复用，Sparse-Q 选修正 token</td>
+<td>需估计修正量</td>
+<td>★★☆ 减少过网数据</td>
+</tr>
+<tr>
+<td><strong>状态压缩</strong></td>
+<td>DASC</td>
+<td>按保留时域裁剪检查点</td>
+<td>精度换容量</td>
+<td>★★☆ 传输前可再压一档</td>
+</tr>
+</tbody>
+</table></div>
+<p>四条路线并不互斥：<strong>DASC 压小 → SparseX 选片段 → Tail-Replay 或 HYPIC 在端侧合成/补算</strong>，可以串成一条完整的跨域复用流水线。</p>
+<h2 id="_6">待解问题</h2>
+<ol>
+<li><strong>状态合成的误差界</strong>：HYPIC 称“近精确”，Tail-Replay 是“很好近似”，但都缺跨片段数量增长时的误差分析——复用 100 个片段后还成立吗？</li>
+<li><strong>checkpoint 的密度与代价</strong>：HiState（自适应间隔）、Tandem（分叉点）、Tail-Replay（免 checkpoint）三种策略，在 agent 负载上的系统性对比还没看到。</li>
+<li><strong>跨域的根本问题</strong>：循环状态通常 MB 级，<strong>比整段 KV 小一到两个数量级</strong>——是否已有专门“只同步循环状态”的跨广域工作？这是本方向最值得追的空缺。</li>
+<li><strong>与 MLA 的叠加</strong>：DeepSeek 类 MLA + 线性层混合模型上，非前缀复用的原语是什么？（已收录 arXiv:2611.12062 在翻译层做过一部分）</li>
+<li><strong>正确性保证</strong>：在混合模型上做非前缀复用，是否可能改变模型输出分布？有没有像 <em>Does Accuracy Equal Evidence</em> 那样针对"推理链"的评估？</li>
+</ol>
+<blockquote>
+<p>注：本专题为按用户要求新增的定向跟踪；后续每期日报会持续关注该方向，新的相关论文会进入常规 10 篇序列。</p>
+</blockquote>
+</main>
+<footer class="footer"><span>KV Cache 日报 · 专题</span><a href="../index.html">返回目录</a></footer>
+
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

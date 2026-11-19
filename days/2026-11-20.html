@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KV Cache 日报 · 2026-11-20</title>
+<meta name="description" content="2026-11-20 的 KV Cache 论文摘要，10 篇。">
+<meta name="theme-color" content="#f6f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="day-page">
+
+<header class="topbar">
+  <a class="back" href="../index.html"><span aria-hidden="true">←</span> 全部日报</a>
+  <span class="top-date">2026年11月20日 · 周五</span>
+</header>
+<main class="report">
+<h1 id="kv-cache-2026-11-20">KV Cache 论文日报 · 2026-11-20</h1>
+<blockquote>
+<p><strong>今日 10 篇</strong>：非前缀复用与混合/循环注意力 4 篇（重点方向）· 视觉与多模态 KV 2 篇 · 传输迁移与容量 3 篇 · 部署能耗 1 篇</p>
+<p><strong>本期主线</strong>：这一批开始<strong>质疑复用本身的收益</strong>——多 agent 场景里，跳过 helper 的消息能省几百毫秒，但"跳过谁能不改变答案"要靠统计检验认证；更扎心的是 PIC 复用的评估方法被指出会<strong>系统性高估收益</strong>，而共享/卸载 KV 的混淆方案也被证明可被反推。</p>
+<p><strong>说明</strong>：本期「非前缀复用」分册含 1 篇 2026-09-25 的评估方法论（对本方向当前所有工作都是基准，故纳入）；其余为 2026-11-16 至 11-18 的新论文。摘要依据 arXiv 官方摘要整理。</p>
+</blockquote>
+<h2 id="_1">速览</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>论文</th>
+<th>方向</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Safe to Omit, Worth Omitting? Keeping the Answer and Cutting Latency When an LLM Agent Skips Another's Message</td>
+<td>多 agent 复用决策</td>
+<td>arXiv:2611.23570</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Evaluating the accuracy of KV cache reuse techniques</td>
+<td>复用评估方法论</td>
+<td>arXiv:2609.31415</td>
+</tr>
+<tr>
+<td>3</td>
+<td>When Shuffling Fails: Token Recovery from Obfuscated KV Caches</td>
+<td>共享缓存安全</td>
+<td>arXiv:2611.24276</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Late Entry in Looped Language Models</td>
+<td>循环模型缓存深度</td>
+<td>arXiv:2611.24576</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Keep the Reasoning, Read the Image: On-Demand Visual KV for Multi-Turn Reasoning VLMs</td>
+<td>视觉 KV 保留</td>
+<td>arXiv:2611.23769</td>
+</tr>
+<tr>
+<td>6</td>
+<td>CanopyKV: Remember beyond the Crop for Fast Active Visual Reasoning</td>
+<td>主动视觉 KV 压缩</td>
+<td>arXiv:2611.24373</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Latent Bridge: Asking for Help Without Words</td>
+<td>跨模型表示迁移</td>
+<td>arXiv:2611.21301</td>
+</tr>
+<tr>
+<td>8</td>
+<td>TAILROLL: Tail-Aware Rollout Acceleration for RL-Based LLM Post-Training</td>
+<td>跨引擎 KV 迁移</td>
+<td>arXiv:2611.22206</td>
+</tr>
+<tr>
+<td>9</td>
+<td>LaFlash: Capacity-Driven Acceleration for Coding Agent Workflows via QLC-HBF</td>
+<td>大容量状态保留</td>
+<td>arXiv:2611.22746</td>
+</tr>
+<tr>
+<td>10</td>
+<td>A Matter of Stages: Energy-Latency Trade-offs in Multimodal LLM Serving</td>
+<td>EPD 分离能耗</td>
+<td>arXiv:2611.21165</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="4">一、重点方向：非前缀复用与混合 / 循环注意力（4 篇）</h2>
+<h3 id="1-safe-to-omit-worth-omitting-keeping-the-answer-and-cutting-latency-when-an-llm-agent-skips-anothers-message">1. Safe to Omit, Worth Omitting? Keeping the Answer and Cutting Latency When an LLM Agent Skips Another's Message</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.23570">https://arxiv.org/abs/2611.23570</a></li>
+<li><strong>时间</strong>：2026-11-17</li>
+<li><strong>方向</strong>：多 agent 复用决策 · 潜空间 KV 传递 · 统计认证</li>
+</ul>
+<p><strong>摘要</strong>：多 agent 系统里，接收方常要等 helper agent 的消息（文本，或其潜在 KV cache），能提升效果但增加延迟。论文研究两件事：<strong>何时可以安全跳过</strong>（最终答案很少变）与<strong>何时值得跳过</strong>（省下的时间超过判定成本）。机制是读取接收方在<strong>没有消息时</strong>的置信度，用有限样本检验认证一个阈值，使跳过后的答案改变率以高概率不超过 5%；若没有阈值通过就继续通信。四个结论：①<strong>oracle 上界是弱证据</strong>——去掉答案相关内容的对照输入，其改变答案的频率中位数达到真实消息 oracle 增益的 76%；②能否跳过取决于消息<strong>多久、多可预测地</strong>改变答案，而不取决于谁的准确率高；③文本消息有用的场景里，跳过策略能跳过 59%–80% 且保留 76%–95% 的增益；两次规则事先固定的前瞻测试中，三 agent 系统的 verifier 被跳过 39.9%（保留 12.80 分增益中的 12.55 分），32B helper 被跳过 68.4%（保留全部增益）；④<strong>安全性不等于效率</strong>：batch=1 时跳过文本能省几百毫秒，而跳过 KV cache 省得远少。</p>
+<p><strong>对广域的启示</strong>：这是“<strong>跨域传不传</strong>”最直接的一篇——潜空间 KV 传递虽然比文本省 token，但<strong>省下的端到端时间远小于文本</strong>（因为 KV 传输本身的成本已占大头）。跨域多 agent 设计应先算“跳过收益 vs 传输成本”，而不是默认传 KV 更优。</p>
+<h3 id="2-evaluating-the-accuracy-of-kv-cache-reuse-techniques">2. Evaluating the accuracy of KV cache reuse techniques</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2609.31415">https://arxiv.org/abs/2609.31415</a></li>
+<li><strong>时间</strong>：2026-09-25</li>
+<li><strong>方向</strong>：评估方法论 · PIC 复用 · 数据集生成</li>
+</ul>
+<p><strong>摘要</strong>：位置无关 KV 复用（PIC）通过在 prompt 间复用 chunk 级 KV 来降低 RAG 延迟。论文指出当前评估方法存在系统性缺陷：<strong>所用的测量指标无法忠实反映“由复用导致的精度损失”</strong>，因而常常人为夸大报告出来的效果；同时现有数据集也不具备充分检验这类技术所需的复用动态。作者提出一种能<strong>无歧义地测量该精度损失</strong>的评估方法，并发布 <strong>Boxoffice</strong> 工具，可程序化生成覆盖困难复用模式（不同位置、不同共享结构）的评测数据集。</p>
+<p><strong>对广域的启示</strong>：跨域复用的一切收益数字都建立在这类评估之上。<strong>如果评估本身高估了复用效果，那“跨域传 KV 比重算划算”的结论就要打折扣</strong>。做跨域方案前，应当用这类严格方法重测一遍基线。</p>
+<h3 id="3-when-shuffling-fails-token-recovery-from-obfuscated-kv-caches">3. When Shuffling Fails: Token Recovery from Obfuscated KV Caches</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.24276">https://arxiv.org/abs/2611.24276</a></li>
+<li><strong>时间</strong>：2026-11-18</li>
+<li><strong>方向</strong>：共享缓存安全 · 混淆破解 · 隐私边界</li>
+</ul>
+<p><strong>摘要</strong>：LLM 服务系统会存储、卸载并<strong>共享</strong> KV cache，从而把 token 级表示暴露给基础设施运维方和同租户。“打乱式混淆”（shuffled obfuscation）用秘密线性变换加新鲜置换来保护，并声称安全性来自 b! 种可能的打乱方式。论文证明<strong>输入对称性使这个计数论证失效</strong>：安全性应取决于“在被选输入下输出是否可区分”。重复 token 会产生相同的首层 Value 行，于是任何行置换都不改变数据；只有辅助结构（如单行恢复标记）在变化，把有效状态空间从 b! 降到 b。据此构造 <strong>Repeat-to-Reveal</strong>：攻击者用自己探针收集 b 个可区分状态，利用其 rank-one 差异恢复等价的去噪器，无需知道防御方的秘密参数；一次校准就能在<strong>同一秘密 epoch</strong> 内跨请求迁移，从而对随后观察到的缓存做<strong>被动 token 多重集恢复</strong>。</p>
+<p><strong>对广域的启示</strong>：跨域共享 KV 缓存池时，“打乱/线性变换”不构成安全边界。<strong>只要攻击者能发送探针并观察缓存，就能反推出 token</strong>。共享缓存要么同信任域，要么必须配合真正的加密（如 per-head DP 噪声或 AEAD 封装），不能靠置换混淆。</p>
+<h3 id="4-late-entry-in-looped-language-models">4. Late Entry in Looped Language Models</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.24576">https://arxiv.org/abs/2611.24576</a></li>
+<li><strong>时间</strong>：2026-11-18</li>
+<li><strong>方向</strong>：循环架构 · 深度缓存 · 延迟进入</li>
+</ul>
+<p><strong>摘要</strong>：循环语言模型（looped LMs）通过对共享层栈迭代 T 次来用紧凑参数换取推理深度，代价是递归深度直接变成串行解码延迟。传统 early-exit 在前几轮后停机且不补全缓存，会把历史 token 的 KV 状态截断到浅层。论文研究相反策略 <strong>late entry</strong>：新 token 跳过前几轮，直接进入最后 K &lt; T 轮，作用于<strong>深层上下文缓存</strong>。只需轻量微调解决入口处的隐状态范数不匹配，深层缓存上下文就能替代被跳过的 token 局部轮次，让 late entry 在各模型族与各轮数预算下优于 matched early exit。为在不阻塞构建深缓存的前提下拿到实际加速，候选块只在关键路径上跑最后 K 轮，而已提交 token 在后续步骤中并行补完 1→T 轮；用 Wake verification（logit 边际容差 τ∈[0,∞]）在既有输出 GEMM 中统一了贪心精确 T 轮解码（τ=0）、边际门控验证（τ&gt;0）与不滚动回退的有损 late entry（τ=∞）。Ouro-2.6B（T=4）上 K=2 在 τ=0 达到 5.2× 精确加速、τ=∞ 达 6.8×；Huginn-3.5B 把 T 扩到 64 时精确加速达 8.4×、τ=∞ 达 10.6–12.5×。</p>
+<p><strong>对广域的启示</strong>：<strong>“深缓存”可以替代“多轮计算”</strong>——历史 token 的深层 KV 一旦存在，新 token 就能少跑几轮。对跨域场景的含义是：把计算过的深层状态搬过去，接收端能省下串行深度；而循环模型的缓存状态比全注意力 KV 更紧凑，搬运更划算。</p>
+<hr />
+<h2 id="kv2">二、视觉与多模态 KV（2 篇）</h2>
+<h3 id="5-keep-the-reasoning-read-the-image-on-demand-visual-kv-for-multi-turn-reasoning-vlms">5. Keep the Reasoning, Read the Image: On-Demand Visual KV for Multi-Turn Reasoning VLMs</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.23769">https://arxiv.org/abs/2611.23769</a></li>
+<li><strong>时间</strong>：2026-11-18</li>
+<li><strong>方向</strong>：推理 VLM · 视觉条目保护 · 按需换入</li>
+</ul>
+<p><strong>摘要</strong>：推理型 VLM 在回答前会思考数千 token，保留策略靠不断裁剪 KV 来控制开销。论文发现这种裁剪<strong>牺牲了图像</strong>：图像与推理共享同一预算，增长的推理把视觉条目挤出去。一个图表问题首次提问时相对全缓存掉 8 分，而在一轮推理之后再问会掉 <strong>24 分</strong>。保护一小块<strong>视觉储备</strong>不被驱逐能挽回大部分损失，而把同样的槽位加进共享预算则挽回得少得多——说明图像缺的是<strong>保护，不是容量</strong>。据此提出 ShelfKV（无需训练、可叠加在现有保留策略上）：把所有视觉条目放在 CPU 内存，每个解码步把当前 query 打分最高的视觉条目换入打分最低的文本条目所占的注意力槽位。</p>
+<p><strong>对广域的启示</strong>：<strong>“哪类 KV 需要被保护”比“总共留多少”更关键</strong>。跨域缓存池按租户/模态分层时，图像/文档这类共享前缀应当有独立的保留额度，否则会被增长最快的那类内容挤掉。</p>
+<h3 id="6-canopykv-remember-beyond-the-crop-for-fast-active-visual-reasoning">6. CanopyKV: Remember beyond the Crop for Fast Active Visual Reasoning</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.24373">https://arxiv.org/abs/2611.24373</a></li>
+<li><strong>时间</strong>：2026-11-18</li>
+<li><strong>方向</strong>：主动视觉推理 · 证据互补性 · 免训练压缩</li>
+</ul>
+<p><strong>摘要</strong>：主动视觉推理让多模态模型通过迭代检查图像、调用工具来收集细粒度证据，但累积的裁剪区域与推理 token 会撑大 KV。现有压缩方法按注意力、新近性或冗余性选历史 token，这些准则<strong>无法区分“被局部替换的证据”与“后续探索仍需要的互补信息”</strong>：每次裁剪只刷新局部区域，而更早的视图可能仍支撑后续决策；丢掉这类证据会伤精度或需要额外搜索，而重新打分与重整缓存又会抵消压缩带来的节省。CanopyKV 是免训练框架，用<strong>父子裁剪关系</strong>保留互补证据，并维持被保留历史的结构。</p>
+<p><strong>对广域的启示</strong>：多轮工具调用场景里，<strong>“被替换过的旧证据”仍有价值</strong>。跨域缓存若只按新近度淘汰，会把早期上下文删掉却仍要重算；按“证据是否会再被引用”的结构化关系来判断，才是对的做法。</p>
+<hr />
+<h2 id="3">三、传输、迁移与容量（3 篇）</h2>
+<h3 id="7-latent-bridge-asking-for-help-without-words">7. Latent Bridge: Asking for Help Without Words</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.21301">https://arxiv.org/abs/2611.21301</a></li>
+<li><strong>时间</strong>：2026-11-16</li>
+<li><strong>方向</strong>：跨模型表示迁移 · prefill-only · 缓存保留</li>
+</ul>
+<p><strong>摘要</strong>：文本式的模型协作要求大模型先生成中间回答，小模型才能用上这份指导，于是把小模型的推理也拖上了大模型的解码成本。论文提出 <strong>POND（Prefill-Only, No-Decode）</strong>：冻结的大模型只做 prefill，小模型负责全部自回归解码。一个可训练的 <strong>bridge</strong> 把发送方的隐状态映射成额外的注意力 key/value，让接收方在整段生成中都能用到这些表示；POND 还支持<strong>周期性复审</strong>——发送方处理接收方的部分回复并通过额外 prefill 更新指导，<strong>同时保留接收方已有的 KV cache</strong>。在推理与代码基准上，POND 用<strong>不同模型族</strong>的发送方都能提升接收方表现：GLM-5.3 与 Qwen 接收方配对时增益与 Qwen3.8-Max 相当，说明独立训练的模型族之间也能做表示迁移；且只在数学与代码上训练即可直接迁移到通用知识任务。</p>
+<p><strong>对广域的启示</strong>：<strong>只传 prefill 表示、不传解码过程</strong>，把大模型的开销限制在一次前向——这正好匹配跨域链路的“一次性大块传输 + 本地长解码”特性。而且 bridge 的映射与发送方解耦，意味着跨域池化可以按“能力”而非“同一模型”来配。</p>
+<h3 id="8-tailroll-tail-aware-rollout-acceleration-for-rl-based-llm-post-training">8. TAILROLL: Tail-Aware Rollout Acceleration for RL-Based LLM Post-Training</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.22206">https://arxiv.org/abs/2611.22206</a></li>
+<li><strong>时间</strong>：2026-11-17</li>
+<li><strong>方向</strong>：跨引擎请求迁移 · 重 prefill 成本 · RL 训练</li>
+</ul>
+<p><strong>摘要</strong>：RL 后训练的瓶颈在 rollout：重尾响应让引擎空转等最长的那条。论文区分<strong>不均衡浪费</strong>（放置不均与解码争用）与<strong>拖尾浪费</strong>（等最长响应），指出决定步长时间的是<strong>尾部长度而非平均负载</strong>。TAILROLL 是集成到开源 RL 框架的在线调度器，组合两件事：<strong>无状态在飞迁移</strong>（在 chunk 边界把解码请求在引擎间搬移，并按基于空闲度、代价感知的尾部均衡策略<strong>用一次 re-prefill 恢复</strong>）与<strong>充分性门控终止</strong>（当 GRPO 组已有足够完成样本用于优势估计时就停止，并在 loss 中屏蔽其部分输出）。十种配置下，rollout 气泡比降 21%–74%，跨引擎 KV cache 不均衡降 44%–79%；端到端 rollout 时间降 24%–34%。</p>
+<p><strong>对广域的启示</strong>：<strong>“迁移请求”与“迁移 KV”是同一件事的两面</strong>——这里明确算进了 re-prefill 成本，只在 chunk 边界搬、且必须比重新 prefill 更划算才搬。跨域调度应当沿用同样的判据：以 chunk 为粒度、把重算成本作为迁移收益的门槛。</p>
+<h3 id="9-laflash-capacity-driven-acceleration-for-coding-agent-workflows-via-qlc-hbf">9. LaFlash: Capacity-Driven Acceleration for Coding Agent Workflows via QLC-HBF</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.22746">https://arxiv.org/abs/2611.22746</a></li>
+<li><strong>时间</strong>：2026-11-17</li>
+<li><strong>方向</strong>：大容量闪存 · 休眠态保留 · 容量驱动加速</li>
+</ul>
+<p><strong>摘要</strong>：编码 agent 是内存密集型负载，反复复用持久状态（上下文与 KV cache）；Loop/Graph Engineering 这类工作流通过频繁的活跃-休眠切换造成<strong>状态放大</strong>，加剧内存压力。被驱逐的状态在重新激活时要做昂贵重算，在“长上下文、短解码”负载下尤其明显。这引出<strong>容量驱动加速（CDA）</strong>：显式计入状态放大，在“活跃并发”与“休眠态保留”之间分配内存容量，用内存访问替代重算。LaFlash 用 QLC 闪存的大容量实现 CDA，但 QLC 读延迟长，需要在<strong>不规则状态重激活</strong>与变化上下文长度下提供大规模读并行，写寿命又约束放置策略。其 <strong>Session Grouping</strong> 在各组间平衡活跃请求数与聚合上下文长度，通过请求独占分配维持读并行与块利用率；<strong>Fast-Page Allocation</strong> 利用 QLC 读延迟的异构性消除组间残余不均衡。端到端编码 agent 负载上，相比 SLC-HBF 配合 batch 扩展，吞吐高 <strong>7.04×</strong>、能效高 <strong>10.96×</strong>；相比采用 CDA 的 QLC-HBF 吞吐高 <strong>2.36×</strong>。</p>
+<p><strong>对广域的启示</strong>：<strong>“用容量换重算”在广域同样成立</strong>——把休眠会话的 KV 落到便宜介质，比跨域重算便宜。对跨域设计的启示是：不必所有状态都留在远端可快速取用的层，按会话活跃度分层放置即可。</p>
+<hr />
+<h2 id="1">四、部署与能耗（1 篇）</h2>
+<h3 id="10-a-matter-of-stages-energy-latency-trade-offs-in-multimodal-llm-serving">10. A Matter of Stages: Energy-Latency Trade-offs in Multimodal LLM Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.21165">https://arxiv.org/abs/2611.21165</a></li>
+<li><strong>时间</strong>：2026-11-16</li>
+<li><strong>方向</strong>：EPD 分离 · 频率配置 · 能耗权衡</li>
+</ul>
+<p><strong>摘要</strong>：多模态 LLM 在线服务需要决定是否把视觉编码（E）、prefill（P）、decode（D）分离到不同 GPU，以及如何配置各自的频率。EPD 分离带来独立的阶段控制，但也改变了通信与排队行为：<strong>降低某个阶段的频率会增加排队并拉长整条 EPD 流水线的执行</strong>，因此在一个阶段省电并不必然降低每请求的总 GPU 能耗。论文在固定三 GPU 预算下刻画了四种多模态模型的融合式与 EPD 分离式服务，并在 18 种负载组合上做单阶段与统一降频实验。发现：分离式在几乎相同的输出 token 吞吐下把每成功请求的 GPU 能耗降低 <strong>13.3%–37.0%</strong>，但平均 TTFT 上升；各阶段降频敏感度不同，激进降频会被排队与更长执行抵消；统一降到 80% 可省 <strong>11.7%–18.6%</strong> 能耗且平均延迟变化不大。基于此提出预算内频率搜索策略：在 288 个有正收益的 SLO 场景中，<strong>四次探测</strong>即可在 25 个候选里找到最低能耗的可行配置。</p>
+<p><strong>对广域的启示</strong>：跨域 PD 分离省的不只是时延——<strong>能耗账要按“每成功请求”算</strong>，因为分离会推高排队与 TTFT。做跨机房池化时，应把“能耗/请求”和“TTFT”一起放进目标函数，而不是只看吞吐。</p>
+<hr />
+<h2 id="_2">今日观察</h2>
+<ol>
+<li><strong>复用的收益开始被严格审计</strong>：多 agent 跳过的收益要靠 5% 改变率的统计认证（且 KV cache 跳过的省时远小于文本）；PIC 复用评估被证明会高估效果。<strong>“跨域传比算划算”需要重新验证</strong>。</li>
+<li><strong>共享 KV 的安全边界比想象中脆弱</strong>：打乱混淆理论上 b! 的搜索空间被压到 b，token 可被被动恢复——共享缓存必须按同信任域或真加密来设计。</li>
+<li><strong>“保护谁”比“留多少”更重要</strong>：ShelfKV 证明图像缺的是保护而非容量，CanopyKV 证明被替换的证据仍有价值——跨域缓存分层的额度分配应按内容类别区分。</li>
+<li><strong>迁移与重算的成本必须一起算</strong>：TAILROLL 只在 chunk 边界迁移并以一次 re-prefill 为代价门槛；LaFlash 用大容量介质替代重算。两条路都指向同一原则：<strong>先算清“搬”与“算”的盈亏，再决定动作</strong>。</li>
+</ol>
+<blockquote>
+<p>注：本期摘要基于 arXiv 官方摘要页整理；具体实验设置与数字以 PDF 原文为准。</p>
+</blockquote>
+</main>
+<nav class="pager"><a class="pager-link" href="2026-11-19.html"><span class="dir">← 上一期</span><span class="d">11月19日</span></a></nav>
+<footer class="footer"><span>KV Cache 日报</span><a href="../index.html">返回目录</a></footer>
+
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

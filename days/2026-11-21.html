@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KV Cache 日报 · 2026-11-21</title>
+<meta name="description" content="2026-11-21 的 KV Cache 论文摘要，10 篇。">
+<meta name="theme-color" content="#f6f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="day-page">
+
+<header class="topbar">
+  <a class="back" href="../index.html"><span aria-hidden="true">←</span> 全部日报</a>
+  <span class="top-date">2026年11月21日 · 周六</span>
+</header>
+<main class="report">
+<h1 id="kv-cache-2026-11-21">KV Cache 论文日报 · 2026-11-21</h1>
+<blockquote>
+<p><strong>今日 10 篇</strong>：混合与循环架构 3 篇（重点方向）· 跨模型/跨设备状态搬运 2 篇 · 压缩与量化 3 篇 · 存储分层与低比特硬件 2 篇</p>
+<p><strong>本期主线</strong>：混合架构开始<strong>把"用什么注意力"本身做成策略</strong>——Turnout 让每层在 full 与 linear 之间按学习到的策略动态切换；循环模型这一侧则同时被两件事推动：LoopCache 用循环 KV 轮转让每步只读一份，InfuseLoop 让跨轨迹隐状态参与注入。</p>
+<p><strong>说明</strong>：本期为<strong>补录批次</strong>（11-21 当天任务未送达），收录 arXiv 公告日期集中在 2026-11-17 至 11-20 的论文；摘要依据 arXiv 官方摘要整理。</p>
+</blockquote>
+<h2 id="_1">速览</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>论文</th>
+<th>方向</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Turnout: Adaptive Attention Switching for Efficient Reasoning</td>
+<td>混合注意力动态切换</td>
+<td>arXiv:2611.27500</td>
+</tr>
+<tr>
+<td>2</td>
+<td>LoopCache: Accelerating Long-Context Self-Speculative Decoding for Looped Transformers</td>
+<td>循环 KV 轮转</td>
+<td>arXiv:2611.24301</td>
+</tr>
+<tr>
+<td>3</td>
+<td>InfuseLoop: Cross-Trajectory Latent Injection for Scalable Parallel Looped Transformers</td>
+<td>循环跨轨迹注入</td>
+<td>arXiv:2611.22426</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Perceive Once, Escalate on Demand: Handing Off Visual KV Memory from Small to Large VLMs</td>
+<td>小→大 VLM 视觉 KV 交接</td>
+<td>arXiv:2611.26902</td>
+</tr>
+<tr>
+<td>5</td>
+<td>CarrierKV: An Edge LLM Accelerator with Positional Carrier Decomposition for Low-Bit KV Cache</td>
+<td>位置载波分解低比特 KV</td>
+<td>arXiv:2611.26857</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Don't Lose the Future: Latent-Aware 4-Bit Quantization of World Action Models</td>
+<td>W4A4KV4 量化</td>
+<td>arXiv:2611.25614</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Dynamic Token Merging for Efficient Vision-Language Models</td>
+<td>动态 token 合并压 KV</td>
+<td>arXiv:2611.27064</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Efficient and Robust Drafting with Multi-Token Prediction</td>
+<td>零拷贝 KV 跨注意力</td>
+<td>arXiv:2611.25813</td>
+</tr>
+<tr>
+<td>9</td>
+<td>FOREST: Coordinating Tree-based HBF, RRAM, and HBM for Efficient Speculative LLM Inference</td>
+<td>三介质存储树</td>
+<td>arXiv:2611.27701</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Cruella: A Unified Microscaling and Floating-Point Dot-Product Unit for LLM Inference on FPGAs</td>
+<td>FPGA 统一点积单元</td>
+<td>arXiv:2611.27323</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="3">一、重点方向：混合与循环架构的缓存（3 篇）</h2>
+<h3 id="1-turnout-adaptive-attention-switching-for-efficient-reasoning">1. Turnout: Adaptive Attention Switching for Efficient Reasoning</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.27500">https://arxiv.org/abs/2611.27500</a></li>
+<li><strong>时间</strong>：2026-11-20</li>
+<li><strong>方向</strong>：混合注意力 · 动态切换 · 推理负载</li>
+</ul>
+<p><strong>摘要</strong>：事后线性化（post-hoc linearization）把全注意力那套<strong>随生成长度线性增长</strong>的 KV cache 换成固定大小的状态，省内存但常掉精度——推理任务因为生成很长，掉得尤其明显。Turnout 在用蒸馏训练一条线性路径的同时<strong>保留原来的全注意力路径</strong>，得到一个真正"两条路都在"的混合模型；生成时用<strong>学习到的策略</strong>控制每一层何时从 full 切到 linear。策略用强化学习训练，奖励同时平衡答案正确率与内存占用。实验显示学到的自适应策略在推理任务上取得比<strong>固定切换</strong>与静态混合基线更好的精度-效率 Pareto 前沿。</p>
+<p><strong>对广域的启示</strong>：这是本方向里少见的"<strong>逐层可切换</strong>"设计——同一份模型可以在长思考段用线性状态（状态小、好传），在关键推理步切回全注意力（KV 大、但精度保）。跨域部署时可以据此按负载动态决定"哪些层的 KV 值得跨网同步"。</p>
+<h3 id="2-loopcache-accelerating-long-context-self-speculative-decoding-for-looped-transformers">2. LoopCache: Accelerating Long-Context Self-Speculative Decoding for Looped Transformers</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.24301">https://arxiv.org/abs/2611.24301</a></li>
+<li><strong>时间</strong>：2026-11-18</li>
+<li><strong>方向</strong>：循环 Transformer · 循环 KV 轮转 · 自推测解码</li>
+</ul>
+<p><strong>摘要</strong>：循环 Transformer 靠把权重共享块重复 R 次来获得大有效深度，<strong>每个循环步各自维护一份 loop-specific KV cache</strong>。此前的 wave-style 自推测解码（WFD、LoopSpec）把 draft 与 target token 跨循环流水到一个 step 里，但有两个硬伤：只在固定循环上 draft、忽略中间预测变化，在过期轨迹上白算；以及<strong>把不同循环的 token 合批会导致每步加载最多 R× 的 KV cache</strong>，长上下文下严重放大内存流量。LoopCache 用两个手段解决：<strong>置信度引导的动态 draft 更新</strong>（在全部中间循环上实时修正草稿），以及<strong>循环 KV 轮转策略</strong>（轮换使用各循环的 KV cache，把每步 KV 流量限制在单份循环上，并在最近匹配的周期上合批以做无损验证），另外对少数浅层的 loop-敏感层保留独立 KV。相比 WFD 与 LoopSpec 平均加速 <strong>10.25×</strong> 与 <strong>14.56×</strong>。</p>
+<p><strong>对广域的启示</strong>：<strong>"每步只读一份循环 KV"</strong> 对跨域尤其关键——R 份 KV 全量读取会把跨网流量乘 R。轮转 + 在匹配周期上合批，等于把传输量按循环数降到 1/R。</p>
+<h3 id="3-infuseloop-cross-trajectory-latent-injection-for-scalable-parallel-looped-transformers">3. InfuseLoop: Cross-Trajectory Latent Injection for Scalable Parallel Looped Transformers</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.22426">https://arxiv.org/abs/2611.22426</a></li>
+<li><strong>时间</strong>：2026-11-17</li>
+<li><strong>方向</strong>：并行循环 · 跨轨迹隐状态 · 深度扩展</li>
+</ul>
+<p><strong>摘要</strong>：并行循环 Transformer（PLT）通过重叠递归迭代来利用原本空闲的解码算力，但 vanilla PLT 的深度扩展很差：训练 loss 出现尖峰，加更多循环的质量增益递减。论文指出瓶颈在<strong>信息传递</strong>——跨循环边界只传了"同轨迹的前一个状态"，而已经完成的<strong>跨轨迹表示其实早已可用</strong>。InfuseLoop 因此做跨轨迹隐状态注入：通过轻量注意力残差聚合<strong>因果可用</strong>的、来自后续预测轨迹的隐状态。该设计保持 token 并行训练与并发循环执行，只需额外 O(Rd) 的隐状态存储。八个循环下，相对 vanilla PLT 困惑度降 3.4–17.1%、相对非循环基线降 10.5–37.3%；下游平均准确率分别 +0.84 与 +1.99 个百分点；解码时间只比 vanilla PLT 多 0.3%，且<strong>逻辑 KV cache 占用与 vanilla PLT 相同</strong>。</p>
+<p><strong>对广域的启示</strong>：<strong>额外信息可以走"隐状态"而不是"KV cache"</strong>——只加 O(Rd) 的存储、KV 足迹不变，就能拿到深度增益。跨域传输时这类轻量隐状态比完整 KV 便宜得多，是一条值得关注的"低成本增益通道"。</p>
+<hr />
+<h2 id="2">二、跨模型 / 跨设备的状态搬运（2 篇）</h2>
+<h3 id="4-perceive-once-escalate-on-demand-handing-off-visual-kv-memory-from-small-to-large-vlms">4. Perceive Once, Escalate on Demand: Handing Off Visual KV Memory from Small to Large VLMs</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.26902">https://arxiv.org/abs/2611.26902</a></li>
+<li><strong>时间</strong>：2026-11-19</li>
+<li><strong>方向</strong>：小→大 VLM 交接 · 视觉 KV 记忆 · 级联预算</li>
+</ul>
+<p><strong>摘要</strong>：具身 agent 无法在长视频的每一步都跑大 VLM，因此用级联：小 VLM 连续跑，只把不确定的决策升级给大模型。但<strong>每次升级都要大模型重新编码小模型已经看过的历史</strong>，这构成了主要成本。Baton 把<strong>小模型的视觉记忆（历史 KV cache）交给大模型</strong>。它的核心发现是：大模型需要的是"<strong>可用的记忆</strong>"，而不是"自己那份 cache 的忠实复制"——一个专门训练去复现大模型 cache 的映射虽然最接近原物，却并不比只用小模型更好；Baton 改为从大模型自己的答案里<strong>无标签地蒸馏出一个逐层线性映射</strong>，只让大模型编码当前帧。干预实验把这个增益定位到<strong>大模型中间三分之一层</strong>承载的一个方向。RoboMME 上 Baton 优于只用小模型、剪枝/缩短重看、文本记忆；作为级联的升级通道，它<strong>相对重看只差约 1 分而计算量少 28–47%</strong>，64 帧时每次升级便宜 <strong>8×</strong>；增益随大模型从 8B 到 32B 增大、跨四个族八个模型对跟随大模型 headroom，并零样本迁移到 OpenEQA。</p>
+<p><strong>对广域的启示</strong>：这是"<strong>跨模型状态交接</strong>"非常干净的实证：<strong>忠实复现不如方向对齐</strong>。跨域把 KV 传给另一模型时，训一个线性映射把"可用方向"对齐，比试图还原对方 cache 更有效，而且映射本身很小、可离线分发。</p>
+<h3 id="5-carrierkv-an-edge-llm-accelerator-with-positional-carrier-decomposition-for-low-bit-kv-cache">5. CarrierKV: An Edge LLM Accelerator with Positional Carrier Decomposition for Low-Bit KV Cache</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.26857">https://arxiv.org/abs/2611.26857</a></li>
+<li><strong>时间</strong>：2026-11-19</li>
+<li><strong>方向</strong>：边缘设备 · 位置载波分解 · 低比特 KV</li>
+</ul>
+<p><strong>摘要</strong>：边缘设备上的长上下文解码受 DRAM 限制——每生成一个 token 都要读整个不断增长的 KV。NVFP4 这类 4-bit 块缩放格式能降低流量但损伤精度：Qwen3-4B 上 NVFP4 把 32K RULER 从 92.6 降到 79.4，而 Hadamard 旋转进一步降到 57.7。论文发现 <strong>key 的大部分能量是一个"位置载波"</strong>——每个 head 一个向量，被 RoPE 按位置旋转；在 NVFP4 下它决定了多数 key 块的共享 scale，使内容的信号量化噪声比<strong>降低约 5 dB（近 1 bit）</strong>，但它本身只依赖那个向量和位置。于是提出<strong>位置载波分解</strong>：在 RoPE 之前把载波剥离，只存内容残差；KV 通路在剥离后才做旋转与量化，注意力分数直接在 4-bit 码上算；另配位置相位引擎每周期为一个 key 重建载波的分数项。<strong>同等缓存大小下</strong>，Qwen3-4B 的 32K RULER 从 NVFP4 的 79.4 提升到 <strong>91.1</strong>，四个模型的 32K PG19 困惑度增幅比 NVFP4 低 1.8–5.9 倍；且损失随缓存增长几乎持平（NVFP4 会上升）。22nm FDSOI、600MHz 下面积只增 2.9%，同等解码延迟下 20K 推理请求能耗只增 0.12%。32K 时 RULER 91.1 甚至高于 FP8 key（89.3），每 token 能耗低 13.7%；3-bit TurboQuant 的 32K 困惑度增幅从 69.7 降到 0.76。</p>
+<p><strong>对广域的启示</strong>：<strong>把"位置信息"与"内容"分开存</strong>，噪声预算立刻改善。跨域传 KV 时若能把载波用位置公式在接收端重建（不需要传），只传内容残差，等于<strong>再省一份固定开销</strong>——尤其对长上下文、位宽极低的场景。</p>
+<hr />
+<h2 id="3_1">三、压缩与量化（3 篇）</h2>
+<h3 id="6-dont-lose-the-future-latent-aware-4-bit-quantization-of-world-action-models">6. Don't Lose the Future: Latent-Aware 4-Bit Quantization of World Action Models</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.25614">https://arxiv.org/abs/2611.25614</a></li>
+<li><strong>时间</strong>：2026-11-19</li>
+<li><strong>方向</strong>：W4A4KV4 · 未来保真 · 读到次数加权</li>
+</ul>
+<p><strong>摘要</strong>：世界动作模型（WAM）会预测场景如何演化，并让动作以这个预测为条件；在机器人机载计算机上部署需要 <strong>4-bit 权重、激活与 KV cache（W4A4KV4）</strong>。现有 4-bit 量化器只保住生成的动作用以估计敏感度（逐去噪步做），却<strong>保不住"预测的未来"的保真度</strong>——动作通路被保护后，残余动作误差主要通过一个"退化了的未来"进入，而没有方法刻意保护它。论文提出 LAQ：在<strong>写、存、读</strong>三处都保住预测的未来。具体引入 <strong>reader metric</strong>（用未来误差对动作的影响来度量）与 <strong>read count</strong>（按读取该误差的去噪步数加权），两者结合使<strong>激活与缓存的精度分配有闭式解</strong>；再加 gaze-guided refinement，给动作关注到的 token 在去噪循环与缓存里各做一次额外 4-bit pass。所有权重保持 4-bit，无高精度分支、无逐任务重校准。LIBERO-Plus 上 Fast-WAM 与 Cosmos-Policy 平均成功率 76.4%、83.3%，距 16-bit 模型 1.2 个百分点以内，且全部高于带 16-bit KV cache 的基线；模型压缩 3.8×、整策略峰值显存降 2.3×、比 16-bit 快 1.66×。</p>
+<p><strong>对广域的启示</strong>：<strong>"读到次数"是分配比特的好依据</strong>——同一个误差被读 20 步就该多给精度，只读 1 步就可以粗暴点。跨域压缩若按访问频次分配位宽，同样的字节预算能换来更小的端到端误差。</p>
+<h3 id="7-dynamic-token-merging-for-efficient-vision-language-models">7. Dynamic Token Merging for Efficient Vision-Language Models</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.27064">https://arxiv.org/abs/2611.27064</a></li>
+<li><strong>时间</strong>：2026-11-20</li>
+<li><strong>方向</strong>：动态 token 删除 · VLM · 压 KV</li>
+</ul>
+<p><strong>摘要</strong>：VLM 用几百个视觉 token 表示一张图，即使 prompt 只用得上其中一部分也很贵。Dynamic Token Merging（DTM）原本在 MrT5 里用于字节级文本编码器：一个轻量 delete gate 给上下文化隐状态打分，训练时作为可微注意力偏置，推理时<strong>真的把 token 删掉</strong>。论文主张 DTM 是通用的 token 删除框架而非字节级技巧，把它扩展到视觉模态与 decoder-only 模型：V-MrT5Gemma2 在双向多模态编码器内删视觉 token，V-MrGemma3 在 decoder-only 的 prefill 期间<strong>压缩 prompt 及其 KV cache</strong>。十个基准上，DTM 相对基于注意力与随机删除的优势随删除率上升而增大，在文档、图表、场景文字阅读上最大。80% 视觉 token 删除（约省 60% FLOPs）时，ChartQA 从 FastV 的 51.8 提升到 63.0、TextVQA 从 63.3 到 67.8（V-MrT5Gemma2）；V-MrGemma3 上分别是 62.2→68.8 与 71.2→75.1，两项任务都保留了未剪枝性能的 90–96%。</p>
+<p><strong>对广域的启示</strong>：<strong>在 prefill 阶段就删 token，等于从源头减少要缓存和传输的 KV</strong>，而不是事后压缩。跨域场景里这类"源头瘦身"最省事：多模态输入是最容易在入口处裁掉的。</p>
+<h3 id="8-efficient-and-robust-drafting-with-multi-token-prediction">8. Efficient and Robust Drafting with Multi-Token Prediction</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.25813">https://arxiv.org/abs/2611.25813</a></li>
+<li><strong>时间</strong>：2026-11-19</li>
+<li><strong>方向</strong>：多 token 预测 · 零拷贝 KV · 草稿加速</li>
+</ul>
+<p><strong>摘要</strong>：推测解码把生成拆成 draft 与并行 verify，难点在于做一个既轻量又足够接近目标模型的 drafter。论文提出高度优化的多 token 预测（MTP）架构，围绕<strong>单个共享 draft head</strong> 做三项优化：<strong>target activation 注入</strong>来锚定语义规划、<strong>零拷贝 KV-cache 跨注意力</strong>来绕过 prefill 计算并降低内存开销、以及<strong>聚类词表投影</strong>降低全词表解码成本。在 Gemma 4 家族上，G-MTP 在服务器侧最高 <strong>3.1×</strong> 加速，在面向内存受限端侧的小模型上 H100 最高 <strong>2.3×</strong>、手机 GPU 上 <strong>2.2×</strong>。此外给出参数高效微调配方，使 drafter 在域偏移下仍与 backbone 对齐，所需目标前向次数比只调 backbone 少最多 <strong>1.83×</strong>。</p>
+<p><strong>对广域的启示</strong>：<strong>"零拷贝"共享 KV</strong>是同一节点内避免数据搬移的常见手法；跨域时它的对应物是"<strong>引用而不是复制</strong>"——接收端如果能只拿句柄/偏移，由发送端按需流式补数据，就能省掉一次全量写入。</p>
+<hr />
+<h2 id="2_1">四、存储分层与低比特硬件（2 篇）</h2>
+<h3 id="9-forest-coordinating-tree-based-hbf-rram-and-hbm-for-efficient-speculative-llm-inference">9. FOREST: Coordinating Tree-based HBF, RRAM, and HBM for Efficient Speculative LLM Inference</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.27701">https://arxiv.org/abs/2611.27701</a></li>
+<li><strong>时间</strong>：2026-11-20</li>
+<li><strong>方向</strong>：异构存储 · 推测解码 · 介质协同</li>
+</ul>
+<p><strong>摘要</strong>：推测解码的各阶段资源需求迥异：目标验证需要高吞吐访问大权重集、顺序 draft 要在紧延迟下跑小模型、长上下文注意力则要处理不断增长的 KV cache。传统以 GPU 为中心的 SD 系统用共享的 HBM 中心内存与通用计算来服务这三类负载，造成<strong>容量、带宽、算力三重错配</strong>，既限制可部署的模型-上下文配置，也压低带宽受限与延迟敏感操作的效率。FOREST 是异构的内存中心架构，协调 <strong>HBF、3D 堆叠 RRAM 与 HBM</strong> 三类内存-计算树：①算力对齐的 3D RRAM（超宽低频读 + 时钟解耦接口 + 重叠的 SRAM-DCIM 权重刷新）服务延迟敏感的 drafting；②跨树数值协同设计，把块缩放的 Q/K/V 预处理搬到 HBF 与 RRAM 根板，并在 HBM 树里做块浮点（BFP）注意力与流水 softmax 归约；③HBF 感知的 SD 设计空间探索，揭示带宽-算力配比与模型规模如何决定性能、能耗与成本。跨 32B–405B 的六种 SD 配置，相对 A800 GPU 的 SD 基线端到端最高 <strong>5.5×</strong> 加速、解码吞吐 <strong>11.46×</strong>、解码能效 <strong>16.5×</strong>；在建模的 TCO 下 token 生成成本效率最高 <strong>6.73×</strong>。</p>
+<p><strong>对广域的启示</strong>：<strong>不同访问模式的工作负载应当落在不同介质</strong>——KV 是"大容量、可预测、按上下文增长"，权重是"高吞吐共享"。跨域池化时对应的是"远端大容量层 + 近端高带宽层"的分工，而不是把所有 KV 堆在同一层。</p>
+<h3 id="10-cruella-a-unified-microscaling-and-floating-point-dot-product-unit-for-llm-inference-on-fpgas">10. Cruella: A Unified Microscaling and Floating-Point Dot-Product Unit for LLM Inference on FPGAs</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.27323">https://arxiv.org/abs/2611.27323</a></li>
+<li><strong>时间</strong>：2026-11-20</li>
+<li><strong>方向</strong>：FPGA · MXFP4 权重 · KV 通路占比</li>
+</ul>
+<p><strong>摘要</strong>：加速器原生执行的数值格式在出厂时就固定了，而 LLM checkpoint 正以 2023 年标准化的 <strong>MXFP4</strong> 格式发布；FPGA 可以通过比特流采用新格式，但据作者所知，<strong>尚无已部署的 FPGA LLM 加速器能同时执行 MXFP4 权重与 BF16 乘积</strong>。论文刻画 MXFP4 checkpoint 的解码：各层在 MXFP4×BF16 与 BF16×BF16 两类乘积间交替（注意力与 BF16 层），并给出一个关键观测——<strong>在 BF16 KV cache 下，BF16×BF16 乘积占了数据通路时间的 56%–77%</strong>，而这期间独立的 MXFP4 单元是闲置的。Cruella 的统一点积单元（UDPU）在同一组 DSP 阵列与归约流水线上执行两类乘积：①按组预对齐把流水线保持在 BF16 宽度，困惑度变化不超过 0.7%；②pre-adder 打包把两个有符号 MXFP4×BF16 乘积放进一个 DSP48E2 乘法器，并做精确修正。Alveo U55C 上，UDPU 比"等吞吐的独立 MXFP4 + BF16 单元"少用 <strong>23%</strong> DSP 片与 <strong>36%</strong> LUT；该板上 MXFP4 权重使解码比 BF16 权重快 <strong>1.15–1.87×</strong>，而 A40 GPU 虽解码更快，但每 token 能耗是该板的 0.92–2.01×。</p>
+<p><strong>对广域的启示</strong>：一个容易被忽视的硬件事实——<strong>KV cache 的位宽会决定整条数据通路的时间分配</strong>（BF16 KV 下占 56–77%）。这对跨域的含义是：压低 KV 位宽不只省带宽，还能让接收端的算力结构更均衡。</p>
+<hr />
+<h2 id="_2">今日观察</h2>
+<ol>
+<li><strong>混合架构开始"逐层可切换"</strong>：Turnout 保留 full 与 linear 两条路径、用 RL 策略决定每层何时切换，精度-内存的 Pareto 前沿优于固定切换——这为跨域"按层选择同步内容"提供了模型侧支持。</li>
+<li><strong>循环模型的 KV 流量有了结构性解法</strong>：LoopCache 用循环 KV 轮转让每步只读一份（避免 R× 放大），InfuseLoop 则用 O(Rd) 隐状态换取深度增益而 KV 足迹不变。</li>
+<li><strong>跨模型交接的关键是"可用性"不是"保真度"</strong>：Baton 证明复现对方 cache 最像的映射反而无效，而从答案蒸馏出的线性映射能把增益集中在中间层的一个方向上。</li>
+<li><strong>位宽决定的不只是带宽</strong>：CarrierKV 剥离位置载波、Cruella 让 BF16 与 MXFP4 共享数据通路——两者都说明 KV 的数值格式会反向影响算力与能耗结构。</li>
+</ol>
+<blockquote>
+<p>注：本期为 11-21 的<strong>补录批次</strong>，摘要基于 arXiv 官方摘要页整理；具体实验设置与数字以 PDF 原文为准。</p>
+</blockquote>
+</main>
+<nav class="pager"><a class="pager-link" href="2026-11-20.html"><span class="dir">← 上一期</span><span class="d">11月20日</span></a><a class="pager-link next" href="2026-11-22.html"><span class="dir">下一期 →</span><span class="d">11月22日</span></a></nav>
+<footer class="footer"><span>KV Cache 日报</span><a href="../index.html">返回目录</a></footer>
+
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KV Cache 日报 · 2026-11-23</title>
+<meta name="description" content="2026-11-23 的 KV Cache 论文摘要，10 篇。">
+<meta name="theme-color" content="#f6f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="day-page">
+
+<header class="topbar">
+  <a class="back" href="../index.html"><span aria-hidden="true">←</span> 全部日报</a>
+  <span class="top-date">2026年11月23日 · 周一</span>
+</header>
+<main class="report">
+<h1 id="kv-cache-2026-11-23">KV Cache 论文日报 · 2026-11-23</h1>
+<blockquote>
+<p><strong>今日 10 篇</strong>：混合/循环注意力的缓存复用 3 篇（重点方向）· 压缩与驱逐 3 篇 · Agent 与多模态系统 2 篇 · 低比特量化 2 篇</p>
+<p><strong>本期主线</strong>：混合模型的<strong>前缀复用在往「不存 checkpoint」走</strong>——SuffixReplay 让线性状态"忘掉远古"、只重放近期后缀；FrontierReplay 干脆不切 prefill，只在可预测的结构边界上补建精确状态。两条路都在把 checkpoint 的存储代价换成少量重放计算。</p>
+<p><strong>说明</strong>：11-21、11-22 两期因任务未送达而缺失（如需补齐告诉我）。本期收录 arXiv 2026-11-16 至 11-19 公告的论文，其中「混合注意力复用」分册含 1 篇 2026-09-27 的方法论对照工作。摘要依据 arXiv 官方摘要整理。</p>
+</blockquote>
+<h2 id="_1">速览</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>论文</th>
+<th>方向</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>FrontierReplay: Split-Free Exact Prefix Caching for Hybrid Language Models</td>
+<td>混合模型精确前缀缓存</td>
+<td>arXiv:2611.26020</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Just Let Linear States Forget the Distant Past: Prefix Caching via Suffix Replay for Hybrid LLMs</td>
+<td>后缀重放替代检查点</td>
+<td>arXiv:2609.33477</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Fold the Loop: Decoding-Time KV Memory for Looped Vision-Language Models</td>
+<td>循环 VLM 视觉 KV 折叠</td>
+<td>arXiv:2611.25369</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Aggron: Aggressive Compression of Agentic KV Caches during Head-of-Line Stalls</td>
+<td>停顿期压缩</td>
+<td>arXiv:2611.26435</td>
+</tr>
+<tr>
+<td>5</td>
+<td>RoCoKV: Uncertainty and Redundancy Aware KV Cache Compression</td>
+<td>推理模型压缩</td>
+<td>arXiv:2611.25433</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Global Importance Estimation for KV Cache Eviction</td>
+<td>多跳重要性驱逐</td>
+<td>arXiv:2611.24969</td>
+</tr>
+<tr>
+<td>7</td>
+<td>TripleKV: Predict, Prefetch, Protect — KV Cache Management for AI Agents</td>
+<td>Agent 三层缓存</td>
+<td>arXiv:2611.25112</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Do Thinking VLMs Need to Keep Looking at Long Videos? Write It Down, Then Look Away</td>
+<td>视频 KV 提前撤除</td>
+<td>arXiv:2611.24259</td>
+</tr>
+<tr>
+<td>9</td>
+<td>AscMLA: Unlocking FP4 Efficiency for Long-Context MLA Decoding through Asymmetric Scaling</td>
+<td>FP4 MLA 解码</td>
+<td>arXiv:2611.26106</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Online Temporal Rotations for 2 Bit KV-Cache Quantization in Video Diffusion Transformers</td>
+<td>视频 DiT 低比特量化</td>
+<td>arXiv:2611.26334</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="3">一、重点方向：混合 / 循环注意力的缓存复用（3 篇）</h2>
+<h3 id="1-frontierreplay-split-free-exact-prefix-caching-for-hybrid-language-models">1. FrontierReplay: Split-Free Exact Prefix Caching for Hybrid Language Models</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.26020">https://arxiv.org/abs/2611.26020</a></li>
+<li><strong>时间</strong>：2026-11-19</li>
+<li><strong>方向</strong>：混合模型 · 精确前缀缓存 · 无切分重放</li>
+</ul>
+<p><strong>摘要</strong>：混合语言模型把自注意力与<strong>原地更新状态</strong>的循环层结合，后者使前缀复用只能停在<strong>已保存的精确位置</strong>上。在粗粒度网格上存状态会浪费可复用前缀；而现有细粒度精确缓存必须在 prompt 中间的每个 checkpoint 处<strong>切断 prefill 前向</strong>，增加的调度步数在负载下会吃掉复用收益。论文观察到：在多轮对话、agent 循环、文档问答、树搜索中，前缀复用几乎总是终止于<strong>可提前预知的结构边界</strong>（轮次结束、已知分支点）。FrontierReplay 因此在这些边界上物化精确 checkpoint 而<strong>不切断 prefill</strong>：前向不中断地跑，同时记录一小段循环层输入窗口，然后调用跨层、只作用于状态的 replay kernel 构建目标状态——<strong>每 token 比全量重算便宜 6–37×</strong>，且无需主机同步。</p>
+<p><strong>对广域的启示</strong>：这篇给了跨域复用两个可直接借用的点：①<strong>复用点应当按结构边界（轮次、分支）布设</strong>，而不是按固定 token 间隔，这样 checkpoint 数量少且可预测；②<strong>状态可以"现场重放"而不必"提前存好"</strong>——跨域只传少量 anchors，接收端用便宜的重放 kernel 补出完整状态，把带宽换成算力。</p>
+<h3 id="2-just-let-linear-states-forget-the-distant-past-prefix-caching-via-suffix-replay-for-hybrid-llms">2. Just Let Linear States Forget the Distant Past: Prefix Caching via Suffix Replay for Hybrid LLMs</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2609.33477">https://arxiv.org/abs/2609.33477</a></li>
+<li><strong>时间</strong>：2026-09-27</li>
+<li><strong>方向</strong>：混合模型 · 后缀重放 · 检查点替代</li>
+</ul>
+<p><strong>摘要</strong>：混合 LLM 里全注意力的 KV 是 token 可寻址的，而线性注意力层维护的循环状态<strong>无法回滚到任意前缀边界</strong>；现有系统只能物化循环状态 checkpoint，把复用限制在 checkpoint 对齐的位置。论文给出关键数字：<strong>Qwen3.5-4B 里一个线性注意力状态 checkpoint 约 49 MiB，而单 token 的 KV 只有约 32 KiB，相差约 1500 倍</strong>——所以不可能每个 token 都存。SuffixReplay 的洞察是"<strong>就让线性状态忘掉远古</strong>"：现代线性注意力用递归衰减与门控压制旧输入影响，因此可以用<strong>重放近期一段输入后缀</strong>来近似匹配边界处的状态，而不必 checkpoint 每个边界。系统层用独立管理的 anchor sidecar 与流水线重放路径，把 anchor 搬移与状态重建和原生服务流水重叠。在 OLMo-Hybrid-7B、Qwen3.5-4B、Qwen3.6-27B-FP8 上，LongBench 与 RULER 平均保留全 prefill 质量的 <strong>91.4%–100%</strong>，而摊销到每 token 的存储只有 SGLang 默认 8192-token checkpoint 缓存的 <strong>0.36–0.51×</strong>；集成进 SGLang 后，分支负载上中位 TTFT 降 <strong>15%–70%</strong>，工作集超出 HBM 时吞吐达 SGLang 的 <strong>2.3–4.3×</strong>。</p>
+<p><strong>对广域的启示</strong>：<strong>"传 anchor 不传状态"</strong>在跨域上收益极大——anchor 是"层输入隐状态的一小段"，比 49 MiB 的完整循环状态小得多；接收端重放即可。这也解释了为什么混合模型的跨域复用可能比全注意力更划算：需要过网的字节少了一个数量级。</p>
+<h3 id="3-fold-the-loop-decoding-time-kv-memory-for-looped-vision-language-models">3. Fold the Loop: Decoding-Time KV Memory for Looped Vision-Language Models</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.25369">https://arxiv.org/abs/2611.25369</a></li>
+<li><strong>时间</strong>：2026-11-19</li>
+<li><strong>方向</strong>：循环 VLM · 沿递归轴压缩 · 模块内共享</li>
+</ul>
+<p><strong>摘要</strong>：循环 VLM 通过反复应用权重共享模块来加深视觉推理，但解码内存随递归深度增长，限制了可放的图像尺寸与 batch。每次递归步都产生自己的 KV 状态，于是缓存里存了<strong>同一张图像的好几份拷贝</strong>。论文发现：精确 prefill 之后，较早的步仍然需要访问视觉信息，但<strong>可以复用同一模块内最后一次递归的视觉 KV</strong>。据此提出 FoldCache：沿<strong>递归轴</strong>压缩视觉 KV，同时保留完整的 prefill 计算。它把每个模块内的递归步分组，保留每组的<strong>最终视觉 KV</strong> 供组内成员在解码期共享；共享只发生在模块边界内，而问题与答案的 KV 仍按步独立。分组粒度控制压缩程度，且可与 token 驱逐、量化叠加。</p>
+<p><strong>对广域的启示</strong>：<strong>同构冗余是免费压缩</strong>——同一图像在多个递归步的 KV 高度重复，跨域传输时只需传"每组最后一份"。对循环架构的跨域部署，这意味着字节数按递归深度分组摊薄，而不是线性放大。</p>
+<hr />
+<h2 id="3_1">二、压缩与驱逐（3 篇）</h2>
+<h3 id="4-aggron-aggressive-compression-of-agentic-kv-caches-during-head-of-line-stalls-in-the-request-queue">4. Aggron: Aggressive Compression of Agentic KV Caches during Head-of-Line Stalls in the Request Queue</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.26435">https://arxiv.org/abs/2611.26435</a></li>
+<li><strong>时间</strong>：2026-11-19</li>
+<li><strong>方向</strong>：Agent 负载 · 停顿期压缩 · 侧队列调度</li>
+</ul>
+<p><strong>摘要</strong>：LLM agent 运行长多轮程序，上下文每步增长，服务受 KV 容量限制。常见做法是等 KV 超过一个大阈值后<strong>一次性摘要一大段历史</strong>，要么在后台做、要么放在关键路径上；若用同一引擎上的同一模型做摘要，它还要与正在服务的请求<strong>争抢算力与显存</strong>。Aggron 的做法是：在 agent 的<strong>每一轮</strong>都做摘要，但只选择性地摘要 KV 的某些部分，从而保住精度、让摘要请求保持轻量。更关键的是调度——它把摘要任务从<strong>侧队列</strong>发起，正好利用主请求在正常队列里<strong>队头阻塞停顿</strong>时本来闲置的算力与内存；当系统预测某次摘要能在停滞 agent 恢复前完成时，才只压缩那部分缓存。</p>
+<p><strong>对广域的启示</strong>：<strong>把压缩放在"等"的空隙里</strong>——agent 等工具返回、请求排队时，正是做压缩的窗口。跨域链路上同理：传输空窗期可用于在源头压缩或重组，而不是等到带宽紧张时才动手。</p>
+<h3 id="5-rocokv-uncertainty-and-redundancy-aware-kv-cache-compression">5. RoCoKV: Uncertainty and Redundancy Aware KV Cache Compression</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.25433">https://arxiv.org/abs/2611.25433</a></li>
+<li><strong>时间</strong>：2026-11-19</li>
+<li><strong>方向</strong>：推理模型压缩 · 不确定性引导 · 冗余感知</li>
+</ul>
+<p><strong>摘要</strong>：大推理模型的主要成本来自<strong>长推理轨迹</strong>而非输入 prompt，而轨迹里因循环、自验证、纠错产生了大量冗余低效用 token——问题在于这些 token 仍可能拿到高注意力分数，按注意力删就会伤推理。RoCoKV 有两个组件：<strong>不确定性引导的自适应剪枝</strong>按模型置信度调整压缩强度（不确定阶段多给内存、自信时更强剪枝）；<strong>冗余感知的 token 选择</strong>降低与近期推理内容高度相似 token 的影响，鼓励保留更有信息量、更多样的 token。此外还与服务栈做了协同设计。</p>
+<p><strong>对广域的启示</strong>：<strong>压缩强度应随"模型此刻有多确定"动态变化</strong>。跨域传输若能做到"不确定的段多传、确定的段少传"，就能在同样字节预算下保住推理质量。</p>
+<h3 id="6-global-importance-estimation-for-kv-cache-eviction">6. Global Importance Estimation for KV Cache Eviction</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.24969">https://arxiv.org/abs/2611.24969</a></li>
+<li><strong>时间</strong>：2026-11-16</li>
+<li><strong>方向</strong>：驱逐 · 多跳重要性 · PageRank</li>
+</ul>
+<p><strong>摘要</strong>：KV 的内存占用是长上下文推理的核心瓶颈。论文提出 PRKV：一个<strong>免训练</strong>的 KV 驱逐方法，通过在<strong>注意力诱导的转移图</strong>上运行 <strong>Personalized PageRank</strong> 来估计<strong>多跳全局</strong> token 重要性，从而把重要性传播扩展到"新近度或瞬时注意力"之外，且不改动模型。在长上下文理解、稀疏检索与思维链推理任务、多个模型族上评测：中等到激进压缩比（含最高 90%）下，PRKV 与既有驱逐基线相比保持有竞争力的任务表现，同时降低峰值内存且端到端开销低。</p>
+<p><strong>对广域的启示</strong>：<strong>"重要"不等于"被最近关注"</strong>——多跳传播能识别那些当前注意力不高、但支撑后续推理的关键 token。跨域缓存若按瞬时注意力淘汰，容易把这些"沉默的关键上下文"删掉，之后再传就得重算。</p>
+<hr />
+<h2 id="agent-2">三、Agent 与多模态系统（2 篇）</h2>
+<h3 id="7-triplekv-predict-prefetch-protect-kv-cache-management-for-ai-agents">7. TripleKV: Predict, Prefetch, Protect — KV Cache Management for AI Agents</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.25112">https://arxiv.org/abs/2611.25112</a></li>
+<li><strong>时间</strong>：2026-11-18</li>
+<li><strong>方向</strong>：Agent 三层缓存 · 延迟预测 · 预取</li>
+</ul>
+<p><strong>摘要</strong>：agent 在推理与工具执行间交替，反复复用不断增长的上下文；高并发下它们的 KV 工作集可达<strong>数百 GiB</strong>，远超 GPU 容量。空闲 KV 块被逐到更慢的存储层后，返回的 agent 要为检索付出昂贵停顿。TripleKV 是三层 KV 管理系统，专门隐藏这些检索延迟：在 agent 负载里，<strong>下一次推理需要的 KV 块是提前已知的，只有复用时间不确定</strong>。TripleKV 用<strong>工具感知的延迟预测器</strong>估计每次工具调用何时完成，并提前把所需 KV 块从 SSD 预取到主机 DRAM；与 GPU 预取不同，这不占用稀缺显存、也不干扰并发推理。</p>
+<p><strong>对广域的启示</strong>：<strong>"要什么已知、何时要未知"是 agent 负载的本质特征</strong>。跨域预取同样应该按工具调用的预期时长来排程——而不是按固定节拍——这样既能提前到位又不会长期占用带宽。</p>
+<h3 id="8-do-thinking-vlms-need-to-keep-looking-at-long-videos-write-it-down-then-look-away">8. Do Thinking VLMs Need to Keep Looking at Long Videos? Write It Down, Then Look Away</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.24259">https://arxiv.org/abs/2611.24259</a></li>
+<li><strong>时间</strong>：2026-11-18</li>
+<li><strong>方向</strong>：视频 VLM · KV 撤除 · 笔记替代</li>
+</ul>
+<p><strong>摘要</strong>：VLM 在数百到数千 token 的推理中理解长视频，而<strong>每个解码步都要重读整段视频的 KV</strong>。论文问：模型推理时必须一直"看着"吗？LookAway 让模型先写下"问题需要什么"的带时间戳笔记，<strong>然后把视频收起来</strong>——笔记结束后，推理引擎在剩余生成过程中<strong>隐藏视频的 KV 缓存</strong>。在混合与纯注意力 VLM 上都观察到：对视频的依赖<strong>集中在回答早期</strong>。Qwen3.6-27B 上，同一撤除步下写笔记比自由推理更好地保持精度；换成另一个视频的笔记会伤精度，而"既保留视频又保留自己的笔记"没有显著额外收益。无需额外训练，LookAway 以建模解码成本的 <strong>0.12–0.13×</strong> 接近完整"看视频推理"的精度。</p>
+<p><strong>对广域的启示</strong>：<strong>"把感知结果写成文本/笔记，然后丢掉 KV"</strong> 在跨域场景极具吸引力——视频/长文档的 KV 往往是最占带宽的部分，而它们在推理早期的用途可以被少量 token 的笔记替代。这本质上是"用低带宽表示替换高带宽缓存"。</p>
+<hr />
+<h2 id="2">四、低比特量化（2 篇）</h2>
+<h3 id="9-ascmla-unlocking-fp4-efficiency-for-long-context-mla-decoding-through-asymmetric-scaling">9. AscMLA: Unlocking FP4 Efficiency for Long-Context MLA Decoding through Asymmetric Scaling</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.26106">https://arxiv.org/abs/2611.26106</a></li>
+<li><strong>时间</strong>：2026-11-19</li>
+<li><strong>方向</strong>：FP4 · MLA 解码 · 非对称缩放</li>
+</ul>
+<p><strong>摘要</strong>：长上下文解码反复读取不断增长的 KV。FP4 能同时降低缓存存储与流量，但其有限动态范围需要块缩放；把 FP4 用到 MLA 上还要调和<strong>共享 latent 上 K 与 V 不同的缩放需求</strong>。现有做法用反量化或分开编码来回避这一错配，带来额外执行或存储开销。AscMLA 用<strong>非对称 K/V 缩放 + 流水线式 scale 投递</strong>，直接处理<strong>单一 FP4 payload</strong>。相比 FP8，缓存内存少 <strong>38.2%</strong>；几何平均加速为 TRT-LLM FP8 的 <strong>1.35×</strong>、CAKE NVFP4 MLA kernel 的 <strong>1.26×</strong>。</p>
+<p><strong>对广域的启示</strong>：<strong>压缩态直接进 kernel</strong>是跨域的省上加省——接收端不需要先还原再计算。MLA 已成主流前沿模型形态，这类"单一 payload 直接执行"的设计能把跨域传输的字节与接收端算力同时压下来。</p>
+<h3 id="10-online-temporal-rotations-for-2-bit-kv-cache-quantization-in-video-diffusion-transformers">10. Online Temporal Rotations for 2 Bit KV-Cache Quantization in Video Diffusion Transformers</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.26334">https://arxiv.org/abs/2611.26334</a></li>
+<li><strong>时间</strong>：2026-11-19</li>
+<li><strong>方向</strong>：2-bit 量化 · 视频 DiT · 在线旋转</li>
+</ul>
+<p><strong>摘要</strong>：视频扩散 transformer 在多个去噪步之间复用 KV，很快成为长视频生成的瓶颈。论文发现：<strong>量化时间上相距较远的缓存向量会导致量程过大、误差变高</strong>，但 KV 中时间相邻的视频 token 在<strong>每个通道上共享持续模式</strong>——且这些模式因视频而异，因此需要<strong>按视频适配</strong>的旋转。据此提出 Temporal Rotation Quantization（TRQ）：量化前先对时间上相邻的帧做旋转。对每个时间相邻的缓存块，TRQ 拟合一个正交变换，把该块的<strong>逐通道均值映射到近似跨通道恒定的向量</strong>；为保持量化格式轻量，把旋转参数化为 <strong>2×2 平面旋转树</strong>（每个只存 2 bit），后接一个共享的固定 Hadamard 变换。旋转无需梯度、不改模型权重，并证明简单贪心拟合对"均值压平"目标<strong>全局最优</strong>；变换对每个新视频在线拟合，并发布融合 Triton kernel。2-bit 精度、同等压缩下，VBench 主体一致性从 QVG 的 90.38 提升到 <strong>92.02</strong>（LongCat-Video-13B）、86.33 到 <strong>87.61</strong>（HY-WorldPlay-8B）。</p>
+<p><strong>对广域的启示</strong>：<strong>压缩要"按数据自适应"，而不是全局固定参数</strong>。跨域传输不同租户/不同模态的 KV 时，per-stream 拟合的轻量旋转（只存 2 bit 参数）几乎不增加传输开销，却能显著降低同样位宽下的失真。</p>
+<hr />
+<h2 id="_2">今日观察</h2>
+<ol>
+<li><strong>不存 checkpoint 成了混合模型复用的主流方向</strong>：SuffixReplay 用"重放近期后缀"近似状态，FrontierReplay 用"不切 prefill + 跨层重放内核"构建精确状态。两者都把存储换成算力，代价可控（6–37× 更便宜）。</li>
+<li><strong>数字给出了量级感</strong>：一个线性状态 checkpoint ≈ 49 MiB，而单 token KV 仅 32 KiB，差 1500 倍——这解释了为什么"传 anchor 让对端重放"是混合模型跨域复用的自然选择。</li>
+<li><strong>压缩时机在向"空闲窗口"迁移</strong>：Aggron 用队头阻塞的停摆期做摘要，TripleKV 用工具执行期做预取——都是把工作塞进本来浪费的时间。</li>
+<li><strong>"用低带宽表示替换高带宽缓存"出现了明确证据</strong>：LookAway 用少量笔记替换整段视频 KV，解码成本降到 0.12–0.13× 仍保精度。</li>
+</ol>
+<blockquote>
+<p>注：11-21、11-22 两期缺失（任务未送达），如需可补录。本期摘要基于 arXiv 官方摘要页整理；具体实验设置与数字以 PDF 原文为准。</p>
+</blockquote>
+</main>
+<nav class="pager"><a class="pager-link" href="2026-11-20.html"><span class="dir">← 上一期</span><span class="d">11月20日</span></a></nav>
+<footer class="footer"><span>KV Cache 日报</span><a href="../index.html">返回目录</a></footer>
+
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KV Cache 日报 · 2026-11-22</title>
+<meta name="description" content="2026-11-22 的 KV Cache 论文摘要，10 篇。">
+<meta name="theme-color" content="#f6f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="day-page">
+
+<header class="topbar">
+  <a class="back" href="../index.html"><span aria-hidden="true">←</span> 全部日报</a>
+  <span class="top-date">2026年11月22日 · 周日</span>
+</header>
+<main class="report">
+<h1 id="kv-cache-2026-11-22">KV Cache 论文日报 · 2026-11-22</h1>
+<blockquote>
+<p><strong>今日 10 篇</strong>：共享缓存的安全与可靠性 3 篇 · 上下文经济学与非前缀修复 4 篇（重点方向）· 服务系统与吞吐 3 篇</p>
+<p><strong>本期主线</strong>：这一批几乎全在说同一件事——<strong>共享缓存的收益与风险都被低估了</strong>。时序侧信道能让"命中"本身泄露谁用过同一前缀；块表故障能把别人的 KV 重定向给自己；单比特翻转能让正确答案变错（TriviaQA 上 59%）；而"删上下文字节省钱"在有缓存折扣时反而更贵。</p>
+<p><strong>说明</strong>：本期为<strong>补录批次</strong>（11-22 当天任务未送达），收录 arXiv 公告日期集中在 2026-11-17 至 11-20 的论文；摘要依据 arXiv 官方摘要整理。</p>
+</blockquote>
+<h2 id="_1">速览</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>论文</th>
+<th>方向</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Isonomy: Isolating Every Request from Timing Side Channels at Nearly Full-Sharing Throughput</td>
+<td>共享缓存的时序侧信道</td>
+<td>arXiv:2611.27596</td>
+</tr>
+<tr>
+<td>2</td>
+<td>BlockJack: Cross-Tenant Redirection Fault Attacks on Paged KV Cache Address Translation</td>
+<td>块表重定向攻击</td>
+<td>arXiv:2611.25945</td>
+</tr>
+<tr>
+<td>3</td>
+<td>From Token Changes to Task Failures: Bit Flips in a Shared KV-Cache Block</td>
+<td>共享块位翻转</td>
+<td>arXiv:2611.22243</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Context Has a Price: Adding and Removing Context for LLM Coding Agents under Prefix Caching</td>
+<td>上下文经济学</td>
+<td>arXiv:2611.22238</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Contexture: Runtime Context Eviction for High-Throughput Agent Serving</td>
+<td>运行时上下文驱逐</td>
+<td>arXiv:2611.26980</td>
+</tr>
+<tr>
+<td>6</td>
+<td>SR-VLA: Stall-Reduced VLA Execution via Predicted-Input Lookahead and Selective KV Cache Repair</td>
+<td>选择性 KV 修复</td>
+<td>arXiv:2611.22356</td>
+</tr>
+<tr>
+<td>7</td>
+<td>MoE-Context: Show the Model Only What It Needs</td>
+<td>块级遮蔽式上下文选择</td>
+<td>arXiv:2611.24379</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Optimize the Cob, Then the Kernel: Optimizing Beam Search for Generative Recommendation Inference</td>
+<td>共享前缀的冗余 KV 访问</td>
+<td>arXiv:2611.23339</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Run One, Get Two: Near-Free Streaming Safety Checks for Local LLMs</td>
+<td>双行共享 KV</td>
+<td>arXiv:2611.26975</td>
+</tr>
+<tr>
+<td>10</td>
+<td>FastFrames: Video Generation at Interactive Latency</td>
+<td>KV 更新占延迟过半</td>
+<td>arXiv:2611.23226</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="3">一、共享缓存的安全与可靠性（3 篇）</h2>
+<h3 id="1-isonomy-isolating-every-request-from-timing-side-channels-at-nearly-full-sharing-throughput-in-multi-instance-llm-prefill">1. Isonomy: Isolating Every Request from Timing Side Channels at Nearly Full-Sharing Throughput in Multi-Instance LLM Prefill</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.27596">https://arxiv.org/abs/2611.27596</a></li>
+<li><strong>时间</strong>：2026-11-20</li>
+<li><strong>方向</strong>：时序侧信道 · 请求级隔离 · 共享吞吐</li>
+</ul>
+<p><strong>摘要</strong>：很多长 prompt 共享前缀，复用其缓存 KV 能省 prefill；但<strong>命中会让首 token 更早到达</strong>，从而泄露"另一个请求用过同一前缀"，所以服务商只在账号内共享缓存。在最小权限原则下，即使有权发送并付费的请求也不该暴露同账号其他请求的 prompt——因为 agent 会发出含隐私数据的未经审核请求、经销商把多个用户放在同一账号后、凭据也可能被盗。Isonomy 因此<strong>默认隔离每个请求</strong>，只允许请求显式加入共享组；但它不放弃复用：<strong>保留一份跨账号共享的缓存，只隐藏"命中本组之外前缀"带来的时间差</strong>。它针对的是客户端互相看不到对方负载的部署——在这种场景下只需在请求自身时序里隐藏这些命中。论文展示两种模式：预测模式依据队列与可见前缀估计首 token 就绪时间并门控发布；执行模式则<strong>预留隐藏命中省下的工作量</strong>，尽量用其他请求的 prompt 填满它。在两、四、八实例、全部请求隔离的直接探测测试中，两种模式都把探测者的优势上界压在测量噪声内；饱和时预测模式保留无保护共享 <strong>0.98</strong> 的吞吐（按账号隔离为 0.95；若更多复用跨账号则降到 0.80）。</p>
+<p><strong>对广域的启示</strong>：<strong>"命中率"本身就是一条泄漏信道</strong>。跨域共享缓存池若不加处理，攻击者只靠首 token 时延就能推断哪些前缀被别人的请求用过。Isonomy 的思路（保留共享、只隐藏命中效应、必要时用其他工作填满省下的时间）是跨域多租户缓存可直接借鉴的模型。</p>
+<h3 id="2-blockjack-cross-tenant-redirection-fault-attacks-on-paged-kv-cache-address-translation">2. BlockJack: Cross-Tenant Redirection Fault Attacks on Paged KV Cache Address Translation</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.25945">https://arxiv.org/abs/2611.25945</a></li>
+<li><strong>时间</strong>：2026-11-19</li>
+<li><strong>方向</strong>：块表攻击 · 跨租户重定向 · 机密性/完整性</li>
+</ul>
+<p><strong>摘要</strong>：paged 服务框架（如 vLLM）用类似 OS 页表的 <strong>block table</strong> 组织 KV cache，把每个请求的逻辑块映射到物理块，形成一层<strong>软件管理的地址翻译</strong>。以往针对 LLM 的故障攻击多在数据面（模型权重或 KV 内容），<strong>KV 映射这一层从未被研究</strong>。BlockJack 是首个 KV cache 地址翻译故障攻击：<strong>篡改块表项</strong>就能把一个请求的 KV 读取重定向到另一个租户请求的块，<strong>不需修改模型参数、prompt 或缓存内容</strong>。它同时实现机密性破坏（受害者信息出现在攻击者回复里）与完整性破坏（攻击者提供的上下文操纵受害者答案）。论文在 vLLM 上研究 paged KV 映射并<strong>形式化刻画了重定向目标何时可预测</strong>；跨 Qwen、Llama、Gemma、Phi 七个模型验证了故障映射可暴露受害者上下文；完整性攻击在 248 场景的医疗基准上可让最多 <strong>41.1%</strong> 的回答<strong>建议更不紧急的处置</strong>，同时仍显得与受害者的问题一致。作者用 Rowhammer 演示了物理可行性，并评估了分配校验类防御；经负责任披露，vLLM 与 Sonar 确认漏洞并提出补丁。</p>
+<p><strong>对广域的启示</strong>：<strong>地址翻译层是跨域共享池最容易被忽视的攻击面</strong>——它不像数据那样受加密保护，却能改变"你读到的是谁的 KV"。跨域池化若跨信任域共用块表或块分配器，必须做分配校验（ownership 验证），否则隔离形同虚设。</p>
+<h3 id="3-from-token-changes-to-task-failures-bit-flips-in-a-shared-kv-cache-block">3. From Token Changes to Task Failures: Bit Flips in a Shared KV-Cache Block</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.22243">https://arxiv.org/abs/2611.22243</a></li>
+<li><strong>时间</strong>：2026-11-17</li>
+<li><strong>方向</strong>：共享前缀块 · 单比特翻转 · 任务级失效</li>
+</ul>
+<p><strong>摘要</strong>：在启用前缀缓存的服务系统里，<strong>共享 system prompt 的每个 KV 块在 GPU 内存中只存一份物理拷贝</strong>，所有带该 prompt 的请求都读它。作者此前的工作测量到"变化"：这种块里的<strong>一个比特翻转会改变后续大量回复</strong>，但不会让它们看起来明显退化。本文进一步测量<strong>被改变的回复有多少是错的</strong>：向服务 Qwen3-8B 的 vLLM 做软件故障注入，翻转某个 value 的最高有效尾数位或符号位。四个任务上的结果是：<strong>"改变"中变成"错误"的比例强烈依赖任务——MBPP+ 上 0.023，held-out TriviaQA 上 0.59</strong>（符号位时为 0.019 与 0.60）。伤害集中在"采样答案本来就有时会错"的请求上，所以翻转的破坏力取决于这类请求有多常见。受损回复看起来就是普通错误，因此<strong>应当通过检查缓存块来检测翻转，而不是监控输出</strong>。</p>
+<p><strong>对广域的启示</strong>：<strong>共享一份 KV 等于共享一份风险</strong>。跨域缓存池中同一前缀被多 region 复用时，一次传输/存储错误会同时污染所有使用者，且表面看不出来。跨域方案需要<strong>块级校验（如清单里的 SHA256）与周期性重校验</strong>，而不是只看输出质量。</p>
+<hr />
+<h2 id="4">二、重点方向：上下文经济学与非前缀修复（4 篇）</h2>
+<h3 id="4-context-has-a-price-adding-and-removing-context-for-llm-coding-agents-under-prefix-caching">4. Context Has a Price: Adding and Removing Context for LLM Coding Agents under Prefix Caching</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.22238">https://arxiv.org/abs/2611.22238</a></li>
+<li><strong>时间</strong>：2026-11-17</li>
+<li><strong>方向</strong>：前缀缓存经济学 · 增删上下文 · 2 万次实测</li>
+</ul>
+<p><strong>摘要</strong>：编码 agent 反复把对话历史发给模型：加入有用代码可能减少搜索，删掉旧工具输出可能缩短后续 prompt——但这些改动真能降低解题成本吗？论文把它当作测量问题，在 SWE-bench Verified、SWE-bench 与 Loc-Bench 上做了<strong>超过 20,000 次运行</strong>，并<strong>分别统计未缓存输入、缓存输入与输出 token</strong>。三个发现：①在主实验中，检索到的代码让读/搜索命令减少 <strong>18%–34%</strong>，但当缓存输入价格是十分之一时<strong>成本反增 33%–42%</strong>，且解题率没有可测提升；②<strong>删除旧观察既可能省钱也可能更贵</strong>：同一做法在无缓存折扣时省 <strong>19%–36%</strong>，在有十分之一价格缓存时<strong>增加 38%–116%</strong>；③<strong>更短的 prompt 不保证更便宜</strong>，因为 agent 可能用更多步数来补偿。论文还发现并发实验之间会共享缓存前缀、从而<strong>扭曲成本比较</strong>。</p>
+<p><strong>对广域的启示</strong>：这是本期对跨域最有冲击力的一篇。缓存有折扣时，<strong>"改上下文"会打破前缀、把便宜命中变成昂贵重算</strong>。跨域系统直接对应：跨机房复用的 prefix 一旦被编辑就失效，反而触发跨域全量重算。<strong>优化目标应当是"少破坏前缀"，而不是"少 token"。</strong></p>
+<h3 id="5-contexture-runtime-context-eviction-for-high-throughput-agent-serving">5. Contexture: Runtime Context Eviction for High-Throughput Agent Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.26980">https://arxiv.org/abs/2611.26980</a></li>
+<li><strong>时间</strong>：2026-11-20</li>
+<li><strong>方向</strong>：运行时驱逐 · 工具语义 · 全局可见性</li>
+</ul>
+<p><strong>摘要</strong>：Hermes、OpenClaw、Codex 这类 agent 反复重发不断增长的执行历史，推高共享 GPU KV 需求；论文证明<strong>共享 KV 容量是 agent 服务吞吐的瓶颈</strong>。现有上下文缩减方法缺全局缓存状态可见性，而运行时 KV 管理器又缺工具执行信息。论文把 token 追溯到<strong>产生它的工具操作</strong>后发现：<strong>后续操作会取代早期操作的输出及相关轮次，可识别出 64% 的记录末态 token 为可移除候选</strong>。Contexture 是与 harness 和模型无关的运行时上下文驱逐架构：把 harness 的完整会话历史与模型的执行上下文分离，在不改 harness 逻辑、不改模型执行的前提下降低后续请求的 KV 需求。它把工具执行信息与<strong>共享 KV 压力、前缀驻留的全局视图</strong>结合：取代关系给出移除候选，运行时状态决定何时移除才值得牺牲已缓存的计算。两个模型、两个 harness、两个基准上，SLO 内吞吐比最优基线高 <strong>20%–73%</strong>，比 observation masking 在八种配置中的五种高 7%–63%，每完成会话的 GPU 能耗最多降 <strong>11%</strong>；H100 上比单用 LMCache 高 <strong>23%</strong>。实机 agent 实验平均准确率 +1.4 分（最差 -3.7 分），而 observation masking 掉 3–28 分。</p>
+<p><strong>对广域的启示</strong>：<strong>"何时"删比"删多少"更重要</strong>——必须结合缓存压力与驻留状态判断。跨域场景里，"删掉"意味着下次要用时得跨网重取或重算，所以驱逐决策应当把<strong>跨域重取成本</strong>显式计入。</p>
+<h3 id="6-sr-vla-stall-reduced-vla-execution-via-predicted-input-lookahead-and-selective-kv-cache-repair">6. SR-VLA: Stall-Reduced VLA Execution via Predicted-Input Lookahead and Selective KV Cache Repair</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.22356">https://arxiv.org/abs/2611.22356</a></li>
+<li><strong>时间</strong>：2026-11-17</li>
+<li><strong>方向</strong>：选择性 KV 修复 · 预测输入 · 投机复用</li>
+</ul>
+<p><strong>摘要</strong>：视觉-语言-动作（VLA）策略在推理阻塞下一个动作块时会产生<strong>控制停顿</strong>。异步提前推理能藏延迟，但结果可能与随后到达的真实输入不一致：<strong>无条件复用有在错配输入上行动的风险，而全量重算又丢弃了有用的预计算</strong>。SR-VLA 把"预测输入前视"与"选择性 KV cache 修复"结合：在当前块执行期间，一个轻量动作条件预测器生成下一时刻的视觉观测与本体状态；这些预测连同任务指令驱动冻结的 VLA <strong>预计算投机 KV cache 与动作块</strong>。真实输入到达后，由<strong>预测-真实差异与任务条件</strong>决定是直接接受动作块，还是触发<strong>选择性 KV 修复</strong>。LIBERO 上相对同步的 π₀.₅ 与 OpenVLA-OFT 分别取得 <strong>2.67×</strong> 与 <strong>1.27×</strong> 查询加速，同时保持有竞争力的平均任务成功率；在目标运动扰动下成功率与基线相当，仍有 1.52×–1.93× 加速。</p>
+<p><strong>对广域的启示</strong>：<strong>"复用预计算的 KV，但按差异做局部修复"</strong> 是跨域最实用的折中——先按预测开始干活，等真实输入到了只修补对不上的那部分。这比"等全部输入再算"快，也比"沿用陈旧 KV"安全。</p>
+<h3 id="7-moe-context-show-the-model-only-what-it-needs">7. MoE-Context: Show the Model Only What It Needs</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.24379">https://arxiv.org/abs/2611.24379</a></li>
+<li><strong>时间</strong>：2026-11-18</li>
+<li><strong>方向</strong>：块级遮蔽 · 非破坏性选择 · 可回取</li>
+</ul>
+<p><strong>摘要</strong>：AI agent 每一步都读全部历史，而人不这样：我们只留当下需要的，其余记成粗略笔记以便回取。MoE-Context 把上下文切成块，<strong>每一步之前用一个快速的 yes/no pass 判断这一步需要哪些块</strong>；其余的留作一行摘要笔记、可随时取回，<strong>且什么都不删除</strong>。实现版本里，由一个模型做这个判断然后作答，跑在<strong>单一 KV cache</strong> 上，被隐藏的块是<strong>被遮蔽而不是被移除</strong>。笔记本上 Qwen3-1.7B + 合成查表任务：只显示所需块把准确率从 93 提升到 119/120，且<strong>被遮蔽的块与删除的块一样"看不见"</strong>。作者也直白报告了弱点：模型自己选块是薄弱环节——把监督线性探针写进备用输出行能把准确率从 80 提升到 110/120，但简单关键词搜索在该任务上完全正确、且该探针不能迁移到第二个任务。论文还给出块切换带来的两个廉价用法：撤销失败尝试、以及让子 agent 不必新建上下文。</p>
+<p><strong>对广域的启示</strong>：<strong>"遮蔽而非删除"</strong> 对跨域特别友好——被遮蔽的块仍留在缓存里，重新需要时<strong>零成本恢复</strong>，不需要跨网重取或重算。这比"驱逐"更适合跨域池化：省的是注意力与带宽，不是可用性。</p>
+<hr />
+<h2 id="3_1">三、服务系统与吞吐（3 篇）</h2>
+<h3 id="8-optimize-the-cob-then-the-kernel-optimizing-beam-search-for-generative-recommendation-inference">8. Optimize the Cob, Then the Kernel: Optimizing Beam Search for Generative Recommendation Inference</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.23339">https://arxiv.org/abs/2611.23339</a></li>
+<li><strong>时间</strong>：2026-11-17</li>
+<li><strong>方向</strong>：共享前缀冗余访问 · Tree Attention · 图编译</li>
+</ul>
+<p><strong>摘要</strong>：生成式推荐（GR）推理与传统 LLM 服务差别很大：输入序列长、beam 宽、只输出很少几个 token。现有引擎（如 vLLM）把各 beam 当作独立序列批处理，导致<strong>对共享 prompt 前缀的冗余 KV cache 访问</strong>；而且 vLLM 把每个 beam search 生成步当作一次独立引擎调用，带来主机侧 beam 处理开销与 PagedAttention 中大量的运行时 KV 块管理。论文用 <strong>Tree Attention 把各 beam 沿序列维拼接</strong>，消除对共享前缀的冗余 KV 访问，并进一步通过预生成部分注意力掩码、静态 KV 分配、循环展开的生成派发、TorchAir 图编译、自动算子融合与词表约束解码来优化执行。<strong>不使用自定义 kernel</strong> 的情况下，在 Ascend NPU 上端到端延迟比 vLLM 降低最多 <strong>25×</strong>，达到与使用自定义 kernel 的 SOTA 方案相当的生成延迟。</p>
+<p><strong>对广域的启示</strong>：<strong>"共享前缀被多路读取"是跨域的隐形放大器</strong>——beam 越多、并发越高，同一份跨域取来的 KV 被读的次数越多，但只需传一次。这也提示：宽 beam 的推荐类负载其实非常适合把前缀放在远端共享。</p>
+<h3 id="9-run-one-get-two-near-free-streaming-safety-checks-for-local-llms">9. Run One, Get Two: Near-Free Streaming Safety Checks for Local LLMs</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.26975">https://arxiv.org/abs/2611.26975</a></li>
+<li><strong>时间</strong>：2026-11-20</li>
+<li><strong>方向</strong>：双行解码 · 共享 KV · 近零成本检查</li>
+</ul>
+<p><strong>摘要</strong>：本地 LLM 助手一次只为一个用户解码，解码受内存带宽限制、算力空闲。当前的流式安全检查在准确率与成本间取舍：专用 guard 模型准确但几乎让每 token 延迟翻倍，隐状态探针便宜但不够准。ToRA 是一个 adapter，<strong>把第二个模型作为"额外一行"放进生成器的解码步</strong>，共享其权重与 <strong>KV cache</strong>；双行 kernel 对两行只读一次权重。Qwen3-0.6B 上，ToRA 追平或超过专用流式 guard，17 个基准中 12 个 F1 更高；在相近成本下比探针多检出 <strong>11.8 个点</strong>的不安全回复，每 token 只增加不到 <strong>4%</strong> 延迟。</p>
+<p><strong>对广域的启示</strong>：<strong>一份 KV 可以服务两条并行计算行</strong>——这提示跨域共享的边界不只是"同一前缀的多个请求"，也可以是"同一前缀的多个任务头"。把安全检查、分类等辅助任务挂到同一份远端 KV 上，边际带宽成本接近零。</p>
+<h3 id="10-fastframes-video-generation-at-interactive-latency">10. FastFrames: Video Generation at Interactive Latency</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.23226">https://arxiv.org/abs/2611.23226</a></li>
+<li><strong>时间</strong>：2026-11-17</li>
+<li><strong>方向</strong>：自回归视频 · KV 更新开销 · 交互延迟</li>
+</ul>
+<p><strong>摘要</strong>：自回归视频扩散模型能基于新观测与新输入生成帧，是交互式视觉体验的有前景载体，但现有模型比流畅交互所需慢几个数量级。论文剖析了 SOTA 模型的推理流水线，发现<strong>常被当作固定实现细节的操作——如 VAE 解码与 KV cache 更新——实际占端到端推理延迟的一半以上</strong>。作者挑战"这些组件不可或缺"的假设，用轻量替代方案替换它们。1.3B 变体在单张 B200 上达到 <strong>36 ms/帧（28 RPS）</strong>，与慢近 <strong>8×</strong> 的 SOTA 模型质量相当；14B 变体在 8×B200 节点上 <strong>45 ms/帧（22 RPS）</strong>，视觉质量与真实感显著更好，从而支持相机条件、物理条件等实时交互应用。</p>
+<p><strong>对广域的启示</strong>：<strong>KV cache 更新本身可能是延迟主项</strong>，而不是注意力计算。跨域流式场景（视频、语音、agent 连续交互）里，如果更新/搬移 KV 的开销占了半程，那么"减少更新频率 + 让更新异步化"比"提高带宽"更有效。</p>
+<hr />
+<h2 id="_2">今日观察</h2>
+<ol>
+<li><strong>共享缓存的三个风险层被同时揭开</strong>：时序侧信道（Isonomy）、地址翻译重定向（BlockJack）、单块单比特翻转（Bit Flips）——分别对应<strong>时间、映射、数据</strong>三个层面，跨域共享池必须三层都防护。</li>
+<li><strong>"省 token"不等于"省钱"</strong>：Context Has a Price 用 2 万次运行证明，在有缓存折扣时删上下文可能让成本翻倍。<strong>前缀的连续性比长度更值钱</strong>。</li>
+<li><strong>非前缀复用出现了"修复"范式</strong>：SR-VLA 按预测-真实差异选择性修复 KV，MoE-Context 用<strong>遮蔽而非删除</strong>保住可恢复性——两者都避免"要么全用旧的、要么全部重算"的极端。</li>
+<li><strong>共享一份 KV 可以服务多个消费者</strong>：ToRA 的双行共享、beam 的树形共享都说明，跨域把一份前缀传给多路使用者的边际成本远低于各自复制。</li>
+</ol>
+<blockquote>
+<p>注：本期为 11-22 的<strong>补录批次</strong>，摘要基于 arXiv 官方摘要页整理；具体实验设置与数字以 PDF 原文为准。</p>
+</blockquote>
+</main>
+<nav class="pager"><a class="pager-link" href="2026-11-21.html"><span class="dir">← 上一期</span><span class="d">11月21日</span></a><a class="pager-link next" href="2026-11-23.html"><span class="dir">下一期 →</span><span class="d">11月23日</span></a></nav>
+<footer class="footer"><span>KV Cache 日报</span><a href="../index.html">返回目录</a></footer>
+
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

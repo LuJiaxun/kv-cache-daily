@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KV Cache 日报 · 2026-11-26</title>
+<meta name="description" content="2026-11-26 的 KV Cache 论文摘要，10 篇。">
+<meta name="theme-color" content="#f6f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="day-page">
+
+<header class="topbar">
+  <a class="back" href="../index.html"><span aria-hidden="true">←</span> 全部日报</a>
+  <span class="top-date">2026年11月26日 · 周四</span>
+</header>
+<main class="report">
+<h1 id="kv-cache-2026-11-26">KV Cache 论文日报 · 2026-11-26</h1>
+<blockquote>
+<p><strong>今日 10 篇</strong>：混合稀疏注意力与 KV 共享/检索 3 篇（重点方向）· 存储分层与放置 3 篇 · 边缘与 Serverless 2 篇 · 内核与 Agent 压缩 2 篇</p>
+<p><strong>本期主线</strong>：本期重点方向终于有了新进展——<strong>HySparse2 把"KV 共享"做成了架构级的两级</strong>：外层用 YOCO 式桥接只桥接全注意力层，内层保留 token 级 KV 复用，于是 cross-decoder 的全部 KV 都能从 self-decoder 的隐状态构造，<strong>prefill 可以在 self-decoder 之后提前退出</strong>。另外，<strong>无损压缩</strong>这条线出现了工程级成果：LoomKV 用 BF16 高字节的两级 3-bit 码把 KV 存到 0.71 倍，且按位精确。</p>
+<p><strong>说明</strong>：本期「混合/循环」分册中 HySparse2 为本方向<strong>架构级</strong>新进展（hybrid + 跨层 KV 共享）；严格意义的「混合注意力 + PIC 片段复用」仍无新作。摘要依据 arXiv 官方摘要整理。</p>
+</blockquote>
+<h2 id="_1">速览</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>论文</th>
+<th>方向</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>HySparse2: Hybrid Sparse Attention with Two-Level KV Sharing</td>
+<td>混合稀疏 · 两级 KV 共享</td>
+<td>arXiv:2609.26368</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Integral DeltaNet: Improved Linear Attention with Adaptive Memory Integration</td>
+<td>线性注意力 · 双状态</td>
+<td>arXiv:2611.32063</td>
+</tr>
+<tr>
+<td>3</td>
+<td>DraftKV: Protecting Persistent Worlds through Hierarchical Streaming Retrieval</td>
+<td>历史 KV 检索 · 流式注意力</td>
+<td>arXiv:2611.31944</td>
+</tr>
+<tr>
+<td>4</td>
+<td>LoomKV: Lossless KV Cache Compression from GPU Memory to SSD for LLM Serving</td>
+<td>无损压缩 · 三级存储</td>
+<td>arXiv:2611.32954</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Cheap Memory Costs Future Compute: Co-Designing Persistent KV and GPU Execution for Efficient Streaming Video Diffusion</td>
+<td>持久 KV 重建</td>
+<td>arXiv:2611.31892</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Norn: Context-Length-Aware Optimization of Weight and KV Cache Placement for Offloaded LLM Inference</td>
+<td>上下文感知卸载</td>
+<td>arXiv:2611.32295</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Scalable Placement for Disaggregated LLM Serving on Heterogeneous Edge Fleets</td>
+<td>边缘集群放置</td>
+<td>arXiv:2611.32881</td>
+</tr>
+<tr>
+<td>8</td>
+<td>ModelLess: A Serverless System for Multi-Tier LLM Inference on Shared GPUs</td>
+<td>Serverless 多层</td>
+<td>arXiv:2611.32634</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Fast 4-bit KV-Cache Decoding on Hopper GPUs: Why Existing Kernels Are Slow and How to Fix Them</td>
+<td>4-bit 解码内核</td>
+<td>arXiv:2611.30027</td>
+</tr>
+<tr>
+<td>10</td>
+<td>DMC-5: Dual-Model Collaboration with Cache-aware Context Compression for Long-horizon Agents</td>
+<td>双模型上下文压缩</td>
+<td>arXiv:2611.30412</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="kv-3">一、重点方向：混合/线性注意力与 KV 共享·检索（3 篇）</h2>
+<h3 id="1-hysparse2-hybrid-sparse-attention-with-two-level-kv-sharing">1. HySparse2: Hybrid Sparse Attention with Two-Level KV Sharing</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2609.26368">https://arxiv.org/abs/2609.26368</a></li>
+<li><strong>时间</strong>：2026-09-22</li>
+<li><strong>方向</strong>：混合稀疏注意力 · 两级 KV 共享 · 跨层构造</li>
+</ul>
+<p><strong>摘要</strong>：长程与多轮 agent 通常只生成很短的动作，却要处理来自工具与环境的长观测，因此同时需要高效 prefill、紧凑 KV 存储与准确的长上下文检索。HySparse2 是带<strong>两级 KV 共享</strong>的混合稀疏注意力架构。<strong>外层 KV Bridging</strong> 采用 YOCO 式的 self-decoder + cross-decoder 结构，但<strong>只桥接全注意力层</strong>：self-decoder 用混合滑窗注意力（SWA），cross-decoder 用混合稀疏注意力；cross-decoder 中全注意力层的 KV cache 由 self-decoder 中全注意力层的隐状态生成。<strong>内层</strong>保留 HySparse 的核心 <strong>KV Reuse</strong> 设计并做两点改进：把块级稀疏换成 token 级稀疏（更细的长上下文检索），并去掉稀疏层里单独的 SWA 分支、改为把最近 token 的滑窗强制并入稀疏选择。两级共享使 cross-decoder 的全部 KV cache 都能由 self-decoder 隐状态构造，于是<strong>prefill 可以在 self-decoder 之后提前退出、跳过全部 cross-decoder 层</strong>。在 80B-A3B MoE 上，HySparse2 在长上下文检索与多轮 agent 任务上优于 HySparse 与 Hybrid SWA，同时大幅降低 prefill 计算与 KV 存储。</p>
+<p><strong>对广域的启示</strong>：<strong>"KV 由隐状态现场构造"就是最强的传输优化</strong>——如果 cross-decoder 的 KV 不需要单独存/传，跨节点只需搬 self-decoder 的隐状态。这与之前收录的 MemOnce（存小解大）、CarrierKV（剥离位置载波）是同一族思路：<strong>减少需要过网的独立状态数量</strong>，而不是压缩每一份。</p>
+<h3 id="2-integral-deltanet-improved-linear-attention-with-adaptive-memory-integration">2. Integral DeltaNet: Improved Linear Attention with Adaptive Memory Integration</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.32063">https://arxiv.org/abs/2611.32063</a></li>
+<li><strong>时间</strong>：2026-11-24</li>
+<li><strong>方向</strong>：线性注意力 · 双互补状态 · 多时间尺度</li>
+</ul>
+<p><strong>摘要</strong>：线性注意力用线性形式替代 softmax 注意力，从而实现线性时间计算与<strong>固定大小的循环状态</strong>（而非增长的 KV cache）。但这种把历史压进固定状态的做法会造成<strong>记忆碰撞</strong>，伤害长上下文理解。DeltaNet 用 delta-rule 更新缓解碰撞，Gated DeltaNet 又加了门控，但这些机制也可能<strong>丢弃对未来预测仍有用的信息</strong>。Integral DeltaNet 因此维护<strong>两个互补的循环状态</strong>：快速更新的 delta 状态（捕捉当前 key-value 关联）与一个<strong>积分状态</strong>（保留 delta 状态的加权历史）；读出时自适应地组合二者，从而跨时间尺度取用信息。论文还推导了 chunkwise 并行形式以支持高效训练。340M 与 1.3B 模型分别在 15B 与 100B FineWeb-Edu token 上从零训练，在语言建模、常识推理、真实与合成检索、长上下文理解和长度外推上均优于强循环基线，并对比了训练吞吐、激活内存与解码延迟/内存。</p>
+<p><strong>对广域的启示</strong>：<strong>状态设计决定了"要不要传历史"</strong>——双状态让模型能在不同时间尺度上调取信息，等价于把"长历史"编码进一个固定的、可整体搬运的小状态。对跨域而言，这种架构天然适配"传状态不传 KV"。</p>
+<h3 id="3-draftkv-protecting-persistent-worlds-through-hierarchical-streaming-retrieval">3. DraftKV: Protecting Persistent Worlds through Hierarchical Streaming Retrieval</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.31944">https://arxiv.org/abs/2611.31944</a></li>
+<li><strong>时间</strong>：2026-11-24</li>
+<li><strong>方向</strong>：历史 KV 非前缀检索 · 流式注意力 · CPU 卸载</li>
+</ul>
+<p><strong>摘要</strong>：交互式视频世界模型支持动作与相机控制的探索，但在<strong>重访已探索位置</strong>时难以保持空间几何与外观一致。历史 KV cache 能帮自回归视频扩散模型维持长期一致性，但随着历史增长，其<strong>检索与注意力计算带来可观的延迟</strong>。DraftKV 是免训练框架：基于<strong>几何接地</strong>与<strong>查询条件相关性</strong>检索历史 KV，并结合 CPU 卸载与<strong>分块流式注意力</strong>降低显存与延迟。理论上证明：draft 相关性精确复现了全分辨率块相关性的均值分支，偏差被限制在 β 加权的 max 分支；并用实测 Top-K 选择重合度给出检索效用损失的界。论文还证明 draft 相关性<strong>无法区分池化描述子相近的块（与相机位姿无关）</strong>，因此在精排之前需要几何接地。其流式 CG-Attention 通过分块流式把 CPU→GPU 的 KV 传输与注意力计算重叠，<strong>隐藏传输延迟</strong>同时保持显存有界。多模型族实验上，DraftKV 端到端加速 <strong>3.27×</strong>、峰值显存降 <strong>42.2%</strong>，并在单张 H100 上用 SolarWM-33B 实现可交互的高质量世界生成。</p>
+<p><strong>对广域的启示</strong>：<strong>"按需检索历史 KV"就是非前缀复用的实例</strong>——重访时并不需要前缀连续性，只需要找到"当时那段状态"。它的流式重叠技巧（传输与计算重叠、显存有界）是跨域取历史的直接可复用做法；而"几何接地先于语义精排"的教训也适用于跨域缓存索引：<strong>先按结构定位，再按语义打分</strong>。</p>
+<hr />
+<h2 id="3">二、存储分层与放置（3 篇）</h2>
+<h3 id="4-loomkv-lossless-kv-cache-compression-from-gpu-memory-to-ssd-for-llm-serving">4. LoomKV: Lossless KV Cache Compression from GPU Memory to SSD for LLM Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.32954">https://arxiv.org/abs/2611.32954</a></li>
+<li><strong>时间</strong>：2026-11-24</li>
+<li><strong>方向</strong>：无损压缩 · GPU→DRAM→SSD · 引擎集成</li>
+</ul>
+<p><strong>摘要</strong>：服务引擎把 KV 从 GPU 显存卸载到主机 DRAM 与 SSD，以支持多轮与 agent 请求的<strong>前缀复用</strong>；容量于是在两层受限：外部层级决定驱逐前能复用多少前缀，GPU KV 池限制并发长请求，而<strong>有损压缩会改变 KV 值与输出</strong>。LoomKV 在<strong>不改引擎</strong>的前提下把无损 KV 压缩同时用于外部层级（tier 模式）与 GPU 池（pool 模式）。它用<strong>标定的 per-head 两级 3-bit 码</strong>编码 BF16 的高字节（符号位 + 高 7 位指数）：九个模型上把 BF16 KV 存到原始大小的 <strong>0.71</strong>，FP8 KV 存到 0.85–0.87。tier 模式下 <strong>TileStream</strong> 写入精确长度记录、把长度回读移出加载路径，使层级存储、驱逐与预取逻辑不变，并把取回的记录<strong>直接解压进分散的 GPU 页</strong>；pool 模式下 <strong>FragPack</strong> 把变长记录打包进更小的共享预算 GPU 页，由融合解码-注意力 kernel 原地读取，速度超过 BF16 上的 FlashAttention-3。基于 LMCache 与 vLLM 构建，LoomKV 让压缩层级在 AgentX 上等效于 <strong>1.4×</strong> 更大的原始层级：跨 LMCache 的 LRU 悬崖，tier 模式给出原始 <strong>2.7–3.6×</strong> 的 goodput 与 <strong>1.9–3.1×</strong> 更低的平均 TTFT，在其他替换策略下悬崖位置同样平移，并通过 SSD→DRAM 提升把重复前缀 TTFT 降低最多 <strong>1.7×</strong>；当层级装得下工作集时，pool 模式能多放 <strong>1.31–1.34×</strong> 的 GPU token。双受限的 AI IDE trace 上，两种模式分别把 goodput 提升 <strong>1.24×</strong> 与 <strong>1.59×</strong>；容量足够时压缩的吞吐代价最多 <strong>2.2%</strong>，且 tier 模式与原始层级<strong>逐位相同</strong>、pool 模式精度与 FA-3 一致。</p>
+<p><strong>对广域的启示</strong>：这是<strong>跨域传输最直接可用的一篇</strong>：无损 → 跨域压缩不会改变结果（不像 FP8 KV 会翻转 3.36% 判分）；0.71 的存储比 → 跨网字节直接降 29%；"把记录直接解压进分散 GPU 页"意味着<strong>接收端可以边解压边就位</strong>，不需要中间缓冲。跨域缓存池若走无损压缩，可以同时拿到带宽与正确性两个好处。</p>
+<h3 id="5-cheap-memory-costs-future-compute-co-designing-persistent-kv-and-gpu-execution-for-efficient-streaming-video-diffusion">5. Cheap Memory Costs Future Compute: Co-Designing Persistent KV and GPU Execution for Efficient Streaming Video Diffusion</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.31892">https://arxiv.org/abs/2611.31892</a></li>
+<li><strong>时间</strong>：2026-11-24</li>
+<li><strong>方向</strong>：持久 KV 重建 · 陈旧缓存代价 · 流式视频</li>
+</ul>
+<p><strong>摘要</strong>：块因果视频扩散逐块生成长视频，并以<strong>持久 KV cache</strong> 为条件。每块去噪完后，需要一次额外的无噪（t=0）前向把它的干净 KV 写入缓存；当蒸馏与投机 early exit 让去噪变便宜后，<strong>这次干净 KV 更新反而成为运行时主项</strong>。复用陈旧 KV 能缩短更新，但<strong>陈旧记忆会污染后续块的 conditioning 并抬高它们的去噪步数</strong>——省下的计算会从下游重新出现。论文提出 SAMR（Step-Aware Memory Reconstruction）：对冻结的因果视频 DiT，<strong>只刷新部分缓存、其余不经过 DiT 前向重建</strong>。关键观察是：<strong>去掉 rotary 位置相位后，运动对齐的历史 KV 与 token 在其退出步持有的在飞 KV 是 clean KV 的互补估计</strong>。SAMR 在 Pre-RoPE 空间用离线标定的 per-head 仿射映射去偏在飞 KV，融合两个估计，并只对注意力读出误差代理标记的 token 做真正的 t=0 刷新，全部由 tile 对齐、无同步的 Triton kernel 执行。48 秒 LongLive-1.3B 视频上，相对稠密 KV 更新把 DiT 延迟降 <strong>20.9%</strong>、主 FLOPs 降 <strong>30.7%</strong>，并降低下游去噪步数、末四分之一 PSNR 比 token 复用高 <strong>1.61 dB</strong>（held-out VidProM-16 上 1.14 dB）；对 Self-Forcing-DMD-1.3B 零样本迁移可把复用导致的步数膨胀从 2.47 降到 2.30 步/token。</p>
+<p><strong>对广域的启示</strong>：<strong>"省带宽的代价可能在别处付"</strong>——陈旧 KV 省了更新成本，却抬高下游计算。跨域复用陈旧缓存（比如跨 region 同步延迟导致的旧版本）必须把这种<strong>下游惩罚</strong>计入收益模型；SAMR 的"部分真刷新 + 其余重建"正是折中方案。</p>
+<h3 id="6-norn-context-length-aware-optimization-of-weight-and-kv-cache-placement-for-offloaded-llm-inference">6. Norn: Context-Length-Aware Optimization of Weight and KV Cache Placement for Offloaded LLM Inference</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.32295">https://arxiv.org/abs/2611.32295</a></li>
+<li><strong>时间</strong>：2026-11-24</li>
+<li><strong>方向</strong>：上下文感知卸载 · 子层放置 · 计划切换</li>
+</ul>
+<p><strong>摘要</strong>：把模型权重与 KV cache 卸载到主机内存，能让大模型在单张受限 GPU 上运行。但<strong>随着解码推进 KV 增长</strong>，显存需求、KV 传输成本与注意力计算成本都在变；现有卸载方法一般用<strong>静态</strong>的计算分配与权重/KV 放置，无法适应这些变化，性能因此退化。Norn 是上下文长度感知的卸载推理方法：基于离线剖析，在<strong>子层粒度</strong>上协同优化计算分配与放置，预计算多套执行计划及其<strong>切换点</strong>；解码时随上下文增长切换计划，在<strong>不知道输出长度</strong>的前提下重叠计算与数据传输。对 prefill，Norn 用 operator-major 的 chunked prefill 避免重复权重传输，并自动选择 chunk 大小。Qwen3-14B 与 Qwen3-32B 在两套单 GPU 系统上，端到端延迟相对 Pipelined Sharding 最高 <strong>16.8×</strong>，相对"已知输入输出长度"的 oracle 变体也有 <strong>4.2×</strong>。</p>
+<p><strong>对广域的启示</strong>：<strong>"放置要随上下文长度动态变"</strong> 对跨域同样成立：随着上下文增长，最优的"本地/远端"分工会发生迁移。Norn 的"预计算多套计划 + 按上下文切换"是廉价可行的实现——跨域方案可以预先算好几种 region 分工，运行时按上下文长度切换。</p>
+<hr />
+<h2 id="serverless2">三、边缘与 Serverless（2 篇）</h2>
+<h3 id="7-scalable-placement-for-disaggregated-llm-serving-on-heterogeneous-edge-fleets">7. Scalable Placement for Disaggregated LLM Serving on Heterogeneous Edge Fleets</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.32881">https://arxiv.org/abs/2611.32881</a></li>
+<li><strong>时间</strong>：2026-11-24</li>
+<li><strong>方向</strong>：边缘异构集群 · PD 分离放置 · 组合优化</li>
+</ul>
+<p><strong>摘要</strong>：在边缘服务 LLM 对隐私敏感场景很有价值，但边缘环境算力受限且<strong>设备高度异构</strong>，突发负载下拥塞与排队会显著拉高延迟。把模型复制成多个流水线实例能扩容、降拥塞，但"设备如何分组为副本、副本如何分配 prefill/decode 角色、模型层如何在异构设备上切分"共同构成一个很大的组合优化问题。论文提出 <strong>Spade</strong>，面向异构边缘集群、支持流水线复制的 PD 分离放置规划器：用<strong>支配关系剪枝</strong>丢弃劣质副本候选并递归消除包含它们的更大候选，大幅缩小搜索空间；再用<strong>注水式层切分</strong>与<strong>带界多维背包</strong>在拥塞感知目标下优化放置。30 台设备、五个硬件类别的合成集群上，Spade <strong>441ms</strong> 找到最优放置，而遗传搜索基线需要约两小时且拥塞目标差 <strong>19.7%</strong>；十种设备类型的集群上，剪枝消除 <strong>99.6%</strong> 的候选而存活集合与穷举完全一致。</p>
+<p><strong>对广域的启示</strong>：<strong>跨域部署本质上就是"异构设备 + 分离 + 复制"的放置问题</strong>——Spade 的形式化（支配剪枝 + 注水层切分 + 拥塞目标）可以直接移植：把跨域链路带宽/时延作为额外的设备约束，就能规划"哪些 region 做 prefill、哪些做 decode"。</p>
+<h3 id="8-modelless-a-serverless-system-for-multi-tier-llm-inference-on-shared-gpus">8. ModelLess: A Serverless System for Multi-Tier LLM Inference on Shared GPUs</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.32634">https://arxiv.org/abs/2611.32634</a></li>
+<li><strong>时间</strong>：2026-11-24</li>
+<li><strong>方向</strong>：Serverless · 多优先级 · 驱逐语义</li>
+</ul>
+<p><strong>摘要</strong>：LLM 推理平台按产品分别预留 GPU，导致一个服务在突发间隙闲置、而其他工作排队。ModelLess 是 serverless 系统：用户声明模型服务，平台拥有实例；空闲服务<strong>缩到零</strong>——实例带着权重睡进主机内存（GLM-5.2 TP8 上释放约 1s、唤醒约 4s，而冷启动超过 4 分钟），计费按服务占用 GPU 的时间。睡着的实例释放出的 GPU 借给低优先级层。集群管理器通常把驱逐当<strong>全有或全无</strong>，但 LLM 实例的驱逐代价取决于其权重、执行状态、<strong>KV cache</strong> 与在飞请求哪些能存活。ModelLess 因此给每一层（online/job/flex）规定<strong>驱逐语义</strong>（声明被抢占时允许丢什么），并运行抢占协议：<strong>释放内存前先关闭准入、中止请求前先持久化重新入队、失败即关闭</strong>。单节点实验显示：暂停（pause/resume）相对"中止-重排"每 GPU 样本多产 <strong>22%</strong> 借用者 token，而在线延迟中位数相同；1100 张 H20 一周 trace 回放表明，在粗延迟目标下约 <strong>38% 的 GPU 时间（等效 417 张卡）可被借出</strong>——但这是理想上界，只有恢复能在秒级完成时成立，240s 冷启动下即便按服务设阈值也剩不到 8%。</p>
+<p><strong>对广域的启示</strong>：<strong>"驱逐代价取决于哪些 KV 能活下来"</strong> 是跨域池化必须显式化的语义——跨域驱逐意味着 KV 要么重算要么跨网重取，代价比本地驱逐更高。ModelLess 的"分层驱逐语义 + 先关准入再释放"是跨域资源池可以直接借用的协议设计。</p>
+<hr />
+<h2 id="agent-2">四、内核与 Agent 压缩（2 篇）</h2>
+<h3 id="9-fast-4-bit-kv-cache-decoding-on-hopper-gpus-why-existing-kernels-are-slow-and-how-to-fix-them">9. Fast 4-bit KV-Cache Decoding on Hopper GPUs: Why Existing Kernels Are Slow and How to Fix Them</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.30027">https://arxiv.org/abs/2611.30027</a></li>
+<li><strong>时间</strong>：2026-11-23</li>
+<li><strong>方向</strong>：4-bit 解码内核 · 指令预算 · 精度配方</li>
+</ul>
+<p><strong>摘要</strong>：4-bit KV cache 读取的字节约为 FP8 的一半，但 <strong>Hopper 没有 FP4 硬件、且每字节带宽对应的指令发射能力很小</strong>，所以 4-bit 必须用软件解码。H200 上 vLLM 的 NVFP4 KV 路径（FlashInfer 的 decode）只达到 <strong>10–20% 的显存带宽</strong>，比 FP8 最多慢 <strong>1.7×</strong>。NVBit 指令计数显示两个原因：vLLM 的 4-bit 路径背后的 kernel（FlashInfer NVFP4、Triton UltraQuant）<strong>每字节执行 2–6 倍的 Hopper 发射预算</strong>，且把加载、解码与矩阵乘串行化。论文的 Hopper 原生解码 kernel 用 <strong>TMA 生产者 warp + 两个计算 warpgroup</strong> 重叠，在写入时就把布局排好使解码值从寄存器直喂张量核，并交换矩阵操作数让小 query 组无需 padding。H200 上 batch 32–128 达到 <strong>67–75% 峰值带宽</strong>，全部 11 个形状上比 XQA 与 FlashAttention-4 提出的原生 FP8 中较快者快 <strong>1.12–1.49×</strong>。集成进 vLLM 并配精度配方（K 均值移除 + 旋转、4 个 BF16 sink token、第 0 层 BF16）后，Llama-3.1-8B 上 batch≥8 时每步解码比 vLLM 的 FP8 路径快 <strong>1.12–1.64×</strong>，能多容纳 <strong>1.63×</strong> 的 token；单张 H200 上 99% 请求满足延迟目标的最高速率是 FP8 的 1.23–1.32×（Llama-3.1-8B）与 <strong>1.67–2.20×</strong>（Qwen2.5-72B）。五个 7B–32B 模型上重复运行与 BF16 KV <strong>无显著精度差异</strong>；对 FP8 KV 会崩的 Qwen2 推理变体，第 0 层的 key 均值几乎就是 key 投影偏置，保留该层 FP8/BF16 即可恢复。</p>
+<p><strong>对广域的启示</strong>：<strong>"低位宽不等于省"</strong>——如果解码 kernel 吃掉了指令预算，4-bit 可能比 FP8 还慢。跨域方案在选位宽时，必须先确认接收端的解码实现能否跟上；本期的 LoomKV（无损、逐位相同）与这篇（4-bit 需专门 kernel）形成对照：<strong>压缩比与可执行性是两件事</strong>。</p>
+<h3 id="10-dmc-5-dual-model-collaboration-with-cache-aware-context-compression-for-long-horizon-agents">10. DMC-5: Dual-Model Collaboration with Cache-aware Context Compression for Long-horizon Agents</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.30412">https://arxiv.org/abs/2611.30412</a></li>
+<li><strong>时间</strong>：2026-11-23</li>
+<li><strong>方向</strong>：双模型协作 · 缓存感知压缩 · 只追加视图</li>
+</ul>
+<p><strong>摘要</strong>：长程 agent 反复把不断增长的交互轨迹喂给专用 agent 模型。前缀缓存能复用重复历史的计算，但<strong>既不能阻止上下文增长，也不能移除与当前决策无关的信息</strong>；当专用 agent 拿不到通用模型那种缓存输入折扣时，这个代价尤其高，于是轨迹压缩成为自然选择。但已有压缩方法有风险：选择性上下文会丢全局信息、递归改写摘要导致<strong>语义漂移</strong>、反复重压全历史又把增长的成本转给压缩器。DMC-5 是非对称框架：<strong>全历史整合交给通用压缩模型，动作生成交给专用 agent 模型</strong>。它把原始轨迹保留为<strong>只追加的规范视图</strong>（Append-only Canonical View），保住全局可访问性，同时让压缩器<strong>复用稳定的历史前缀</strong>而不是递归改写或重算；agent 只在一个紧凑的<strong>决策视图</strong>上工作（近期原始交互），减少重复输入又保住下一步动作所需信息。它还引入 YAMATO（面向工具操作的完整性感知记忆抽象）在有损压缩中保住执行关键信息。AppWorld、OfficeBench 与 8 目标 QA 上，DMC-5 把 agent 模型输入减 <strong>38.5%–57.0%</strong>、端到端成本降 <strong>14.5%–28.0%</strong>，压缩器缓存命中率 <strong>78.0%–85.0%</strong>，同时任务表现比未压缩基线提升 <strong>1.0–5.8%</strong>。</p>
+<p><strong>对广域的启示</strong>：<strong>"只追加的规范视图"是跨域 agent 的关键设计</strong>——它同时满足了"可复用稳定前缀"与"可回查全局"两个需求。跨域场景里，把规范历史放在源头（只追加、前缀稳定），把决策视图放到 agent 侧（小、可传），正好匹配广域链路的成本结构。</p>
+<hr />
+<h2 id="_2">今日观察</h2>
+<ol>
+<li><strong>混合架构的"共享"从缓存层上升到架构层</strong>：HySparse2 让 cross-decoder 的 KV 全部由 self-decoder 隐状态构造，prefill 可以提前退出——<strong>减少需要存/传的独立状态数量</strong>，比压缩每一份更彻底。</li>
+<li><strong>无损压缩出现了生产级方案</strong>：LoomKV 在 BF16 高字节上做两级 3-bit 码，0.71 倍存储、位精确、goodput 2.7–3.6×。这解决了"压缩会不会改结果"的顾虑。</li>
+<li><strong>陈旧缓存的代价会在下游出现</strong>：SAMR 证明复用旧 KV 省的更新成本会变成后续更多的去噪步数。跨域同步延迟造成的"旧版本 KV"同样要按此折算。</li>
+<li><strong>位宽选择要看接收端能不能跑</strong>：4-bit 在 Hopper 上因指令预算不足反而比 FP8 慢 1.7×；压缩比高不等于端到端更优。</li>
+</ol>
+<blockquote>
+<p>注：本期「混合/循环」分册中 HySparse2 为架构级 KV 共享进展；严格意义的「混合注意力 + PIC 片段复用」本期仍无新作（最近仍是 HYPIC / Nebula / CacheWeave / Morph）。摘要基于 arXiv 官方摘要页整理，具体实验设置与数字以 PDF 原文为准。</p>
+</blockquote>
+</main>
+<nav class="pager"><a class="pager-link" href="2026-11-25.html"><span class="dir">← 上一期</span><span class="d">11月25日</span></a></nav>
+<footer class="footer"><span>KV Cache 日报</span><a href="../index.html">返回目录</a></footer>
+
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

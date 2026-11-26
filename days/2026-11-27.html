@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KV Cache 日报 · 2026-11-27</title>
+<meta name="description" content="2026-11-27 的 KV Cache 论文摘要，10 篇。">
+<meta name="theme-color" content="#f6f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="day-page">
+
+<header class="topbar">
+  <a class="back" href="../index.html"><span aria-hidden="true">←</span> 全部日报</a>
+  <span class="top-date">2026年11月27日 · 周五</span>
+</header>
+<main class="report">
+<h1 id="kv-cache-2026-11-27">KV Cache 论文日报 · 2026-11-27</h1>
+<blockquote>
+<p><strong>今日 10 篇</strong>：有界记忆与跨模型 KV 交接 3 篇（重点方向）· 复用与编辑 2 篇 · 路由与调度 2 篇 · 架构选择与存储 3 篇</p>
+<p><strong>本期主线</strong>：两件事同时发生——<strong>KV 正在变成可编辑、可重排的对象</strong>（模型自己决定压缩哪段、引擎复用未改动后缀的 KV，prefill 省 15%），而<strong>跨模型 KV 交接首次被证明是安全漏洞</strong>：通过 mapper 把一个模型的 KV 交给另一个模型时，目标模型的拒答率会崩，原本只跟随 0.4% 注入的模型经传递后可被诱导到 <strong>44.2%</strong>。</p>
+<p><strong>说明</strong>：本期论文公告日期集中在 2026-11-22 至 11-25，为目前能检索到的最新批次。摘要依据 arXiv 官方摘要整理。</p>
+</blockquote>
+<h2 id="_1">速览</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>论文</th>
+<th>方向</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>State Space Attention: Learning Context-Dependent Memory Retention</td>
+<td>可学习有界记忆</td>
+<td>arXiv:2611.33625</td>
+</tr>
+<tr>
+<td>2</td>
+<td>DFly2: Turbocharging Long-Context Speculative Decoding by Sharing the Target's Sparsity</td>
+<td>共享目标 KV 与索引</td>
+<td>arXiv:2611.34776</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Latent-in-the-Middle: On the Security of Cross-Model Latent Communication in Multi-Agent Systems</td>
+<td>跨模型 KV 交接安全</td>
+<td>arXiv:2611.34278</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Letting Models Manage Their Own Context: Where We Stand</td>
+<td>模型自管上下文 + KV 编辑</td>
+<td>arXiv:2611.34147</td>
+</tr>
+<tr>
+<td>5</td>
+<td>VAPOR: Improving Multimodal Reasoning with Sparse Visual Updates</td>
+<td>视觉注意力持久化</td>
+<td>arXiv:2611.33751</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Routing and Cache Retention for Multi-Turn LLM Inference: Theory and Implementation</td>
+<td>路由与保留联合优化</td>
+<td>arXiv:2611.34584</td>
+</tr>
+<tr>
+<td>7</td>
+<td>RePrism: Joint Request and Representation Scheduling for LLM Agent Serving</td>
+<td>请求×表示联合调度</td>
+<td>arXiv:2611.32545</td>
+</tr>
+<tr>
+<td>8</td>
+<td>When Does Decomposition Help? Empirical Study on Workload-Architecture Affinity in LLM Inference Serving</td>
+<td>分解收益的边界</td>
+<td>arXiv:2611.29104</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Mayfly: Lifecycle-Aware High-Bandwidth Flash for Recursive Self-Improvement</td>
+<td>生命周期感知 HBF</td>
+<td>arXiv:2611.32264</td>
+</tr>
+<tr>
+<td>10</td>
+<td>ANOR: Scaling Sparse Attention with a GPU-PNM Computing Hierarchy</td>
+<td>GPU-PNM 分层</td>
+<td>arXiv:2611.30417</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="kv3">一、重点方向：有界记忆、KV/索引共享与跨模型交接（3 篇）</h2>
+<h3 id="1-state-space-attention-learning-context-dependent-memory-retention">1. State Space Attention: Learning Context-Dependent Memory Retention</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.33625">https://arxiv.org/abs/2611.33625</a></li>
+<li><strong>时间</strong>：2026-11-25</li>
+<li><strong>方向</strong>：可学习保留策略 · 有界记忆 · 标准注意力读出</li>
+</ul>
+<p><strong>摘要</strong>：标准注意力的 KV cache 随上下文线性增长，把它<strong>有界化</strong>就引出一个问题：长上下文推理该保留什么？论文主张这个选择<strong>应当被学习</strong>，提出 State Space Attention（SSA）：学习保留一个有界的过去表示集合，并用<strong>标准注意力</strong>读取它们。一个学习到的 scorer 用新到达的上下文对每个 chunk 重新打分（同时也对其余记忆打分）。<strong>固定窗口 Transformer 只是"永远保留最近 token"的特例</strong>。scorer 与 reader 联合训练，可以从记忆的可微软加权逐步过渡到硬保留，也可以从一开始就用硬保留；为给 scorer 提供信号，训练时生成监督样本（称为 <strong>recovery</strong>）。与循环模型、有界记忆注意力、全注意力 Transformer 在检索、变量追踪、多跳推理与语言建模上对比：多数任务上 SSA 追平或只差全注意力几个点，<strong>在每一个长上下文检索任务上大幅优于同等可读预算的 Transformer，并追平或超过约 4 倍预算的 Transformer</strong>，而推理内存恒定。小模型规模下与全注意力剩下的最大差距在 RULER。因为用标准注意力读记忆，SSA <strong>可以与 KV cache 驱逐方法叠加</strong>。论文还预训练/后训练 400M 模型并测量训练与推理成本随上下文长度与模型规模的变化。</p>
+<p><strong>对广域的启示</strong>：<strong>"保留什么"是学出来的、且读出仍是标准注意力</strong>——这两点让 SSA 与现有 KV 驱逐/压缩管线兼容。对跨域的含义：如果保留策略是模型内在的，那么跨节点只需同步"被保留的那一小部分记忆"，不必传完整 KV。</p>
+<h3 id="2-dfly2-turbocharging-long-context-speculative-decoding-by-sharing-the-targets-sparsity">2. DFly2: Turbocharging Long-Context Speculative Decoding by Sharing the Target's Sparsity</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.34776">https://arxiv.org/abs/2611.34776</a></li>
+<li><strong>时间</strong>：2026-11-25</li>
+<li><strong>方向</strong>：KV 共享 · 索引共享 · 稀疏目标模型</li>
+</ul>
+<p><strong>摘要</strong>：为避开长上下文稠密注意力的二次成本，DeepSeek-V4、<strong>Hy4</strong> 这类模型已转为<strong>原生稀疏</strong>，而投机解码（在最慢的地方最有用）正越来越多地跑在它们上面。但它们的 drafter 仍各自维护一份上下文缓存（整段 prompt 或滑窗），除了内存，还付出 prefill 时间、前缀缓存命中与解码并发的代价。读取目标模型缓存的 drafter 省掉了自己那份，但<strong>只决定了"读哪份缓存"，没决定"读哪些位置"</strong>，仍要读全部或一个近期窗口；这两种规则都不是为当前 query 定制的，而在 drafter 里按 query 现算选择又会随上下文增长变贵。然而<strong>原生稀疏的目标模型本身已经为每个 query 选好了位置，并且用的是它本来就要维护的缓存</strong>——于是 drafter 的两个选择（缓存与位置）都已被目标模型做好并付过费了。论文测量"一次选择能带多远"：<strong>提前一步做出的选择，仍覆盖后续每个 token 所选位置的近九成</strong>（DS-V4.1-Flash）。DFly2 是块并行的 drafter，<strong>共享目标的稀疏性</strong>：每个 draft 层读取其配对目标层缓存的 KV（<strong>KV sharing</strong>），且只读该层 indexer 选中的位置、数量固定（<strong>Index sharing</strong>），因此不跑打分 pass、也不留自己的缓存。在 DS-V4.1-Flash、GLM-5.3-Flash、Hy4-flash（稀疏注意力与架构各不相同）上，每步接受 token 数超过同配方训练的 DFlash 与 DSpark；相对更强基线的优势从通用负载的 3.9%–10.5% 扩大到长上下文与 agent 负载的 <strong>10.0%–31.5%</strong>；DS-V4.1-Flash 高并发下同每用户解码速度时，两个 64K 集合上吞吐高 62% 与 81%。</p>
+<p><strong>对广域的启示</strong>：<strong>"共享选择"比"共享缓存"更进一步</strong>——不仅不复制 KV，连"读哪些位置"也复用目标的 indexer 结果。对跨域的启示是：<strong>索引/选择结果本身也是可复用的轻量元数据</strong>（比 KV 小数个数量级），跨节点传一份选择结果就能让对端跳过打分。</p>
+<h3 id="3-latent-in-the-middle-on-the-security-of-cross-model-latent-communication-in-multi-agent-systems">3. Latent-in-the-Middle: On the Security of Cross-Model Latent Communication in Multi-Agent Systems</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.34278">https://arxiv.org/abs/2611.34278</a></li>
+<li><strong>时间</strong>：2026-11-25</li>
+<li><strong>方向</strong>：跨模型 KV 传递 · 安全对齐 · 缓存守卫</li>
+</ul>
+<p><strong>摘要</strong>：异构多智能体系统里，<strong>潜空间通信</strong>（共享内部表示）已成为替代自然语言消息的高效方案：agent 避免重复处理同一上下文，降低通信开销与 prefill 计算。其中一种机制是<strong>跨模型 KV cache 传递</strong>——用学习到的 mapper 把源模型的 KV 翻译成目标模型可用的形式。但这次交接意味着<strong>目标模型消费的不是自己编码的上下文</strong>，于是它的安全对齐是否还成立就成了问题。论文提出 <strong>Chasm</strong> 框架，刻画跨模型交接在三个新攻击面上的风险：源模型、mapper，以及交接机制本身。实验显示潜空间交接<strong>显著削弱安全对齐与 prompt 注入防御</strong>：一个<strong>原生只跟随 0.4% 基准注入的模型，经 mapper 从源模型传递后，跟随率最高到 44.2%</strong>；对 jailbreak，仅传递本身就在同模型族内把攻击成功率抬高最多 <strong>24.6 个百分点</strong>、零样本攻击最多 <strong>69.2 个百分点</strong>，而通过 mapper 做白盒优化可把攻击成功率推到 <strong>92.5%</strong>（同一目标上普通 GCG 为 37.5%）。为此提出一个轻量的<strong>目标侧缓存守卫</strong>，对传入缓存做校正以恢复拒答，显著缓解这些攻击。</p>
+<p><strong>对广域的启示</strong>：<strong>跨域传 KV 不只是性能问题，还是安全问题</strong>——接收方"信任"了这份缓存里的内容，而安全对齐是按"自己编码的上下文"训练的。跨域方案必须假设传入 KV 不可信，并在接收端做缓存级校验/校正；Chasm 给出的目标侧 guarded 校正是一个可落地的起点。</p>
+<hr />
+<h2 id="2">二、复用与编辑（2 篇）</h2>
+<h3 id="4-letting-models-manage-their-own-context-where-we-stand">4. Letting Models Manage Their Own Context: Where We Stand</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.34147">https://arxiv.org/abs/2611.34147</a></li>
+<li><strong>时间</strong>：2026-11-25</li>
+<li><strong>方向</strong>：模型自管上下文 · KV 编辑复用 · 引擎协同</li>
+</ul>
+<p><strong>摘要</strong>：如今的 agent harness 替模型管理上下文：窗口满了就触发压缩、摘要历史。论文研究另一种做法——<strong>模型驱动的上下文管理</strong>：模型通过 context API 自己决定何时压缩、压缩什么。作者在 NVIDIA 开源 harness <strong>nooa</strong> 里把控制权交给模型，在文档研究与机器学习工程两类任务、8K 到 512K 的上下文预算下对比两种策略。结果：<strong>有效使用 context API 的模型准确率更高、且常常用更少输入 token</strong>，在紧预算下尤其明显——<strong>GPT 6.1 在 32K 预算下把 OfficeQA Pro v2 的分数近乎翻三倍（21%→56%）</strong>，<strong>Kimi 最多省 41% 输入 token</strong>。但模型之间差异很大：用 API 的频率、压缩的激进程度、何时开始压缩都不同，prompt 改动会改变那个时机。最后，论文证明<strong>推理引擎可以让模型驱动的编辑更便宜</strong>：编辑后<strong>复用未改动后缀的 KV cache</strong>，每请求最多削减 <strong>15%</strong> 的 prefill 计算，且无可测的准确率变化。结论指向一个新的协同设计前沿：<strong>被训练来自管上下文的模型 + 支持 KV 编辑的推理引擎</strong>。</p>
+<p><strong>对广域的启示</strong>：<strong>"编辑后复用未改动后缀的 KV"</strong> 是跨域最需要的原语——上下文被编辑（压缩、插入、删除）时，只要后缀未变就能复用。跨域场景下这等价于"只重传被改动的那一段"，而不是整份 KV。</p>
+<h3 id="5-vapor-improving-multimodal-reasoning-with-sparse-visual-updates">5. VAPOR: Improving Multimodal Reasoning with Sparse Visual Updates</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.33751">https://arxiv.org/abs/2611.33751</a></li>
+<li><strong>时间</strong>：2026-11-25</li>
+<li><strong>方向</strong>：视觉注意力持久化 · 按需刷新 · 免训练</li>
+</ul>
+<p><strong>摘要</strong>：多模态大模型在视觉推理上进步显著，但<strong>在大视觉上下文上的长生成仍然昂贵</strong>：自回归解码时每个生成的 token 都要重算视觉注意力，即便相邻 token 依赖相似的视觉证据。VAPOR 是免训练框架，通过<strong>跨解码步复用视觉注意力输出、需要时再刷新</strong>来消除这份冗余。它缓存视觉注意力输出，同时每一步继续更新文本注意力，从而<strong>减少长推理中的视觉接地漂移</strong>。为决定何时复用缓存输出，VAPOR 用<strong>低秩近似估计视觉注意力质量</strong>，并用 prefill 阶段的注意力一致性与缓存年龄，为<strong>每个注意力头独立地</strong>做 Persist 与 Refresh 决策。VAPOR <strong>保留完整的视觉 KV cache</strong>，因此需要新证据时所有视觉 token 仍然可用。两个 MLLM 家族、八个图像与四个视频推理基准上，VAPOR 在几乎全部基准上超过稠密注意力，并取得 <strong>1.11–1.21×</strong> 解码加速；与各设置下最强加速基线相比，准确率再高 <strong>0.35–2.15 个百分点</strong>，延迟相当或更低。</p>
+<p><strong>对广域的启示</strong>：<strong>"缓存计算而不是缓存数据"</strong>——VAPOR 复用的是视觉注意力的<strong>输出</strong>，而 KV 仍完整保留。跨域场景里，如果重算成本主要来自注意力（而非取数），那么在对端缓存"注意力输出"可能比缓存"KV"更省带宽。</p>
+<hr />
+<h2 id="2_1">三、路由与调度（2 篇）</h2>
+<h3 id="6-routing-and-cache-retention-for-multi-turn-llm-inference-theory-and-implementation">6. Routing and Cache Retention for Multi-Turn LLM Inference: Theory and Implementation</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.34584">https://arxiv.org/abs/2611.34584</a></li>
+<li><strong>时间</strong>：2026-11-25</li>
+<li><strong>方向</strong>：路由与 KV 保留联合 · 影子价格 · 保留指数</li>
+</ul>
+<p><strong>摘要</strong>：多轮 agent 反复执行"LLM 推理 + 外部工具调用"的循环，把集群服务变成动态资源分配问题：<strong>路由与 KV cache 保留共同决定跨轮延迟中的前缀复用</strong>。论文建立该系统的<strong>流体近似</strong>，证明最优的准入、路由与驱逐由<strong>终点相关的算力与内存影子价格</strong>、以及<strong>会话继续价值</strong>共同决定。基于这个结构提出渐近最优的<strong>缓冲储备策略</strong>，用消失比例（vanishing share）的容量吸收随机波动。为处理生产集群中的异步到达、延迟负载上报与引擎本地内存管理，把这些原则落成一个实用控制器 <strong>PARK</strong>：在线投影次梯度价格更新 + 一轮迁移前瞻 + <strong>按"每字节-epoch 期望复用价值"排序的本地 KV 保留指数</strong>。在真实 GPU 集群上服务 197B MoE 模型、跑多轮软件工程 agent 基准（SWE 与 Terminal-Bench），PARK 在对比的流量模式下全面优于五个负载均衡与前缀感知基线：16 张 H200 上，turn 密集的 SWE 轨迹上输出吞吐比最强基线高 <strong>24.2%</strong>（比 round robin 高 <strong>336.9%</strong>），generation 密集的 Terminal-Bench 上高 <strong>40.0%</strong>（比 RR 高 63.3%）。单副本消融显示<strong>只用保留指数</strong>就把 previous-prefix 的 token 丢失从 <strong>13.26% 降到 2.17%</strong>，吞吐比 LRU 高 <strong>36.7%</strong>；128 卡扩展实验中 16 副本维持 50,789–67,363 output tokens/s，前缀缓存命中率 <strong>91.3%–97.4%</strong>。</p>
+<p><strong>对广域的启示</strong>：<strong>"每字节-epoch 的期望复用价值"正是跨域缓存该用的排序指标</strong>——它把"这份 KV 未来会不会被复用"折算成单位容量的收益。跨域版本只需把这个指数除以"重取成本"（带宽/时延），就能决定哪些 KV 值得留在远端。</p>
+<h3 id="7-reprism-joint-request-and-representation-scheduling-for-llm-agent-serving">7. RePrism: Joint Request and Representation Scheduling for LLM Agent Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.32545">https://arxiv.org/abs/2611.32545</a></li>
+<li><strong>时间</strong>：2026-11-24</li>
+<li><strong>方向</strong>：请求×表示联合调度 · 适配器与 KV 共管</li>
+</ul>
+<p><strong>摘要</strong>：agent 工作流会多次调用 LLM；当依赖对服务系统可见时，系统可以用它来调度请求、缓存可复用内容。此前工作多聚焦"排序请求"或在<strong>固定缓存策略</strong>下管理共享资源。但同一份"规定模型行为的可复用 prompt"可以有<strong>多种表示</strong>。RePrism 是同时选择"服务哪个就绪请求"与"用它的哪种合法表示"的服务系统，目标是提升吞吐与缩短会话完成时间（SCT）。调度器对（请求, 表示）对打分，结合<strong>即时价值</strong>与基于可见工作流的<strong>未来价值估计</strong>；资源管理器为 <strong>LoRA 适配器与缓存 KV 状态</strong>同时分配 GPU 内存，并在内存压力变化时协调两者的准入与驱逐。在到达率 1.8 会话/秒的动态负载上对比 S-LoRA：请求吞吐 <strong>1.37×</strong>、P95 SCT 降 <strong>4.10×</strong>；受控负载下平均 TTFT 降 <strong>5.26×</strong>；受控工作流上"联合打分"比"先排请求再选表示"的吞吐高 2.7%、平均 SCT 低 12.3%。</p>
+<p><strong>对广域的启示</strong>：<strong>"同一逻辑 prompt 有多种物理表示"</strong> 是跨域天然成立的：同一上下文可以是全量 KV、可以是压缩表示、也可以是文本。跨域调度应当把"选哪种表示"与"服务哪个请求"一起决策——代价高的远端表示只在收益明确时才用。</p>
+<hr />
+<h2 id="3">四、架构选择与存储（3 篇）</h2>
+<h3 id="8-when-does-decomposition-help-empirical-study-on-workload-architecture-affinity-in-llm-inference-serving">8. When Does Decomposition Help? Empirical Study on Workload-Architecture Affinity in LLM Inference Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.29104">https://arxiv.org/abs/2611.29104</a></li>
+<li><strong>时间</strong>：2026-11-22</li>
+<li><strong>方向</strong>：PD 分解收益边界 · 受控对比 · 亲和性</li>
+</ul>
+<p><strong>摘要</strong>：LLM 推理可以组织成独立单体副本、张量/流水线并行服务组，或 prefill/decode 分离服务。虽然分解常被当作提效路径，但<strong>其收益取决于负载形状、模型适配与阶段专属资源能否独立扩展</strong>；现有对比往往同时改变多个因素。论文<strong>隔离架构效应</strong>：在同样的四张 A100-40GB 硬件、固定 Qwen3-8B、同一软件栈/提示/到达序列下评估五种 SGLang 服务组织，覆盖短对话、decode 密集与 32K prefill 密集三类负载共 <strong>150 个受控条件</strong>。结果：<strong>四个独立的单 GPU 副本在短对话与长输出下端到端延迟最低，且是唯一在每种条件下都稳定的架构</strong>；流水线并行在非压力速率下把 32K TTFT 降 <strong>58%–59%</strong>，而<strong>混合式流水线分解在 0.4 req/s 时给出最好的 32K 端到端延迟</strong>。相反，单 VM 静态 TP2+TP2 拆分（没有独立的阶段扩展）在测试延迟上并不比复制更好，且在高 32K 负载下崩溃。结论揭示<strong>负载-架构亲和性</strong>：流水线式分解有利于 prefill 密集计算，而复制有利于 decode 密集与并发流量。更普遍地说，<strong>分解不是单调优化</strong>——它的价值取决于并行粒度是否匹配主导阶段，以及队列是否保持稳定。</p>
+<p><strong>对广域的启示</strong>：<strong>给"分离是否值得"提供了对照基准</strong>：没有独立阶段扩展能力的分离并不比复制好。跨域分离的成本比单机更高（网络），因此更需要先确认"阶段能否独立扩展、队列是否稳定"，否则跨域只会放大不稳定。</p>
+<h3 id="9-mayfly-lifecycle-aware-high-bandwidth-flash-for-recursive-self-improvement">9. Mayfly: Lifecycle-Aware High-Bandwidth Flash for Recursive Self-Improvement</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.32264">https://arxiv.org/abs/2611.32264</a></li>
+<li><strong>时间</strong>：2026-11-24</li>
+<li><strong>方向</strong>：HBF 生命周期 · 就绪 KV 溢出 · 读写策略</li>
+</ul>
+<p><strong>摘要</strong>：递归自我改进（RSI）让 LLM 通过提出并评估候选变体来改进自己的 agent 系统。一代的会话<strong>同时增长 KV cache、又在完成时释放</strong>，形成先爆发后下降的形态。高并发下，即便"就绪待跑"会话的 KV 也超出 GPU HBM。把它卸载到主机 DRAM 或 SSD 能加容量，但<strong>就绪会话仍要等 HBM 空间才能执行</strong>。高带宽闪存（HBF）可以就地服务溢出部分，但<strong>过多读取会拉长解码步、反复写入会消耗闪存寿命</strong>。论文的关键洞察是：<strong>就绪 KV 从哪里读应当跟随爆发与其下降</strong>——HBM 溢出期间尽量就地读 HBF（以每步带宽允许为限），随下降释放后重新从 HBM 读。一个"就绪/停放"开关只决定某块是否被读，因此其闪存副本保持有效；会话结束（由编排器宣布）决定其私有 KV 何时消亡。据此提出 <strong>Mayfly</strong>：溢出期间<strong>限制每步 HBF 读取量</strong>，随会话完成把 KV 迁回 HBM；为每个从 HBM 驱逐的块保留有效后备副本以避免状态迁移中的重写，并把会话结束信号转给控制器以避免 GC 时复制死 KV。四块追加 HBF 站点、每代 128 会话下，比"把同样 KV 停在 HBF"完成早 <strong>34%</strong>、比"HBM 满时就从 HBF 读"早 <strong>23%</strong>；相对停放的增益随并发增长，八站点 256 会话时达 <strong>55%</strong>。每块保留一份闪存副本并按已宣布的会话结束裁剪，避免了写放大。</p>
+<p><strong>对广域的启示</strong>：<strong>"就绪 KV 的读路径应随负载形态变化"</strong> 同样适用于跨域：远端就绪 KV 是"取回来跑"还是"异地跑"，取决于链路带宽与本地队列压力的相对关系。Mayfly 的"每步限流读取 + 状态迁移保留后备副本"是跨域传输可直接借用的策略。</p>
+<h3 id="10-anor-scaling-sparse-attention-with-a-gpu-pnm-computing-hierarchy">10. ANOR: Scaling Sparse Attention with a GPU-PNM Computing Hierarchy</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.30417">https://arxiv.org/abs/2611.30417</a></li>
+<li><strong>时间</strong>：2026-11-23</li>
+<li><strong>方向</strong>：GPU-PNM 分层 · 稀疏注意力 · 选择局部性</li>
+</ul>
+<p><strong>摘要</strong>：服务长上下文 LLM 需要为每个请求保留 KV cache，其总量可超过 GPU 显存。稀疏注意力每步只读查询相关的一小部分，但<strong>必须保留完整缓存</strong>，因为后续步可能选到别的条目。经 CXL 连接的<strong>近内存处理（PNM）</strong>设备能容纳完整缓存并就地进行注意力计算。此前的 GPU-PNM 稀疏注意力系统是 <strong>PNM 中心</strong>的，把大部分注意力放在 PNM 上；而现有 CXL-PNM 设备的内存带宽远低于 GPU HBM，于是 PNM 成为瓶颈、GPU 空等结果。ANOR 是 GPU-PNM 联合加速系统，利用稀疏注意力的<strong>选择局部性</strong>：大部分注意力在 GPU 上、用"最近被选中条目"的缓存计算，<strong>只有 miss 交给 PNM</strong>；由于 PNM 直接处理 miss，GPU 的缓存更新可与当前步执行解耦。论文给出<strong>有界缓存更新策略</strong>，把更新限制在"后续步命中率饱和"的点，减少面向 GPU 的链路流量；并加入片上 <strong>Early Streaming Buffer（ESB）</strong>，在 PNM 计算注意力时捕获 KV 数据并流向 GPU，在带宽错配下避免大部分冗余 DRAM 读取；还用<strong>自适应 cache-factor</strong> 按服务负载调整 GPU 缓存大小，平衡命中率与 batch 大小。两个模型、三类长上下文 agent 负载上，ANOR 平均解码吞吐比 HiSparse 高 <strong>2.3×</strong>、比 PNM 基线高 <strong>2.0×</strong>。结论是：<strong>PNM 最有效的角色不是主注意力引擎，而是 GPU 内存层级中的一个计算层</strong>。</p>
+<p><strong>对广域的启示</strong>：<strong>"把远端当计算层而不是存储层"</strong> 是跨域架构的关键转变——如果远端只当仓库，取数成本会压垮收益；如果远端能就近算一部分（如稀疏注意力的 miss 部分），链路只承担"结果与新鲜数据"的流量。这与我们一直关注的"远端 prefill / 本地 decode"是同一条思路的延伸。</p>
+<hr />
+<h2 id="_2">今日观察</h2>
+<ol>
+<li><strong>跨模型 KV 交接的安全代价被首次量化</strong>：原生 0.4% 的注入跟随率经 mapper 传递后可到 44.2%，白盒优化下 jailbreak 成功率 92.5%。跨域传 KV 必须假设传入缓存不可信，并做接收端校正。</li>
+<li><strong>KV 正在变成可编辑对象</strong>：模型自己决定压缩哪段（GPT 6.1 在 32K 预算下分数翻近三倍），引擎复用未改动后缀的 KV 省 15% prefill。这对跨域等价于"只重传改动段"。</li>
+<li><strong>"共享选择"比"共享缓存"更省</strong>：DFly2 让 drafter 只读目标 indexer 选中的位置、不留自己的缓存，长上下文与 agent 负载上优势扩大到 10.0%–31.5%。</li>
+<li><strong>保留策略正在被"学习"</strong>：SSA 用 scorer 学"保留哪个 chunk"，且读出仍是标准注意力，因此能与现有 KV 驱逐管线叠加。</li>
+<li><strong>分解不是单调优化</strong>：150 个受控条件下，四副本单体在多数场景最稳，流水线只在 32K prefill 密集时占优——没有独立阶段扩展能力的分离会崩。</li>
+</ol>
+<blockquote>
+<p>注：摘要基于 arXiv 官方摘要页整理，具体实验设置与数字以 PDF 原文为准。</p>
+</blockquote>
+</main>
+<nav class="pager"><a class="pager-link" href="2026-11-26.html"><span class="dir">← 上一期</span><span class="d">11月26日</span></a></nav>
+<footer class="footer"><span>KV Cache 日报</span><a href="../index.html">返回目录</a></footer>
+
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

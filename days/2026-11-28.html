@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KV Cache 日报 · 2026-11-28</title>
+<meta name="description" content="2026-11-28 的 KV Cache 论文摘要，10 篇。">
+<meta name="theme-color" content="#f6f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="day-page">
+
+<header class="topbar">
+  <a class="back" href="../index.html"><span aria-hidden="true">←</span> 全部日报</a>
+  <span class="top-date">2026年11月28日 · 周六</span>
+</header>
+<main class="report">
+<h1 id="kv-cache-2026-11-28">KV Cache 论文日报 · 2026-11-28</h1>
+<blockquote>
+<p><strong>今日 10 篇</strong>：位置无关复用走到 MLA 3 篇（重点方向）· 稀疏注意力服务 2 篇 · 压缩与记忆 2 篇 · 循环模型与机密计算 3 篇</p>
+<p><strong>本期主线</strong>：按用户要求把 <strong>RedKnot-MLA</strong> 正式收录——这是目前唯一把位置无关复用（PIC）真正落到 <strong>DeepSeek-V4</strong> 上的工作：文档离线在 position 0 算好，服务时用 <strong>query 侧 RoPE 重定位</strong>搬到请求位置，packed MLA latent 全程不拆。它同时给了本方向一个警示：聚合 F1 <strong>+3.24 分</strong>，但<strong>其中一个数据集掉了 2.81 分</strong>。</p>
+<p><strong>说明</strong>：本期为<strong>提前生成</strong>（例行任务原定 11-28 00:00）。RedKnot-MLA 为 2026-09-07 论文，按用户要求补录并置于重点方向首位；其余为 2026-11-20 至 11-25 公告的最新论文。摘要依据 arXiv 官方摘要整理。</p>
+</blockquote>
+<h2 id="_1">速览</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>论文</th>
+<th>方向</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>RedKnot-MLA: Multi-Head Offline-Online Reuse for DeepSeek-V4 Long-Context Serving</td>
+<td>MLA 上的位置无关复用</td>
+<td>arXiv:2609.07008</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Factorized Context Attention: From Emulated to Native Grid Probing</td>
+<td>任意跨度原生读取</td>
+<td>arXiv:2611.32423</td>
+</tr>
+<tr>
+<td>3</td>
+<td>AttentionIndex: Accelerating Learned Sparse Attention with a Causal Inverted-File Index</td>
+<td>稀疏索引复用</td>
+<td>arXiv:2611.02508</td>
+</tr>
+<tr>
+<td>4</td>
+<td>DisSparse: Pipelined Top-$p$ Sparse Attention for Long-Context LLM Serving</td>
+<td>自适应稀疏预算</td>
+<td>arXiv:2611.28522</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Shoonya: Zero-Socket In-Process Small Language Models for Graph Databases with Schema-Epoch KV Caching</td>
+<td>版本纪元 KV 缓存</td>
+<td>arXiv:2611.28502</td>
+</tr>
+<tr>
+<td>6</td>
+<td>STAC++: Plug-and-Play Adaptive Spatio-Temporal Aware Cache Compression for Streaming 3D Reconstruction</td>
+<td>八叉树空间 KV</td>
+<td>arXiv:2611.28793</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Video-as-Weights: Compiling a Video Once into Parametric and Token Memory</td>
+<td>视频编译为权重</td>
+<td>arXiv:2611.28221</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Looped Models are Fast Multi-Token Predictors</td>
+<td>循环模型多 token 草稿</td>
+<td>arXiv:2611.33896</td>
+</tr>
+<tr>
+<td>9</td>
+<td>LoopTitan: What Does Parameter Revisit Buy a Mixture-of-Experts?</td>
+<td>循环重访消融</td>
+<td>arXiv:2611.34821</td>
+</tr>
+<tr>
+<td>10</td>
+<td>HiPerfCC-StateReuse: Ciphertext Reuse for Fast Confidential GPU Data Movement</td>
+<td>密文复用</td>
+<td>arXiv:2611.29067</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="mla3">一、重点方向：位置无关复用走到 MLA（3 篇）</h2>
+<h3 id="1-redknot-mla-multi-head-offline-online-reuse-for-deepseek-v4-long-context-serving">1. RedKnot-MLA: Multi-Head Offline-Online Reuse for DeepSeek-V4 Long-Context Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2609.07008">https://arxiv.org/abs/2609.07008</a></li>
+<li><strong>时间</strong>：2026-09-07</li>
+<li><strong>方向</strong>：MLA · 位置无关复用 · RoPE 重定位</li>
+</ul>
+<p><strong>摘要</strong>：MLA 用<strong>一条 packed latent KV 流</strong>承载许多逻辑 query head，省内存但也<strong>消除了传统 head-wise 复用所假设的物理 per-head 缓存边界</strong>。本文是 RedKnot"head-aware 复用"原则在 <strong>DeepSeek-V4</strong> 上的实现：每份不可变文档先<strong>离线在 canonical position zero</strong> 处理，通过认证的 <strong>Local-head 贡献</strong>保留为 <strong>MLA-Off</strong>；服务时用 <strong>query 侧 RoPE 重定位</strong>把文档恢复到它在本次请求中的位置，一小撮 <strong>Global head 与受保护的 Local token 行</strong>重算为 <strong>MLA-Online</strong>，两条路径在<strong>一次共享输出投影之前</strong>合并，<strong>packed MLA latent 全程不拆</strong>。DeepSeek-V4-Flash 有 <strong>37 个可复用层</strong>、56/8 的 Local/Global 划分，给出 <strong>75.29%</strong> 的逻辑 head-row 解析上限；Pro-0813 配置为 55 层、112/16 heads，上限 <strong>78.89%</strong>。冻结的 Flash 工作点上，热工件 TTFT 加速 <strong>2.02–3.84×</strong>；256K 下归档的三数据集研究给出<strong>聚合 F1 +3.24 分、EM +4.16 分</strong>、主算子算术节省 <strong>78.7–79.5%</strong>，<strong>但其中一个数据集 F1 下降 2.81 分</strong>。另有作者报告的 256K 热工件 QPS 约 <strong>2.0×</strong>，因原始并发 trace 未包含在该包内，被作者<strong>标为初步而非归档证据</strong>。论文还描述了因式分解、位置修复、token-row 闭合、稀疏 MoE 支持、TP8 集成与解读这些结果所需的测量边界。</p>
+<p><strong>对广域的启示</strong>：这是"<strong>PIC 能不能跨域用</strong>"目前最硬的一个数据点——<strong>要传的状态</strong>是每份文档在 position 0 的 MLA latent（每 token 一份压缩 latent），<strong>不能直接搬过来用</strong>：必须在对端做 RoPE 重定位 + 少量 Global head/token 行重算，才能落到请求的真实位置。所以跨域可行，但<strong>"传过去能不能直接用"的答案是"不能，需要一次轻量位置修复"</strong>。另外它自带诚实标注：聚合涨、单集跌——正是评估方法论（2609.31415）警告的形态。</p>
+<h3 id="2-factorized-context-attention-from-emulated-to-native-grid-probing">2. Factorized Context Attention: From Emulated to Native Grid Probing</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.32423">https://arxiv.org/abs/2611.32423</a></li>
+<li><strong>时间</strong>：2026-11-24</li>
+<li><strong>方向</strong>：任意跨度读取 · 原生块稀疏 · 一次编码</li>
+</ul>
+<p><strong>摘要</strong>：模型要在一次前向里读完一本书、一小时视频或一张图；上下文增长时这一趟会变慢、掉精度并撞上窗口上限。稀疏注意力虽高效，但后两个限制仍在。<strong>Grid probing</strong> 是最近的免训练方法：对输入的<strong>短局部片段与跨步片段</strong>反复问同一个问题，从而找回精度、扩展触及范围，但<strong>每个问题都要把整个计算重做一遍</strong>（每个 span 都重新编码）。论文的洞察是：<strong>grid probing 本质上是"被模拟的注意力"</strong>——一个从模型外部用 prompt 复现出来的注意力模式，因为每次探测只是限制了问题能看到输入的哪一部分。于是提出 <strong>Factorized Context Attention（FCA）</strong>：一种免训练块稀疏注意力，把同一模式<strong>原生</strong>跑成模型自己的注意力。FCA <strong>只把输入编码一次进 KV cache</strong>，在一次批前向里把所有 span 当作被 mask 的序列来读，并用<strong>阶梯式位置调度</strong>让每个 span 都留在训练过的位置范围内。在长视频理解、长上下文文本推理与图像接地三类任务上，FCA 以<strong>远低的成本</strong>达到 grid probing 的精度与触及范围：长视频比单趟多约 <strong>10 分</strong>、长篇小说多 <strong>9–14 分</strong>，能在<strong>上千帧的视频</strong>和<strong>四倍于窗口长度的文本</strong>里找到 needle，并且对同一输入的后继提问只需 grid probing <strong>十分之一</strong>的时间。这一切都基于现成的冻结语言/视觉语言模型。</p>
+<p><strong>对广域的启示</strong>：<strong>"编码一次、任意跨度读"就是非前缀复用在注意力模式层的实现</strong>——FCA 把"片段可以任意位置读"变成了一次 KV 编码 + 多次 mask 读取。跨域特别受益：一份上下文只需编码一次并同步一次，之后所有 span/问题都从这份 KV 上读，<strong>带宽只付一次</strong>。</p>
+<h3 id="3-attentionindex-accelerating-learned-sparse-attention-with-a-causal-inverted-file-index">3. AttentionIndex: Accelerating Learned Sparse Attention with a Causal Inverted-File Index</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.02508">https://arxiv.org/abs/2611.02508</a></li>
+<li><strong>时间</strong>：2026-11-02</li>
+<li><strong>方向</strong>：稀疏索引 · 倒排路由 · 1M 上下文</li>
+</ul>
+<p><strong>摘要</strong>：DeepSeek-V4、GLM-5 等生产模型用的<strong>学习式稀疏注意力</strong>让每个 query 只关注 indexer 选出的 k 个 key，但 <strong>indexer 仍要为前缀里每个 key 打分</strong>——在 100 万 token 时，这个选择过程<strong>占 prefill 时间的一半以上</strong>。HiSA 式的"连续块两阶段选择"能降低这部分成本，但<strong>固定候选预算下召回随上下文增长而下降</strong>。AttentionIndex 用<strong>倒排文件索引</strong>把 indexer key 按相似度分簇，让每个 query 先路由到簇、再用原生 indexer 分数精排。索引在 prefill 期间构建，<strong>新 key 立即可检索</strong>，复用既有簇结构使维护成本低，并且每个 query <strong>只暴露给它自己前缀构建出的簇</strong>（因果性）。在 GLM-5.3 与 DeepSeek-V4-Flash、100 万 token 上，AttentionIndex 的 prefill 吞吐是<strong>穷举选择的 1.3–1.8×</strong>；在与 HiSA 相差 5% 以内的吞吐下，多恢复 <strong>17.0</strong> 与 <strong>10.0 个百分点</strong>的穷举 top-k；同候选预算下长上下文基准准确率比 HiSA 最多高 <strong>18.4 个百分点</strong>。</p>
+<p><strong>对广域的启示</strong>：<strong>索引本身就是可分布的</strong>——倒排结构天然可分区、可远程查询。跨域场景里"选择哪些 KV"这一步可以被前置到索引层，远端只需返回候选簇，避免把整个 KV 拉回来再选。</p>
+<hr />
+<h2 id="2">二、稀疏注意力服务（2 篇）</h2>
+<h3 id="4-dissparse-pipelined-top-p-sparse-attention-for-long-context-llm-serving">4. DisSparse: Pipelined Top-$p$ Sparse Attention for Long-Context LLM Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.28522">https://arxiv.org/abs/2611.28522</a></li>
+<li><strong>时间</strong>：2026-11-21</li>
+<li><strong>方向</strong>：top-p 选择 · 流水线 · 块内稀疏</li>
+</ul>
+<p><strong>摘要</strong>：长上下文推理受 KV 内存需求限制，动态稀疏注意力只取并关注关键 token 子集来缓解。研究与部署中的主导原语是<strong>固定预算的 top-k 选择</strong>——它受欢迎是因为确定性块数与 vLLM 这类系统的静态内存分配对齐。但 top-k <strong>不管注意力质量在 head、层、解码步之间如何分布都用固定预算</strong>，于是在"尖峰注意力"的 head 上浪费带宽、在"弥散注意力"的 head 上丢上下文。<strong>top-p（核）选择</strong>能自然适应这种变化，却因两个系统层难题而少见于生产：<strong>块数可变破坏确定性块分配</strong>，以及<strong>选择 kernel 本身比注意力还贵</strong>。DisSparse 把 top-p 稀疏注意力<strong>端到端</strong>集成进 vLLM：把块选择<strong>从调度器关键路径上解耦</strong>、用双流流水线把选择延迟藏在层计算后面、并提出<strong>单趟直方图 top-p kernel</strong>。论文还观察到<strong>块内稀疏</strong>（固定大小 KV 块里高/低重要性 token 混住导致选择预算被虚增），用<strong>由累积 prefill 注意力分数引导的 token 重定位 kernel</strong> 解决。多个模型、长中上下文基准上，DisSparse 的选择分析（块选择）比 SOTA top-p 方法快 <strong>1.17–1.80×</strong> 且精度损失可忽略，并在同内存预算下支持比稠密 vLLM <strong>最多 8×</strong> 的 batch。</p>
+<p><strong>对广域的启示</strong>：<strong>"选择延迟要能藏进计算"</strong> 是跨域取 KV 的前提——如果远端选择/预取不能与本地计算重叠，收益会被延迟吃掉。另外"块内稀疏导致预算虚增"提示：<strong>跨域按块传 KV 时，块粒度会决定无效传输比例</strong>，重定位/打包能显著提高有效带宽。</p>
+<h3 id="5-shoonya-zero-socket-in-process-small-language-models-for-graph-databases-with-schema-epoch-kv-caching">5. Shoonya: Zero-Socket In-Process Small Language Models for Graph Databases with Schema-Epoch KV Caching</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.28502">https://arxiv.org/abs/2611.28502</a></li>
+<li><strong>时间</strong>：2026-11-21</li>
+<li><strong>方向</strong>：图数据库内嵌 · 版本纪元缓存 · O(1) 失效</li>
+</ul>
+<p><strong>摘要</strong>：把属性图数据库耦合到外部语言模型服务要付"三段式套接字税"：序列化开销远超微秒级的图读取、冗长 schema 的重复 prefill、以及与实时目录和多版本并发控制（MVCC）引擎脱节的盲解码。Shoonya 是从零构建的"商业上干净"（0.0% 非商用或 share-alike 数据）三模态（Python/Rust/OpenCypher）小语言模型（16.8M 至 1.07B 参数），与 <strong>shoonya-infer</strong> 协同设计——一个零依赖纯 Rust 运行时，<strong>嵌在 samyama-graph-enterprise 的地址空间内</strong>。直接持有 GraphStore 引用换来三个数据库原生原语：①<strong>版本纪元失效的 SchemaPrefixCache</strong>（基于写时复制的 PagedKvArena），把热 CPU TTFT 加速 <strong>4.91–13.68×</strong>，且 <strong>DDL 失效是 O(1)</strong>；②<strong>36μs 的列式目录与源区间 logit mask</strong>，强制合法本体标识符与原文片段；③<strong>低于 65μs 的只读 MVCC 门</strong>，在 389.8 MiB INT8 RSS 内服务 Tier-0 查询（59.8–67.9 tok/s），<strong>幻觉泄漏 0.0%</strong>。另有 rank-factorized 绑定嵌入（词表权重 −74.5%）、原子缩进 token（0/421 缩进错误）、4:1 GQA 配 <strong>2:1 跨层 KV 共享（INT8 KV 内存 −93.75%）</strong>、Warmup-Stable-Decay 训练、KnOTS SVD 合并、Step-GRPO 与 Rust Jacobi SVD 治理，保持 100% 层为重尾分布（α∈[1.88,2.20]）。</p>
+<p><strong>对广域的启示</strong>：<strong>"版本纪元 + O(1) 失效"是跨域缓存必须的语义</strong>——schema/目录这类共享前缀一旦变更，跨域缓存要能<strong>常数时间</strong>判定失效，而不是全量校验。这篇把"缓存失效"做成了数据库的一等公民。</p>
+<hr />
+<h2 id="2_1">三、压缩与记忆（2 篇）</h2>
+<h3 id="6-stac-plug-and-play-adaptive-spatio-temporal-aware-cache-compression-for-streaming-3d-reconstruction">6. STAC++: Plug-and-Play Adaptive Spatio-Temporal Aware Cache Compression for Streaming 3D Reconstruction</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.28793">https://arxiv.org/abs/2611.28793</a></li>
+<li><strong>时间</strong>：2026-11-21</li>
+<li><strong>方向</strong>：八叉树空间 KV · 响应感知合并 · 尾部重算</li>
+</ul>
+<p><strong>摘要</strong>：流式 3D 重建必须在有限内存下保住几何，而 STAC 的<strong>固定分辨率空间 KV cache 会随场景扩大而增长</strong>。STAC++ 是即插即用、免训练的框架，为无界场景下的长期重建压缩并复用空间记忆。<strong>自适应空间 KV 缓存（ASKC）</strong>把 KV 状态组织成<strong>八叉树</strong>，在不同区域与层上用自适应分辨率；<strong>响应感知缓存压缩（RACC）</strong>用<strong>注意力输出变化</strong>衡量并指导 KV 合并，在存储节省与几何保真之间取衡；<strong>时序上下文精化（TCR）</strong>复用缓存的中间特征、<strong>只重算一小段 backbone 后缀</strong>，用后续观测精化历史预测。集成到四个预训练流式 backbone 后，STAC++ 在长序列与大场景上降低空间内存占用同时保持有竞争力的重建质量，并能在有限计算开销下通过精化进一步提升质量。</p>
+<p><strong>对广域的启示</strong>：<strong>"只重算一小段后缀"是跨域最小更新的正确形态</strong>——历史部分复用缓存，只有受新观测影响的后缀需要重算。配合八叉树式<strong>非均匀分辨率</strong>，跨域同步也可以只传被细化的区域。</p>
+<h3 id="7-video-as-weights-compiling-a-video-once-into-parametric-and-token-memory">7. Video-as-Weights: Compiling a Video Once into Parametric and Token Memory</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.28221">https://arxiv.org/abs/2611.28221</a></li>
+<li><strong>时间</strong>：2026-11-20</li>
+<li><strong>方向</strong>：视频编译为权重 · LoRA + prefix token · 强到弱迁移</li>
+</ul>
+<p><strong>摘要</strong>：VLM 把视频表示为数千个视觉 token，造成<strong>随视频长度增长的巨大 KV cache</strong>；同时能在有限硬件上跑的小 VLM 理解视频的能力远不如大模型。现有压缩把视觉 token 缩短成简短 prompt 来省内存，但小模型仍用固定权重处理它们，<strong>补不上能力差距</strong>。论文提出 <strong>Video-as-Weights（VaW）</strong>：把视频<strong>在没看到任何问题的情况下编译一次</strong>，写入冻结"解释器" VLM 的<strong>参数记忆与 token 记忆</strong>。具体地，一个编译器 VLM 观看视频，一个权重解码器从<strong>每一层编译器层</strong>联合生成解释器的 <strong>LoRA 权重</strong>与可选的<strong>前缀 token</strong>，从而同时支持同模型编译与<strong>跨模型规模/深度</strong>的强到弱迁移。六个视频 QA 基准上，0.8B 解释器在自我编译时比完整 in-context 阅读高 <strong>1.7 分</strong>，用 9B 编译器时高 <strong>4.3 分</strong>，把上下文从最多 <strong>8,192 个视觉 token</strong> 压到 <strong>64 个前缀 token</strong>，内存比视频 KV cache 少 <strong>5.5×</strong>。生成的权重在 token 压缩之上再加 <strong>3.9 分</strong>，全层解码比逐层生成高 <strong>2.9 分</strong>。机制分析显示：有前缀 token 时，权重主要改变注意力 query 与 MLP down 投影以引导检索并存一份基线摘要；无 token 时，权重转向注意力输出投影，把视频内容<strong>直接写进残差流</strong>。</p>
+<p><strong>对广域的启示</strong>：<strong>"把感知结果编译成权重"，跨域成本从"每请求传 KV"变成"一次传一个小的 LoRA"</strong>——这是本方向最激进的带宽优化：8,192 token 的 KV 换成 64 token 前缀 + 一组低秩权重。对广域而言，权重可以预分发、可复用，比逐请求的 KV 传输便宜得多。</p>
+<hr />
+<h2 id="3">四、循环模型与机密计算（3 篇）</h2>
+<h3 id="8-looped-models-are-fast-multi-token-predictors">8. Looped Models are Fast Multi-Token Predictors</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.33896">https://arxiv.org/abs/2611.33896</a></li>
+<li><strong>时间</strong>：2026-11-25</li>
+<li><strong>方向</strong>：循环模型 · 多 token 草稿 · 无损加速</li>
+</ul>
+<p><strong>摘要</strong>：循环语言模型可以在<strong>不按比例增加唯一参数</strong>的情况下，通过调整循环次数来适配一个 token 所需的计算；这一性质已被用于自投机解码（浅循环当快速 drafter、深循环当 verifier）。论文指出：<strong>浅循环还能预测未来若干个 token</strong>，并据此大幅加速循环模型推理。他们提出 <strong>Floodgates</strong>：一种简单的自投机解码方法，<strong>在末尾附加一块 mask token</strong>，并通过低秩适配学习并行起草这些 token。七个模型、五个基准、多种 batch、贪心与采样解码下，Floodgates 在多数情形是<strong>最快的无损解码方法</strong>，最高 <strong>7.5×</strong> 加速。分析表明，这一加速来自循环模型的<strong>全深度训练</strong>——浅层 drafter 能通过<strong>以验证期间计算出的深层 prefix cache 为条件</strong>来利用全深度计算。</p>
+<p><strong>对广域的启示</strong>：<strong>"以深层 prefix cache 为条件"</strong> 是关键机制：浅层草稿依赖深层缓存，而这份缓存在验证时已经算好。跨域版本的含义是——<strong>一次远端深层计算的产物可以被本地多次浅层复用</strong>，边际带宽接近零。</p>
+<h3 id="9-looptitan-what-does-parameter-revisit-buy-a-mixture-of-experts">9. LoopTitan: What Does Parameter Revisit Buy a Mixture-of-Experts?</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.34821">https://arxiv.org/abs/2611.34821</a></li>
+<li><strong>时间</strong>：2026-11-25</li>
+<li><strong>方向</strong>：循环 MoE · 消融 · 诚实负结果</li>
+</ul>
+<p><strong>摘要</strong>：循环 MoE 在不同深度上<strong>重复访问层参数</strong>，在不加参数的情况下增加有效深度。近期研究报告在匹配预算（参数、FLOPs、<strong>KV cache</strong>）下相对标准 MoE 有大幅增益，但这些增益<strong>把"参数重访"与其他设计选择（网络形状、残差缩放）混在了一起</strong>。论文问：<strong>参数重访本身带来了什么</strong>？用匹配的非重访对照，答案是<strong>几乎没有</strong>。作者认为重访只提供了一种 MoE 本来就有的自由度，即"以专家换深度"（固定参数下更多层、每层更少专家）。在匹配预算下把 SOTA 循环配方<strong>把重访放到最后</strong>做分解：<strong>非重访对照保留了全部增益</strong>——大部分来自网络形状，其余来自残差缩放；他们证明这个缩放相当于<strong>对重访层施加更小的学习率</strong>，这在 AdamW 不均匀层步长下有帮助，但在 Muon 下（层步长近乎相等）<strong>消失</strong>。超出匹配预算时（固定参数加计算）一次额外重访的收益<strong>超过把专家数翻倍</strong>，但没有重访时，等参数等计算的更深标准 MoE 在 Muon 下能拿到那份增益的 <strong>90.2%</strong>。总体结论：增益来自网络形状、优化器与额外计算，标准 MoE 都能采用。据此提出 <strong>LoopTitan-Base</strong> 作为更强的 MoE 基线，在 Muon 下不用重访或残差缩放就能匹配最强循环配方；开源 LoopTitan 与 <strong>17 个预训练模型</strong>，实验记录以 GitHub issues 公开，<strong>预测预先登记</strong>、完整探索历史保留。</p>
+<p><strong>对广域的启示</strong>：<strong>"循环/重访带来的 KV 节省可能被高估"</strong>——如果增益其实来自网络形状与优化器，那"循环架构天然省 KV"这类论证就站不住。跨域选型时，应当把"KV 足迹"当成独立评测维度，而不是从"循环=省 KV"直接推断。这篇的预先登记与公开负结果也值得作为方法学参考。</p>
+<h3 id="10-hiperfcc-statereuse-ciphertext-reuse-for-fast-confidential-gpu-data-movement">10. HiPerfCC-StateReuse: Ciphertext Reuse for Fast Confidential GPU Data Movement</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.29067">https://arxiv.org/abs/2611.29067</a></li>
+<li><strong>时间</strong>：2026-11-21</li>
+<li><strong>方向</strong>：机密计算 · 密文复用 · 跨实例共享</li>
+</ul>
+<p><strong>摘要</strong>：机密 GPU 提供接近原生的设备内计算性能，但 CPU 与 GPU TEE 之间<strong>经过不可信主机内存</strong>的传输需要对<strong>未改动的数据</strong>也做批量加解密。现有软件技术能重叠或并行这些操作，但<strong>保留其逐字节的 CPU 成本</strong>。复用已导出的密文本可避免这部分工作，但 <strong>GPU TEE 固件强制方向相关的加密密钥与每次传输新的初始化向量（IV）</strong>，使直接复用不可能。论文提出 <strong>ciphertext rebinding</strong>：一个纯软件原语，在<strong>不改硬件</strong>的前提下实现<strong>重复与跨 GPU 的密文复用</strong>，同时保住机密性、完整性与新鲜性。具体地，它利用 GPU TEE 的 AES-GCM 认证中<strong>密文相关分量与 IV 相关分量可分离</strong>：GPU 预计算的目的密钥下的摘要让 CPU <strong>无需处理载荷</strong>就能更新认证标签；这样 GPU 后续对保留密文的读取仍能走<strong>固件固定、软件不可改的 copy-engine 接口</strong>；再加一个 GPU 校正步补偿密钥与 IV 的差异以恢复原文。通过在不可信主机内存中<strong>保留 GPU 导出的密文</strong>，该原语避免了批量 CPU 解密与再加密，提高了 GPU 状态恢复与共享的有效带宽。作者在 HiPerfCC-StateReuse 中<strong>只用驱动与库的改动</strong>实现，结合批提交、流水 GPU 处理与 copy-engine 传输；用微基准评估传输效率与 CPU 开销，并用三个案例评估应用性能：<strong>模型切换、KV cache 卸载、跨实例缓存共享</strong>。</p>
+<p><strong>对广域的启示</strong>：<strong>机密计算链路上"搬状态"的瓶颈可能在 CPU 加解密而不在链路</strong>。跨域若跑在 TEE 上，密文复用（尤其跨实例共享同一份 KV 密文）能把"每字节 CPU 成本"消掉——这直接决定了加密跨域共享是否划算。</p>
+<hr />
+<h2 id="_2">今日观察</h2>
+<ol>
+<li><strong>PIC 在 MLA 上确实可行，但"传过去不能直接用"</strong>：RedKnot-MLA 必须做 query 侧 RoPE 重定位 + Global head/token 行重算，才把 position-0 的 latent 落到请求位置。跨域设计要按"传输 + 一次轻量修复"来算成本。</li>
+<li><strong>RedKnot-MLA 自曝的 −2.81 F1 是本期最重要的信号</strong>：聚合 +3.24 分掩盖单数据集退化，正对上 2609.31415 警告——<strong>MLA 上的 PIC 同样需要 meaningful subset 重测</strong>。</li>
+<li><strong>"编码一次、任意跨度读"出现了原生实现</strong>：FCA 把 grid probing 的模拟注意力变成一次编码 + 多次 mask 读取，带宽只付一次。</li>
+<li><strong>激进带宽优化：把感知编译成权重</strong>：Video-as-Weights 用 64 prefix token + LoRA 替代 8,192 token 的 KV，内存少 5.5×。</li>
+<li><strong>循环架构的收益需要独立验证</strong>：LoopTitan 用预先登记的对照实验证明"参数重访本身几乎无增益"，提示"循环=省 KV"不能作为默认前提。</li>
+</ol>
+<blockquote>
+<p>注：本期为<strong>提前生成</strong>；RedKnot-MLA 为按用户要求补录的 2026-09-07 论文。摘要基于 arXiv 官方摘要页整理，具体实验设置与数字以 PDF 原文为准。</p>
+</blockquote>
+</main>
+<nav class="pager"><a class="pager-link" href="2026-11-27.html"><span class="dir">← 上一期</span><span class="d">11月27日</span></a></nav>
+<footer class="footer"><span>KV Cache 日报</span><a href="../index.html">返回目录</a></footer>
+
+<script src="../assets/app.js" defer></script>
+</body>
+</html>

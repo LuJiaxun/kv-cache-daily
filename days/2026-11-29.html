@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KV Cache 日报 · 2026-11-29</title>
+<meta name="description" content="2026-11-29 的 KV Cache 论文摘要，10 篇。">
+<meta name="theme-color" content="#f6f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141715" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="day-page">
+
+<header class="topbar">
+  <a class="back" href="../index.html"><span aria-hidden="true">←</span> 全部日报</a>
+  <span class="top-date">2026年11月29日 · 周日</span>
+</header>
+<main class="report">
+<h1 id="kv-cache-2026-11-29">KV Cache 论文日报 · 2026-11-29</h1>
+<blockquote>
+<p><strong>今日 10 篇</strong>：状态接口与陈旧缓存语义 3 篇（重点方向）· 流式多模态缓存 2 篇 · 存储与调度 2 篇 · 隐私、验证与语音 3 篇</p>
+<p><strong>本期主线</strong>：两篇讲的是同一件事的两个侧面——<strong>缓存里留下的"旧东西"到底该不该留</strong>。<em>The Old Scene Lives in the Cache</em> 证明流式视频里即使把 KV flush 掉、重算 sink，旧场景的物体依然留在生成结果里，因为"缓存历史"同时是主体一致性的来源；而 <em>Markovian 结构缓存</em> 给出另一条路：把随步骤增长的历史 KV 换成<strong>常数大小的状态接口</strong>。</p>
+<p><strong>说明</strong>：<strong>本期为补遗批次</strong>——直接检索 arXiv 确认，11-26 至 11-28 尚无新的 KV cache 论文进入索引（当前最新 KV 论文为 11-25 的 2611.34912），因此本期收录 11-19 至 11-25 期间尚未入库的 10 篇。<strong>「混合注意力 + 非前缀复用」本期无新作</strong>（最近仍是 HYPIC / Nebula / CacheWeave / Morph），本分册转向更基础的一层：<strong>状态接口与陈旧缓存的语义</strong>。摘要依据 arXiv 官方摘要整理。</p>
+</blockquote>
+<h2 id="_1">速览</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>论文</th>
+<th>方向</th>
+<th>来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Specialized Large Language Models for Markovian Reasoning: Structural Cache Compression, Transition Pretraining, and Dual-Loop Transformers</td>
+<td>常数状态接口</td>
+<td>arXiv:2611.28285</td>
+</tr>
+<tr>
+<td>2</td>
+<td>The Old Scene Lives in the Cache: Diagnosing and Shedding Stale History in Streaming Video Generation</td>
+<td>陈旧缓存语义</td>
+<td>arXiv:2611.32116</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Thinking in Streams: Proactive Spatial Reasoning with Vision-Language Models</td>
+<td>KV 作为空间记忆</td>
+<td>arXiv:2611.25865</td>
+</tr>
+<tr>
+<td>4</td>
+<td>AURA: AUdio-dRiven streaming Avatar</td>
+<td>滚动 KV 缓存</td>
+<td>arXiv:2611.26540</td>
+</tr>
+<tr>
+<td>5</td>
+<td>LiveVAE: Causal Window Attention Makes Efficient Streaming Video VAE</td>
+<td>因果窗口注意力</td>
+<td>arXiv:2611.34912</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Synapse: An HBM-Coordinated HBF Near-Memory Computing Architecture for Pipelined Agentic AI Execution</td>
+<td>HBM-HBF 近存计算</td>
+<td>arXiv:2611.29901</td>
+</tr>
+<tr>
+<td>7</td>
+<td>RankCast: Phase-Aware Rank Balancing in MoE Serving</td>
+<td>PD 阶段感知均衡</td>
+<td>arXiv:2611.33542</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Ask in the Crowd: Differentially Private LLM Inference via Dummy-Augmented Shuffling</td>
+<td>差分隐私</td>
+<td>arXiv:2611.25669</td>
+</tr>
+<tr>
+<td>9</td>
+<td>FlashProve-Next: Verifiable Inference for Production LLM APIs</td>
+<td>可验证推理</td>
+<td>arXiv:2611.33741</td>
+</tr>
+<tr>
+<td>10</td>
+<td>TigerTTS: Draft-Guided Multi-Frame Parallel Speech-Token Language Model</td>
+<td>草稿引导并行 TTS</td>
+<td>arXiv:2611.34241</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="3">一、重点方向：状态接口与陈旧缓存语义（3 篇）</h2>
+<h3 id="1-specialized-large-language-models-for-markovian-reasoning-structural-cache-compression-transition-pretraining-and-dual-loop-transformers">1. Specialized Large Language Models for Markovian Reasoning: Structural Cache Compression, Transition Pretraining, and Dual-Loop Transformers</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.28285">https://arxiv.org/abs/2611.28285</a></li>
+<li><strong>时间</strong>：2026-11-20</li>
+<li><strong>方向</strong>：常数状态接口 · 结构缓存压缩 · 双环 Transformer</li>
+</ul>
+<p><strong>摘要</strong>：标准自回归 LLM 要关注不断增长的历史 token，使 KV cache 成为长链推理与多分支采样中的核心内存与吞吐瓶颈。但有一类重要的推理问题<strong>天然是一阶马尔可夫的</strong>：下一步只依赖对当前状态的一个<strong>充分表示</strong>，而不依赖此前所有步骤的原始序列。论文由此提出一套面向马尔可夫推理专用 LLM 的统一设计范式。<strong>在缓存层面</strong>，<strong>马尔可夫状态接口</strong>把依赖历史的 KV 存储转换为<strong>相对于推理步数而言常数大小的状态传输</strong>；配套还有<strong>转移预训练</strong>（让模型学会状态到状态的转移）与<strong>双环 Transformer</strong> 架构（外层环负责状态推进、内层环负责步内计算）。</p>
+<p><strong>对广域的启示</strong>：这是"<strong>传状态而不是传历史</strong>"最彻底的一种形式——如果任务确实是马尔可夫的，跨节点只需要同步一个<strong>常数大小</strong>的状态，带宽与上下文长度<strong>解耦</strong>。对跨域 agent 编排，这条思路的关键不在压缩算法，而在<strong>任务是否允许把历史折叠成状态</strong>：允许则传输量恒定，不允许则无论怎么压都会随长度涨。</p>
+<h3 id="2-the-old-scene-lives-in-the-cache-diagnosing-and-shedding-stale-history-in-streaming-video-generation">2. The Old Scene Lives in the Cache: Diagnosing and Shedding Stale History in Streaming Video Generation</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.32116">https://arxiv.org/abs/2611.32116</a></li>
+<li><strong>时间</strong>：2026-11-24</li>
+<li><strong>方向</strong>：陈旧缓存 · 主体保留 vs 场景更新 · 免训练</li>
+</ul>
+<p><strong>摘要</strong>：流式视频生成在<strong>切换场景</strong>同时保留原始主体时存在一个冲突：缓存的历史既帮助维持主体，又<strong>持续保留应当消失的旧场景物体</strong>。论文通过对文本条件、去噪步、局部窗口与注意力 sink 的受控干预，定位了缓存视觉历史<strong>如何留住这些过时内容</strong>：<strong>只要原始帧仍在缓存里，KV flush 与 sink 重算仍会让旧场景物体出现在生成视频中</strong>。把这段历史替换成目标场景历史能基本去掉这些物体，但也会改变主体、降低与切换前主体的面部相似度。据此提出 <strong>Molt Forcing</strong>（免训练）：从冷启动的目标场景重建场景历史，同时<strong>有选择地保留来自原缓存的主体 token</strong>。16 个场景族上，Molt Forcing 去除旧场景物体的可靠度至少与 Echo-Forcing 硬切换相当，同时主体外观更接近切换前。</p>
+<p><strong>对广域的启示</strong>：这是 <strong>Boxoffice "stale cache" 动态在真实系统里的一个实例</strong>——缓存里的状态带着"它当初是什么角色"的方向性信息，角色翻转后就会造成污染。跨域复用时，"这份 KV 是从哪种上下文里缓存的"必须作为元数据一起传，否则接收端无法判断它是否 stale。作者的做法（重建场景历史 + 只保留主体 token）等价于"<strong>部分失效 + 部分复用</strong>"，这正是跨域缓存该有的细粒度失效语义。</p>
+<h3 id="3-thinking-in-streams-proactive-spatial-reasoning-with-vision-language-models">3. Thinking in Streams: Proactive Spatial Reasoning with Vision-Language Models</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.25865">https://arxiv.org/abs/2611.25865</a></li>
+<li><strong>时间</strong>：2026-11-19</li>
+<li><strong>方向</strong>：KV 作为空间记忆 · 流式更新 · 主动响应</li>
+</ul>
+<p><strong>摘要</strong>：在流式视频里识别某个空间条件何时成立，需要在视角不断变化中<strong>维护并更新空间知识</strong>。论文以"主动空间推理"研究该能力：模型预先收到一个 query，并在流展开过程中判断<strong>是否以及何时</strong>响应。作者提出 <strong>ProSpace-Bench</strong>（覆盖物体、相机、场景推理的九类任务）与 <strong>ProSpace-Train</strong>（监督训练）。为支撑空间决策，<strong>ProSpace-VLM</strong> 把从来到的帧中<strong>因果估计</strong>出的显式几何编码注入 VLM 的中间层，<strong>把现有 KV cache 当作空间记忆</strong>，并用空间 token 选择实现高效流式处理。实验显示 VLM 与人类存在显著差距，而 ProSpace-VLM 在<strong>及时响应与正确弃答</strong>上优于微调基线；分析还考察了它在视角变化下如何表示此前观察到的空间信息。</p>
+<p><strong>对广域的启示</strong>：<strong>"KV cache 当记忆"是一种明确的用法</strong>：不需要把历史帧重新编码，只需要维护 KV 并往里写新的几何信息。跨域版本的含义是——<strong>记忆只增量更新</strong>（每帧只写一小段），而不是每轮重传整段历史。</p>
+<hr />
+<h2 id="2">二、流式多模态缓存（2 篇）</h2>
+<h3 id="4-aura-audio-driven-streaming-avatar">4. AURA: AUdio-dRiven streaming Avatar</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.26540">https://arxiv.org/abs/2611.26540</a></li>
+<li><strong>时间</strong>：2026-11-19</li>
+<li><strong>方向</strong>：滚动 KV 缓存 · 流式头像 · 两阶段蒸馏</li>
+</ul>
+<p><strong>摘要</strong>：当前音频驱动视频扩散模型能合成逼真的说话头，但通常要在多秒视频块上做几十步去噪，因而不适合语音助手、虚拟形象这类<strong>要求低延迟与在线因果生成</strong>的流式应用。AURA <strong>逐块生成视频并使用滚动 KV cache</strong>，只需当前块的音频就能开始生成，而不像双向模型那样需要多秒音频前瞻。它有两个规模：AURA 1.3B 在单 GPU 上实时输出 576p（16Hz 播放率下 20.7 fps），适合交互式头像；AURA 5B 以 9.7 fps 流式输出 720p。两阶段蒸馏先把因果学生与教师对齐（用更少扩散步与块级滑窗因果注意力掩码匹配教师轨迹），再用带反向模拟的 Distribution Matching Distillation（DMD）消除剩余质量差距。标准说话头基准上，AURA 1.3B 比自己的双向教师快 <strong>23×</strong>，在更低分辨率下质量接近 TalkVerse；AURA 5B 在 720p 匹配 TalkVerse 教师且快 <strong>17×</strong>。作者还开源了两个模型权重、3 万段合成视频数据集与预计算教师轨迹。</p>
+<p><strong>对广域的启示</strong>：<strong>"滚动缓存 + 只依赖当前块输入"</strong> 是流式跨域的最优形态——不需要前瞻窗口，因此不需要跨节点预取未来数据。跨域流式生成的带宽可以按"块"粒度稳定摊开，而不是突发大块。</p>
+<h3 id="5-livevae-causal-window-attention-makes-efficient-streaming-video-vae">5. LiveVAE: Causal Window Attention Makes Efficient Streaming Video VAE</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.34912">https://arxiv.org/abs/2611.34912</a></li>
+<li><strong>时间</strong>：2026-11-25</li>
+<li><strong>方向</strong>：因果窗口注意力 · 流式 VAE · 编码也高效</li>
+</ul>
+<p><strong>摘要</strong>：视频扩散模型越来越快、越来越可流式，但 <strong>视频 VAE 仍是交互式生成与编辑流水线中的主要延迟瓶颈</strong>。现有 VAE 及其加速方法主要依赖重卷积或全帧注意力，且<strong>多数只关注解码</strong>，把编码留给了流式条件生成与编辑这类高成本场景。论文先问：视频 VAE 的编码与解码<strong>是否真的需要全局时空建模</strong>？通过分析预训练视频 VAE 的有效感受野，他们发现<strong>编码与解码一个 patch 几乎只依赖其空间与时间邻居</strong>。据此用因果窗口注意力替代全局建模，在编码与解码两侧都取得高效流式能力。</p>
+<p><strong>对广域的启示</strong>：<strong>感受野分析是"该缓存多少"的根</strong>——如果局部性足够，跨域就只需要最近邻窗口的状态，历史可以丢。这条与 KV 压缩里的"局部窗口足够"假设同源，但这里给了<strong>预训练模型上的实测依据</strong>。</p>
+<hr />
+<h2 id="2_1">三、存储与调度（2 篇）</h2>
+<h3 id="6-synapse-an-hbm-coordinated-hbf-near-memory-computing-architecture-for-pipelined-agentic-ai-execution">6. Synapse: An HBM-Coordinated HBF Near-Memory Computing Architecture for Pipelined Agentic AI Execution</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.29901">https://arxiv.org/abs/2611.29901</a></li>
+<li><strong>时间</strong>：2026-11-23</li>
+<li><strong>方向</strong>：HBM-HBF · 近存计算 · 多 agent</li>
+</ul>
+<p><strong>摘要</strong>：多 agent 视频推理时，模型权重与<strong>每个 agent 的 KV cache</strong> 会超出高带宽内存（HBM）容量。高带宽闪存（HBF）能加容量，但 agent 仍要等 GPU 执行。Synapse 是 HBM 协调的近存计算架构，<strong>把 HBF 上的注意力与专家执行同 GPU 计算跨 agent 重叠</strong>，并减少派发延迟与不必要的刷新。三个模型上，Synapse 相对"GPU 执行 + 被动 HBF"实现 <strong>48.92–66.60%</strong> 更低的端到端延迟、最高 <strong>2.98×</strong> 吞吐、最高 <strong>64.48%</strong> 更低的每输出 token 建模能耗；磨损模拟预计在同等负载率下 HBF 寿命比块级刷新长 <strong>46%</strong>。</p>
+<p><strong>对广域的启示</strong>：<strong>"让远端能算"比"把远端数据搬回来"更省</strong>——Synapse 把注意力和专家计算放在存 KV 的那一层执行，只把结果送回。跨域架构里，这条对应"远端 prefill/远端注意力"，能显著降低链路需求。</p>
+<h3 id="7-rankcast-phase-aware-rank-balancing-in-moe-serving">7. RankCast: Phase-Aware Rank Balancing in MoE Serving</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.33542">https://arxiv.org/abs/2611.33542</a></li>
+<li><strong>时间</strong>：2026-11-24</li>
+<li><strong>方向</strong>：PD 分离 · MoE 负载均衡 · 前后缀阶段差异</li>
+</ul>
+<p><strong>摘要</strong>：现代 LLM 推理越来越多采用<strong>分离式架构</strong>（把 prefill 与 decode 阶段分开），同时大 MoE 模型服务广泛采用专家并行（EP）。但<strong>负载不均衡</strong>仍拖慢 MoE 推理，因为每层都要等最忙的 EP rank。<strong>延迟主因在 prefill 与 decode 之间不同</strong>：prefill 是计算受限的，其 MoE 层延迟由最忙 rank 的<strong>最大 token 数</strong>决定；而在中等 batch 下 decode 是内存受限的，延迟由<strong>跨 rank 的最大活跃专家数</strong>主导。RankCast 据此做阶段感知的均衡（针对两个阶段的瓶颈分别调度/重排）。</p>
+<p><strong>对广域的启示</strong>：<strong>分离式部署必须先分清每个阶段的瓶颈类型</strong>——计算受限阶段看 token 数、内存受限阶段看活跃专家数。跨域分离会把"阶段瓶颈"与"链路瓶颈"叠加，若不做阶段感知，跨域调度很容易优化错目标。</p>
+<hr />
+<h2 id="3_1">四、隐私、验证与语音（3 篇）</h2>
+<h3 id="8-ask-in-the-crowd-differentially-private-llm-inference-via-dummy-augmented-shuffling">8. Ask in the Crowd: Differentially Private LLM Inference via Dummy-Augmented Shuffling</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.25669">https://arxiv.org/abs/2611.25669</a></li>
+<li><strong>时间</strong>：2026-11-19</li>
+<li><strong>方向</strong>：差分隐私 · 假查询混洗 · LLMaaS</li>
+</ul>
+<p><strong>摘要</strong>：LLM 越来越多以 LLM-as-a-Service 形式部署，用户查询被发往远端推理，带来敏感输入暴露的严重隐私问题。差分隐私推理通过在输入嵌入中注入噪声来缓解，但现有方法难以平衡隐私与效用：更强的保护常导致 LLM 推理准确率大幅下降。论文提出 <strong>DP-SPD</strong>：通过把真实查询<strong>藏在客户端生成的假查询中</strong>来保护它，所有查询在发送前被<strong>随机混洗</strong>，从而在不明显牺牲可用性的前提下提供差分隐私保证。</p>
+<p><strong>对广域的启示</strong>：<strong>"混洗 + 假样本"是一种低成本的跨域隐私手段</strong>——它不要求修改模型，只需在客户端侧做批处理与打乱。跨域调用第三方推理时，这类机制比"加密整条链路"更轻，但要注意它保护的是<strong>统计意义上的输入分布</strong>，不是单条查询的机密性。</p>
+<h3 id="9-flashprove-next-verifiable-inference-for-production-llm-apis">9. FlashProve-Next: Verifiable Inference for Production LLM APIs</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.33741">https://arxiv.org/abs/2611.33741</a></li>
+<li><strong>时间</strong>：2026-11-25</li>
+<li><strong>方向</strong>：可验证推理 · 零知识掩码 · 生产特性兼容</li>
+</ul>
+<p><strong>摘要</strong>：闭源权重 LLM API 的客户无法验证服务方是否真的运行了宣称的模型、精度、隐藏 prompt 与推理预算。现有方案要么信任硬件或第三方，要么以高成本重证整数替代模型的每一层、并与原生浮点服务脱节。FlashProve-Next 为单个 LLM API 响应生成<strong>可验证、零知识掩码的证明</strong>，且<strong>不修改原生服务</strong>（bf16/fp8/mxfp4、随机采样、FlashAttention、CUDA graph、批处理、<strong>前缀缓存</strong>），也不泄露权重、隐藏 prompt、隐藏推理或激活（密集 profile 固定粗粒度几何；跨架构隐藏留待后续）。</p>
+<p><strong>对广域的启示</strong>：<strong>前缀缓存是"可验证服务"必须兼容的生产特性</strong>——这反过来提示：跨域缓存共享若涉及多信任域，<strong>缓存命中本身也需要可信证明</strong>（否则无法证明"我确实复用了你说的那段"）。这条线目前几乎没人做，是个空白。</p>
+<h3 id="10-tigertts-draft-guided-multi-frame-parallel-speech-token-language-model-for-fast-and-robust-text-to-speech">10. TigerTTS: Draft-Guided Multi-Frame Parallel Speech-Token Language Model for Fast and Robust Text-to-Speech</h3>
+<ul>
+<li><strong>链接</strong>：<a href="https://arxiv.org/abs/2611.34241">https://arxiv.org/abs/2611.34241</a></li>
+<li><strong>时间</strong>：2026-11-25</li>
+<li><strong>方向</strong>：草稿引导 · 多帧并行 · 生产级 TTS</li>
+</ul>
+<p><strong>摘要</strong>：自回归语音 token 语言模型能实现高质量 TTS，但存在随序列长度增长的延迟、缺少显式对齐导致的<strong>漏词或重复</strong>、以及离散码本带来的保真度上限。TigerTTS 是生产级 LLM TTS 系统，围绕一个轻量<strong>非自回归（NAR）模型</strong>构建：在显式对齐下，NAR 模型为整段话语<strong>起草 token</strong>，再由紧凑的自回归 LLM <strong>逐帧精化</strong>；草稿与 LLM 目标<strong>逐帧对齐并注入输入端</strong>，保证训练-推理一致。借助该精度，LLM 每步预测跨 3 帧 4 组的 <strong>12 个 token</strong>。</p>
+<p><strong>对广域的启示</strong>：<strong>"先并行起草、再逐帧精化"</strong> 与投机解码同构，但把草稿从"额外模型"换成了同一系统的 NAR 头。跨域流式语音的启示是：<strong>把串行依赖压到最小（每步 12 token）</strong>，能直接降低往返次数——这对 RTT 敏感的场景比压缩字节更有效。</p>
+<hr />
+<h2 id="_2">今日观察</h2>
+<ol>
+<li><strong>"陈旧缓存"从理论动态变成了实机现象</strong>：The Old Scene 证明 KV flush + sink 重算仍清不掉旧场景，因为历史同时承载主体一致性。跨域复用必须把"缓存时的上下文角色"作为元数据一起传。</li>
+<li><strong>状态接口能把传输量与长度解耦</strong>：Markovian 结构缓存把历史 KV 换成常数大小状态传输——前提是任务真的马尔可夫。</li>
+<li><strong>局部性有实测依据</strong>：LiveVAE 用感受野分析证明 VAE 编解码几乎只依赖时空邻居，为"只缓存窗口"提供了模型侧证据。</li>
+<li><strong>本期 arXiv 供给空档</strong>：11-26 至 11-28 无新 KV 论文进入索引，属正常波动；下期恢复按日跟进。</li>
+</ol>
+<blockquote>
+<p>注：本期为<strong>补遗批次</strong>；「混合注意力 + 非前缀复用」本期无新作。摘要基于 arXiv 官方摘要页整理，具体实验设置与数字以 PDF 原文为准。</p>
+</blockquote>
+</main>
+<nav class="pager"><a class="pager-link" href="2026-11-28.html"><span class="dir">← 上一期</span><span class="d">11月28日</span></a></nav>
+<footer class="footer"><span>KV Cache 日报</span><a href="../index.html">返回目录</a></footer>
+
+<script src="../assets/app.js" defer></script>
+</body>
+</html>
